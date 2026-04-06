@@ -1,10 +1,11 @@
 ---
 name: next-best-practices
-description: |
-  Next.js 15+ App Router best practices. Use when building pages, layouts, routes,
-  server components, server actions, caching, or API routes. Covers RSC patterns,
-  PPR, streaming, metadata, error boundaries, and proxy.ts conventions.
-allowed-tools: Read Grep Glob
+description: Next.js 15+ App Router best practices for pages, layouts, routes, server components, server actions, caching, API routes, and streaming. Use when building or reviewing Next.js code, implementing RSC patterns, PPR, metadata, error boundaries, or proxy.ts. Covers React 19 conventions, data fetching, ISR, and common mistakes.
+license: MIT
+metadata:
+  author: RevealUI Studio
+  version: "0.1.0"
+  website: https://revealui.com
 ---
 
 # Next.js Best Practices (App Router, v15+)

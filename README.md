@@ -1,40 +1,45 @@
 # RevSkills
 
-Production-grade Claude Code skills for modern web development. Built by [RevealUI Studio](https://revealui.com).
+Production-grade [Agent Skills](https://agentskills.io) for modern web development. Built by [RevealUI Studio](https://revealui.com).
+
+Compatible with Claude Code, Cursor, and any tool supporting the Agent Skills standard.
 
 ## Install
 
 ```bash
-# Add the marketplace
-/plugin marketplace add RevealUIStudio/revskills
-
-# Install all skills
-/plugin install revealui-web-skills@revealui-skills
+npx skills add RevealUIStudio/revskills
 ```
 
-Or install individual skills by copying the `skills/<name>/` directory into your project's `.claude/skills/`.
+Install a specific skill only:
+
+```bash
+npx skills add RevealUIStudio/revskills --skill next-best-practices
+```
 
 ## Skills
 
-| Skill | Invoke | Description |
-|-------|--------|-------------|
-| [next-best-practices](skills/next-best-practices/) | `/next-best-practices` | Next.js 15+ App Router patterns, RSC, caching, PPR |
-| [vitest-testing](skills/vitest-testing/) | `/vitest-testing` | Vitest testing patterns, mocking, coverage, PGlite |
-| [drizzle-db](skills/drizzle-db/) | `/drizzle-db` | Drizzle ORM schema design, migrations, queries |
-| [security-hardening](skills/security-hardening/) | `/security-hardening` | OWASP Top 10, CSP, CORS, auth, rate limiting |
-| [tailwind-v4](skills/tailwind-v4/) | `/tailwind-v4` | Tailwind CSS v4 migration, new syntax, theme vars |
+| Skill | Description |
+|-------|-------------|
+| [next-best-practices](skills/next-best-practices/) | Next.js 15+ App Router — RSC, PPR, caching, server actions, metadata |
+| [vitest-testing](skills/vitest-testing/) | Vitest patterns — mocking, coverage, PGlite, monorepo testing |
+| [drizzle-db](skills/drizzle-db/) | Drizzle ORM — schema design, migrations, queries, NeonDB |
+| [security-hardening](skills/security-hardening/) | OWASP Top 10 — CSP, CORS, auth, rate limiting, XSS, CSRF |
+| [tailwind-v4](skills/tailwind-v4/) | Tailwind CSS v4 — @theme, CSS-first config, CVA, migration from v3 |
 
 ## Contributing
 
-PRs welcome. Each skill must have:
-- `SKILL.md` with valid frontmatter
-- Clear description (first 250 chars are shown in listings)
-- No project-specific references
+PRs welcome. Each skill must:
+
+- Have a `SKILL.md` with valid frontmatter per the [Agent Skills spec](https://agentskills.io/specification)
+- Pass `skills-ref validate ./skills/<name>`
+- Include keyword-rich description (this is how agents discover your skill)
+- Keep body under 500 lines — move detailed reference to `references/`
+- Have no project-specific references
 
 ## License
 
 MIT
 
-## Part of the RevealUI Suite
+---
 
-RevSkills is part of [RevealUI](https://revealui.com) — the agentic business runtime. Build your business, not your boilerplate.
+Part of the [RevealUI Suite](https://revealui.com) — the agentic business runtime. Build your business, not your boilerplate.

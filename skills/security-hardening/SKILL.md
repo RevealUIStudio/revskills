@@ -1,10 +1,11 @@
 ---
 name: security-hardening
-description: |
-  Web application security hardening patterns. Use when implementing auth, headers,
-  CORS, rate limiting, input validation, or reviewing code for OWASP Top 10 vulnerabilities.
-  Covers CSP, session auth, bcrypt, XSS prevention, SQL injection, and CSRF protection.
-allowed-tools: Read Grep Glob
+description: Web application security hardening for OWASP Top 10 vulnerabilities. Use when implementing authentication, HTTP security headers, CORS, rate limiting, input validation, or reviewing code for XSS, SQL injection, CSRF, or SSRF. Covers CSP, HSTS, session cookies, bcrypt, Zod validation, and secrets management.
+license: MIT
+metadata:
+  author: RevealUI Studio
+  version: "0.1.0"
+  website: https://revealui.com
 ---
 
 # Security Hardening Patterns

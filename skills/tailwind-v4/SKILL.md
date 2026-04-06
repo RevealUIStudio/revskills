@@ -1,10 +1,11 @@
 ---
 name: tailwind-v4
-description: |
-  Tailwind CSS v4 patterns and migration guide. Use when writing styles, migrating
-  from v3, using theme variables, creating components, or configuring Tailwind v4.
-  Covers CSS-first config, @theme, custom properties, and new utility syntax.
-allowed-tools: Read Grep Glob
+description: Tailwind CSS v4 patterns, CSS-first configuration, and v3 migration guide. Use when writing styles, configuring @theme variables, creating components with CVA, migrating from tailwind.config.js, or using container queries, dark mode, and new v4 utility syntax. Covers @import tailwindcss, custom properties, oklch colors, and clsx.
+license: MIT
+metadata:
+  author: RevealUI Studio
+  version: "0.1.0"
+  website: https://revealui.com
 ---
 
 # Tailwind CSS v4 Patterns
