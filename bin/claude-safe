@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# claude-safe — wrapper around `claude` that auto-spawns a recovery tab on crash.
+#
+# Install: already on PATH at ~/.local/bin/claude-safe.
+# Optional: alias claude=claude-safe in ~/.bashrc for full auto-recovery.
+#
+# Design: ~/suite/.jv/docs/AUTO_RECOVERY.md
+#
+# Exit handling:
+#   0, 130 (SIGINT), 143 (SIGTERM) → treated as clean; pass through
+#   anything else                  → crash; spawn recovery tab in new Windows Terminal tab
+
+set -uo pipefail
+
+# --- Resolve the real claude binary ---
+REAL_CLAUDE="$HOME/.local/bin/claude"
+if [[ ! -x "$REAL_CLAUDE" ]]; then
+  REAL_CLAUDE="$(command -v claude)"
+fi
+if [[ -z "${REAL_CLAUDE:-}" ]] || [[ "$REAL_CLAUDE" = "$0" ]]; then
+  echo "claude-safe: cannot locate real claude binary" >&2
+  exit 127
+fi
+
+REPO="$(pwd)"
+IDENTITY="${REVEALUI_IDENTITY:-$(whoami)}"
+DISTRO="${WSL_DISTRO_NAME:-Ubuntu}"
+
+# --- Simulate-crash mode: exercise the recovery path without killing a live session ---
+# Usage: claude-safe --simulate-crash [exit_code]   (default 139, SIGSEGV-ish)
+SIMULATE=0
+if [[ "${1:-}" == "--simulate-crash" ]]; then
+  SIMULATE=1
+  shift
+  EXIT="${1:-139}"
+  [[ "$EXIT" =~ ^[0-9]+$ ]] || EXIT=139
+  echo "claude-safe: --simulate-crash — faking exit $EXIT without invoking real claude" >&2
+else
+  # --- Run real claude with all args passed through ---
+  "$REAL_CLAUDE" "$@"
+  EXIT=$?
+fi
+
+# Clean exits — pass through without recovery logic
+case "$EXIT" in
+  0|130|143) exit "$EXIT" ;;
+esac
+
+# ==== Crash path ====
+
+# Rate limit: if 3+ crashes in the last 5 min, stop auto-relaunching
+CRASH_COUNT=$(find /tmp -maxdepth 1 -name 'claude-crash-*.json' -mmin -5 2>/dev/null | wc -l)
+if (( CRASH_COUNT >= 3 )); then
+  echo "claude-safe: crash rate limit tripped ($CRASH_COUNT crashes in 5 min). Not auto-relaunching." >&2
+  echo "  Run manually when ready:  cd $REPO && claude 'recover'" >&2
+  exit "$EXIT"
+fi
+
+# Find rolling last-known-good snapshot (written by stop hook)
+SNAPSHOT=""
+for f in /tmp/claude-last-state-*.json; do
+  [[ -f "$f" ]] || continue
+  SNAPSHOT="$f"
+  break
+done
+
+# Write crash marker for /recover to detect + read.
+# Use jq for proper JSON escaping — hand-rolled stripping is injectable via crafted $PWD.
+CRASH_MARKER="/tmp/claude-crash-$$-$(date +%s).json"
+if command -v jq >/dev/null 2>&1; then
+  jq -n \
+    --argjson exit "$EXIT" \
+    --arg ts "$(date -Iseconds)" \
+    --arg repo "$REPO" \
+    --arg identity "$IDENTITY" \
+    --arg snapshot "$SNAPSHOT" \
+    '{exit: $exit, ts: $ts, repo: $repo, identity: $identity, snapshot: $snapshot}' \
+    > "$CRASH_MARKER"
+else
+  # Fallback: base64 the strings so consumers can decode them safely.
+  # /recover's marker reader must handle both shapes.
+  {
+    printf '{"exit":%d,"ts":"%s","encoding":"b64","repo_b64":"%s","identity_b64":"%s","snapshot_b64":"%s"}\n' \
+      "$EXIT" \
+      "$(date -Iseconds)" \
+      "$(printf '%s' "$REPO"     | base64 -w0)" \
+      "$(printf '%s' "$IDENTITY" | base64 -w0)" \
+      "$(printf '%s' "$SNAPSHOT" | base64 -w0)"
+  } > "$CRASH_MARKER"
+fi
+
+# Locate wt.exe — overridable for portability
+WT="${REVEALUI_WT_EXE:-/mnt/c/Users/joshu/AppData/Local/Microsoft/WindowsApps/wt.exe}"
+if [[ ! -x "$WT" ]]; then
+  WT="$(command -v wt.exe 2>/dev/null || true)"
+fi
+if [[ -z "$WT" || ! -x "$WT" ]]; then
+  echo "claude-safe: session exited with $EXIT — wt.exe not found, cannot auto-relaunch." >&2
+  echo "  Run manually:  cd $REPO && CLAUDE_CRASH_MARKER=$CRASH_MARKER claude 'recover'" >&2
+  exit "$EXIT"
+fi
+
+# Spawn recovery tab in active Windows Terminal window.
+#
+# Critical: launch from $HOME, not $REPO. cd-ing into the repo triggers direnv,
+# which triggers `use flake`, which can stall on cold Nix evaluation for many
+# minutes (seen 2026-04-14: 3.1 GiB download mid-recovery). The recover skill
+# uses ss_active_repo (defaults to ~/suite/revealui), so it doesn't need cwd.
+# We export REVEALUI_CRASHED_REPO so the skill can still target the right repo.
+echo "claude-safe: session exited with $EXIT — spawning recovery tab..." >&2
+"$WT" -w 0 nt -p "$DISTRO" \
+  wsl.exe -d "$DISTRO" -- bash -lc \
+  "cd \"\$HOME\" && export CLAUDE_CRASH_MARKER=$(printf %q "$CRASH_MARKER") REVEALUI_CRASHED_REPO=$(printf %q "$REPO") && claude 'recover'" \
+  >/dev/null 2>&1 &
+
+exit "$EXIT"
