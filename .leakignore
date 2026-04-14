@@ -1,0 +1,23 @@
+# .leakignore — allowed private-path references in this public repo.
+#
+# Format: <path-glob> <tag[,tag...]>   # reason
+#
+# The leak scanner (scripts/check-no-private-leaks.sh) ignores matches where
+# BOTH the file path matches the glob AND the leak tag is listed. Unknown
+# leaks still fail CI.
+#
+# Why this file exists: some skills in this repo are Studio-internal helpers
+# that intentionally target the RevealUI Suite filesystem layout. They are
+# not generically installable — the README makes this explicit. Every
+# entry below must have a real reason; "convenience" is not one.
+
+# Continuity skills — Studio-internal by design (see README).
+skills/revealui-recover/**       private-jv-repo,private-jv-name,lts-drive   # targets suite layout
+skills/revealui-handoff/**       private-jv-repo                              # handoff dir under .jv by design
+skills/revealui-doctor/**        private-jv-repo,lts-drive                    # diagnoses full suite layout
+skills/revealui-sync-rules/**    private-jv-name                              # coordinates rules across suite repos
+skills/revealui-sync-lts/**      lts-drive,private-jv-name                    # backup target is LTS drive
+skills/revealui-skills-test/**   private-jv-repo                              # validates both public + internal skills
+
+# Top-level README acknowledges these are Studio-internal.
+README.md                        private-jv-repo                              # documents suite-layout assumption

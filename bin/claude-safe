@@ -4,7 +4,7 @@
 # Install: already on PATH at ~/.local/bin/claude-safe.
 # Optional: alias claude=claude-safe in ~/.bashrc for full auto-recovery.
 #
-# Design: ~/suite/.jv/docs/AUTO_RECOVERY.md
+# Design: docs/AUTO_RECOVERY.md (in the revskills repo)
 #
 # Exit handling:
 #   0, 130 (SIGINT), 143 (SIGTERM) → treated as clean; pass through
@@ -66,7 +66,18 @@ done
 
 # Write crash marker for /recover to detect + read.
 # Use jq for proper JSON escaping — hand-rolled stripping is injectable via crafted $PWD.
-CRASH_MARKER="/tmp/claude-crash-$$-$(date +%s).json"
+#
+# mktemp (not a predictable name) — prevents symlink-overwrite attacks on
+# multi-user systems where /tmp is shared. Preserves the claude-crash-*.json
+# prefix so the rate-limit glob and /recover discovery still match.
+if ! CRASH_MARKER="$(mktemp --tmpdir "claude-crash-XXXXXXXXXX.json" 2>/dev/null)"; then
+  # BSD mktemp fallback (no --tmpdir).
+  CRASH_MARKER="$(mktemp "/tmp/claude-crash-XXXXXXXXXX.json" 2>/dev/null)" || {
+    echo "claude-safe: mktemp failed; cannot write crash marker safely." >&2
+    exit "$EXIT"
+  }
+fi
+chmod 600 "$CRASH_MARKER" 2>/dev/null || true
 if command -v jq >/dev/null 2>&1; then
   jq -n \
     --argjson exit "$EXIT" \
