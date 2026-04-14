@@ -1,0 +1,14 @@
+# .pluginlintignore — suppress known upstream plugin-lint findings.
+#
+# Format: <plugin-id-glob> <issue-substring>   # reason
+#
+# Suppresses a finding only if BOTH the plugin ID matches the glob AND
+# the emitted message contains the substring. Keeps upstream issues from
+# blocking CI while still reporting regressions in our own code.
+#
+# Update the REASON column whenever a new entry lands — someone reading
+# this file in 6 months should understand why each exception exists.
+
+# Anthropic official plugins — upstream bugs we can't fix here.
+claude-plugins-official/huggingface-skills/*  missing YAML frontmatter       # upstream: hugging-face-dataset-viewer SKILL.md lacks frontmatter (report to anthropics/claude-plugins-official)
+claude-plugins-official/plugin-dev/*          predictable /tmp paths          # upstream: test-hook.sh example uses $$ pattern (example code; low risk)
