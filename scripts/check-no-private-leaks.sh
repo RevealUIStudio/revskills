@@ -33,6 +33,9 @@ PATTERNS=(
   "lts-drive|/mnt/e/|LTS drive mount path"
   "forge-drive|/mnt/forge/|Forge drive mount path"
   "devbox-host|joshu-devbox|internal hostname"
+  "license-key|RVUI-[a-z]+-[a-f0-9]{16,}|RevealUI license key (looks like a real issued key)"
+  "vercel-org-id|team_[A-Za-z0-9]{16,}|Vercel org/team identifier"
+  "vercel-project-id|prj_[A-Za-z0-9]{16,}|Vercel project identifier"
 )
 
 # Directories / file globs to exclude from the scan.
