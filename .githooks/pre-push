@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# .githooks/pre-push — runs all revskills validators before push.
+#
+# Activates via:  git config core.hooksPath .githooks
+# (run once after clone; a chicken-and-egg situation prevents auto-install)
+#
+# Runs three scanners in order, fails fast:
+#   1. lint-all-skills.sh        — frontmatter, awk rules, broken symlinks
+#   2. lint-plugins.sh           — installed Claude Code plugin validation
+#   3. check-no-private-leaks.sh — private-path leak scan (repo-wide)
+#
+# Override with SKIP_PREPUSH=1 git push  (use only when you know why).
+
+set -uo pipefail
+
+if [[ -n "${SKIP_PREPUSH:-}" ]]; then
+  echo "[pre-push] SKIP_PREPUSH set — bypassing validators." >&2
+  exit 0
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+fail=0
+run_check() {
+  local name="$1" script="$2"
+  echo "[pre-push] $name …" >&2
+  if ! bash "$script"; then
+    echo "[pre-push] $name FAILED" >&2
+    fail=1
+  fi
+}
+
+run_check "skills-lint"          "$REPO_ROOT/scripts/lint-all-skills.sh"
+run_check "plugin-lint"          "$REPO_ROOT/scripts/lint-plugins.sh"
+run_check "private-leak-scan"    "$REPO_ROOT/scripts/check-no-private-leaks.sh"
+
+if (( fail )); then
+  echo "[pre-push] ONE OR MORE VALIDATORS FAILED — push blocked." >&2
+  echo "[pre-push] Fix the issues above, or bypass with: SKIP_PREPUSH=1 git push (document why in the PR)." >&2
+  exit 1
+fi
+
+echo "[pre-push] all validators passed." >&2
+exit 0

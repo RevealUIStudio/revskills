@@ -49,6 +49,22 @@ PRs welcome. Each skill must:
 - Keep body under 500 lines — move detailed reference to `references/`
 - Have no project-specific references
 
+### Pre-push validators
+
+After cloning, activate the committed git hooks once:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+From then on, every `git push` runs three validators:
+
+1. **skills-lint** — SKILL.md frontmatter + awk rule checks + symlink integrity (`scripts/lint-all-skills.sh`)
+2. **plugin-lint** — installed Claude Code plugin validation (`scripts/lint-plugins.sh`)
+3. **private-leak-scan** — repo-wide scan for leaked filesystem paths, license keys, or Vercel IDs (`scripts/check-no-private-leaks.sh`)
+
+All three must pass. Known upstream issues and intentional Studio-internal references live in `.leakignore` / `.pluginlintignore` with documented reasons. Bypass (rare, document in the PR): `SKIP_PREPUSH=1 git push`.
+
 ## License
 
 MIT
