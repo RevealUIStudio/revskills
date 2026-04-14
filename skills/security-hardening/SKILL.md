@@ -2,6 +2,7 @@
 name: security-hardening
 description: Web application security hardening for OWASP Top 10 vulnerabilities. Use when implementing authentication, HTTP security headers, CORS, rate limiting, input validation, or reviewing code for XSS, SQL injection, CSRF, or SSRF. Covers CSP, HSTS, session cookies, bcrypt, Zod validation, and secrets management.
 license: MIT
+allowed-tools: Read, Grep, Glob
 metadata:
   author: RevealUI Studio
   version: "0.1.0"

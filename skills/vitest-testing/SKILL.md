@@ -2,6 +2,7 @@
 name: vitest-testing
 description: Vitest testing patterns for production TypeScript projects. Use when writing tests, fixing test failures, configuring coverage, mocking modules, debugging flaky tests, or setting up Vitest in a monorepo. Covers Vitest 3+, vi.mock, vi.fn, React Testing Library, PGlite in-memory PostgreSQL, pool forks, maxWorkers, and hookTimeout.
 license: MIT
+allowed-tools: Read, Grep, Glob
 metadata:
   author: RevealUI Studio
   version: "0.1.0"
