@@ -23,9 +23,18 @@ ss_identity() {
 }
 
 ss_active_repo() {
+  # 1. Explicit crashed-repo env var (set by claude-safe on crash recovery).
+  #    Recovery tab is launched from $HOME to avoid direnv/Nix stalls, so PWD
+  #    inference below would pick the wrong repo without this hint.
+  if [ -n "${REVEALUI_CRASHED_REPO:-}" ] && [ -d "${REVEALUI_CRASHED_REPO:-}" ]; then
+    printf '%s\n' "$REVEALUI_CRASHED_REPO"
+    return 0
+  fi
+  # 2. CWD is inside the Suite — infer the enclosing repo.
   case "$PWD" in
     "$SUITE_ROOT"/*) git -C "$PWD" rev-parse --show-toplevel 2>/dev/null && return 0 ;;
   esac
+  # 3. Fall back to the canonical primary repo.
   printf '%s\n' "$REVEALUI_REPO"
 }
 
