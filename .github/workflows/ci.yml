@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  skills-lint:
+    name: Skill Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint all skills
+        run: bash scripts/lint-all-skills.sh
+
+  plugin-lint:
+    name: Plugin Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint plugin metadata and security
+        run: bash scripts/lint-plugins.sh skills/
+
+  private-leak-scan:
+    name: Private Leak Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for private paths and credentials
+        run: bash scripts/check-no-private-leaks.sh
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint shell scripts
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          find scripts/ bin/ .githooks/ -name '*.sh' -type f | xargs shellcheck --severity=warning || true
+          # Strict check on security-critical scripts
+          shellcheck --severity=info \
+            scripts/check-no-private-leaks.sh \
+            scripts/lib/session-state.sh
+
+  structure:
+    name: Structure Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify skill directory structure
+        run: |
+          set -euo pipefail
+          errors=0
+
+          for dir in skills/*/; do
+            skill="$(basename "$dir")"
+
+            # Every skill must have a SKILL.md
+            if [ ! -f "$dir/SKILL.md" ]; then
+              printf 'FAIL: %s missing SKILL.md\n' "$skill" >&2
+              errors=$((errors+1))
+            fi
+
+            # SKILL.md must have YAML frontmatter with name + description
+            if [ -f "$dir/SKILL.md" ]; then
+              if ! head -1 "$dir/SKILL.md" | grep -q '^---$'; then
+                printf 'FAIL: %s/SKILL.md missing YAML frontmatter\n' "$skill" >&2
+                errors=$((errors+1))
+              fi
+            fi
+          done
+
+          # README must exist
+          if [ ! -f README.md ]; then
+            printf 'FAIL: missing README.md\n' >&2
+            errors=$((errors+1))
+          fi
+
+          if [ "$errors" -gt 0 ]; then
+            printf '\n%d structure error(s) found\n' "$errors" >&2
+            exit 1
+          fi
+          printf 'Structure OK — %d skills validated\n' "$(find skills -maxdepth 1 -mindepth 1 -type d | wc -l)"
