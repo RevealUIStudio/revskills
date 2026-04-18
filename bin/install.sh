@@ -31,7 +31,7 @@ for src in "$REPO_BIN"/*; do
     printf '[install] skip %s — regular file exists; back it up and re-run\n' "$dest" >&2
     skipped=$((skipped+1))
   else
-    ln -s "$src" "$dest"
+    ln -sfn "$src" "$dest"
     printf '[install] linked %s -> %s\n' "$dest" "$src"
     installed=$((installed+1))
   fi

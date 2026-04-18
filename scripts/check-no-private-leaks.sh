@@ -134,8 +134,14 @@ for entry in "${PATTERNS[@]}"; do
         json_entries+=("$(jq -cn --arg tag "$tag" --arg file "$file" --arg line "$line" --arg reason "$reason" --arg content "$content" \
           '{tag:$tag, file:$file, line:($line|tonumber), reason:$reason, content:$content}')")
       else
-        safe_content="${content//\"/\\\"}"
-        json_entries+=("{\"tag\":\"$tag\",\"file\":\"$file\",\"line\":$line,\"reason\":\"$reason\",\"content\":\"$safe_content\"}")
+        # Escape backslashes first, then double quotes, then control chars
+        safe_content="${content//\\/\\\\}"
+        safe_content="${safe_content//\"/\\\"}"
+        safe_content="${safe_content//$'\n'/\\n}"
+        safe_content="${safe_content//$'\t'/\\t}"
+        safe_reason="${reason//\\/\\\\}"
+        safe_reason="${safe_reason//\"/\\\"}"
+        json_entries+=("{\"tag\":\"$tag\",\"file\":\"$file\",\"line\":$line,\"reason\":\"$safe_reason\",\"content\":\"$safe_content\"}")
       fi
     else
       printf '[LEAK:%s] %s:%s — %s\n  → %s\n' "$tag" "$file" "$line" "$reason" "$content"

@@ -49,6 +49,8 @@ ss_revvault_alive() {
 
 ss_workboard_recent() {
   local identity="${1:-}" n="${2:-20}"
+  # Validate n is numeric
+  [[ "$n" =~ ^[0-9]+$ ]] || { printf 'ss_workboard_recent: n must be numeric, got: %s\n' "$n" >&2; return 1; }
   [ -f "$WORKBOARD" ] || { printf 'workboard missing: %s\n' "$WORKBOARD" >&2; return 1; }
   if [ -n "$identity" ] && [ "$identity" != "stagehand" ]; then
     grep -E "\] ${identity}(-[0-9]+)?:" "$WORKBOARD" | tail -n "$n"
@@ -64,12 +66,16 @@ ss_empty_objects() {
 
 ss_orphaned_handoffs() {
   local age_min="${1:-60}"
+  # Validate age_min is numeric
+  [[ "$age_min" =~ ^[0-9]+$ ]] || { printf 'ss_orphaned_handoffs: age_min must be numeric, got: %s\n' "$age_min" >&2; return 1; }
   find /tmp -maxdepth 1 -name 'agent-handoff-*.md' -mmin +"$age_min" 2>/dev/null
   find "$JV_REPO/.claude/handoffs" -maxdepth 1 -name '*.md' -mmin +"$age_min" 2>/dev/null
 }
 
 ss_hook_state() {
   local ppid="${1:-$PPID}"
+  # Validate ppid is numeric
+  [[ "$ppid" =~ ^[0-9]+$ ]] || { printf 'ss_hook_state: ppid must be numeric, got: %s\n' "$ppid" >&2; return 1; }
   local out=""
   for f in "/tmp/claude-agent-edits-${ppid}.json" "/tmp/claude-autocommit-${ppid}.json" "/tmp/claude-context-${ppid}.json" "/tmp/claude-session-${ppid}.json"; do
     if [ -f "$f" ]; then

@@ -81,7 +81,7 @@ filter_suppressions() {
 # --- plugin.json validation ---
 require_field() {
   local file="$1" field="$2" plugin_id="$3"
-  if ! grep -qE "\"$field\"\\s*:" "$file"; then
+  if ! grep -qE "\"$field\"\\s*:" -- "$file"; then
     FAILURES+=("$plugin_id: missing required field '$field' in $file")
     return 1
   fi
@@ -112,28 +112,28 @@ scan_shell_script() {
   esac
 
   # Inline node -e — violates hooks.md rule, hard to audit, escaping hell.
-  if grep -nE '\bnode\s+-e\s+["'\'']' "$file" >/dev/null 2>&1; then
+  if grep -nE '\bnode\s+-e\s+["'\'']' -- "$file" >/dev/null 2>&1; then
     FAILURES+=("$plugin_id: $rel contains inline 'node -e' (rule: hooks.md)")
   fi
 
   # Predictable /tmp paths — symlink-overwrite risk.
   # Flag /tmp/<name>-$$.<ext> or /tmp/<name>-<date-invocation>.<ext>.
-  if grep -nE '/tmp/[a-zA-Z0-9_-]+-(\$\$|\$\(date)' "$file" >/dev/null 2>&1; then
+  if grep -nE '/tmp/[a-zA-Z0-9_-]+-(\$\$|\$\(date)' -- "$file" >/dev/null 2>&1; then
     WARNINGS+=("$plugin_id: $rel uses predictable /tmp paths — prefer mktemp + chmod 600")
   fi
 
   # Unquoted eval of variables — command injection.
-  if grep -nE '\beval\s+\$[A-Za-z_]' "$file" >/dev/null 2>&1; then
+  if grep -nE '\beval\s+\$[A-Za-z_]' -- "$file" >/dev/null 2>&1; then
     FAILURES+=("$plugin_id: $rel contains unquoted 'eval \$VAR' — command injection risk")
   fi
 
   # rm -rf $VAR without quotes — pathological word splitting.
-  if grep -nE '\brm\s+-rf?\s+\$[A-Za-z_]' "$file" >/dev/null 2>&1; then
+  if grep -nE '\brm\s+-rf?\s+\$[A-Za-z_]' -- "$file" >/dev/null 2>&1; then
     FAILURES+=("$plugin_id: $rel contains unquoted 'rm -rf \$VAR' — word-splitting risk")
   fi
 
   # curl | bash / wget | sh — supply-chain risk.
-  if grep -nE 'curl[^|]*\|\s*(bash|sh)\b|wget[^|]*\|\s*(bash|sh)\b' "$file" >/dev/null 2>&1; then
+  if grep -nE 'curl[^|]*\|\s*(bash|sh)\b|wget[^|]*\|\s*(bash|sh)\b' -- "$file" >/dev/null 2>&1; then
     FAILURES+=("$plugin_id: $rel contains 'curl | bash' — supply-chain risk")
   fi
 }
@@ -147,10 +147,10 @@ validate_skill_md() {
     FAILURES+=("$plugin_id: $rel missing YAML frontmatter")
     return
   fi
-  if ! grep -qE '^name:' "$file"; then
+  if ! grep -qE '^name:' -- "$file"; then
     FAILURES+=("$plugin_id: $rel missing 'name:' in frontmatter")
   fi
-  if ! grep -qE '^description:' "$file"; then
+  if ! grep -qE '^description:' -- "$file"; then
     FAILURES+=("$plugin_id: $rel missing 'description:' in frontmatter")
   fi
 }
