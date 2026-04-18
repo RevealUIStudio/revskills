@@ -46,11 +46,7 @@ jobs:
       - name: Lint shell scripts
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
-          find scripts/ bin/ .githooks/ -name '*.sh' -type f | xargs shellcheck --severity=warning || true
-          # Strict check on security-critical scripts
-          shellcheck --severity=info \
-            scripts/check-no-private-leaks.sh \
-            scripts/lib/session-state.sh
+          find scripts/ bin/ .githooks/ -name '*.sh' -type f | xargs shellcheck --severity=warning
 
   structure:
     name: Structure Validation
