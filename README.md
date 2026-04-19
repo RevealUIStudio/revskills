@@ -1,6 +1,6 @@
 # RevSkills
 
-Production-grade [Agent Skills](https://agentskills.io) for modern web development. Built by [RevealUI Studio](https://revealui.com).
+[Agent Skills](https://agentskills.io) for modern web development. Built by [RevealUI Studio](https://revealui.com).
 
 Compatible with Claude Code, Cursor, and any tool supporting the Agent Skills standard.
 
