@@ -18,13 +18,34 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 
 ## Skills
 
+### Framework & app patterns
+
 | Skill | Description |
 |-------|-------------|
 | [next-best-practices](skills/next-best-practices/) | Next.js 15+ App Router — RSC, PPR, caching, server actions, metadata |
-| [vitest-testing](skills/vitest-testing/) | Vitest patterns — mocking, coverage, PGlite, monorepo testing |
-| [drizzle-db](skills/drizzle-db/) | Drizzle ORM — schema design, migrations, queries, NeonDB |
-| [security-hardening](skills/security-hardening/) | OWASP Top 10 — CSP, CORS, auth, rate limiting, XSS, CSRF |
 | [tailwind-v4](skills/tailwind-v4/) | Tailwind CSS v4 — @theme, CSS-first config, CVA, migration from v3 |
+| [security-hardening](skills/security-hardening/) | OWASP Top 10 — CSP, CORS, auth, rate limiting, XSS, CSRF |
+
+### Data & sync
+
+| Skill | Description |
+|-------|-------------|
+| [drizzle-db](skills/drizzle-db/) | Drizzle ORM — schema design, migrations, queries, NeonDB |
+| [electric-sync](skills/electric-sync/) | ElectricSQL v1.x real-time sync — shapes, proxy routes, mutations, offline-first |
+| [yjs-collaboration](skills/yjs-collaboration/) | Yjs CRDT collaboration — Y.Doc/Map/Array/Text, offline-first editing, conflict-free merges |
+
+### AI & agents
+
+| Skill | Description |
+|-------|-------------|
+| [mcp-server](skills/mcp-server/) | Model Context Protocol server development — JSON-RPC, tools, resources, credential isolation |
+| [multi-agent-memory](skills/multi-agent-memory/) | Multi-agent shared memory — append-only facts, Yjs scratchpads, LLM-powered reconciliation |
+
+### Testing
+
+| Skill | Description |
+|-------|-------------|
+| [vitest-testing](skills/vitest-testing/) | Vitest patterns — mocking, coverage, PGlite, monorepo testing |
 
 ## RevealUI Workflow (Studio-internal)
 
