@@ -43,6 +43,7 @@ EXCLUDE_DIRS=(node_modules .git dist build .next .turbo .pnpm coverage)
 EXCLUDE_FILES=(
   pnpm-lock.yaml package-lock.json yarn.lock
   check-no-private-leaks.sh
+  .git
   '*.png' '*.jpg' '*.jpeg' '*.gif' '*.webp' '*.pdf' '*.zip' '*.tar.gz' '*.tgz'
   '*.ico' '*.woff' '*.woff2' '*.ttf' '*.otf'
 )
