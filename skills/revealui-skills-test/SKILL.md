@@ -1,6 +1,6 @@
 ---
 name: revealui-skills-test
-description: Static validator for Claude Code skills. Dry-runs every skill in ~/.claude/commands/*.md, validates referenced scripts exist, flags stale ~/projects/ paths, rule violations (git -C, pnpm --dir, inline node -e), tmux references. Read-only — catches broken skills before users hit them at run time.
+description: Static validator for Claude Code skills. Dry-runs every skill in ~/.claude/commands/*.md, validates referenced scripts exist, flags stale ~/suite/ paths, rule violations (git -C, pnpm --dir, inline node -e), tmux references. Read-only — catches broken skills before users hit them at run time.
 license: MIT
 allowed-tools: Bash, Read, Glob, Grep
 metadata:
@@ -13,7 +13,7 @@ Validate each skill in `~/.claude/commands/*.md` without executing its side effe
 
 Load helpers:
 ```bash
-. "$HOME/suite/revskills/scripts/lib/session-state.sh"
+. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
 ```
 
 ## For each `~/.claude/commands/*.md`
@@ -25,19 +25,20 @@ Load helpers:
 ### 2. Referenced scripts
 Extract every path matching:
 - `$HOME/.claude/...` or `~/.claude/...`
-- `$HOME/suite/revskills/...` or `~/suite/revskills/...`
+- `$HOME/revfleet/revskills/...` or `~/revfleet/revskills/...`
 - `bash "<path>"` or `node "<path>"` or `tsx "<path>"`
 
 For each, assert the target file exists. Missing = FAIL.
 
 ### 3. Referenced repos
-Extract every path matching `~/suite/...` or `~/projects/...`. Assert existence.
-- `~/projects/*` in real path usage = FAIL (migrated to `~/suite/`).
-- `~/suite/*` non-existent = FAIL.
+Extract every path matching `~/revfleet/...`, `~/projects/...`, or `~/suite/...`. Assert existence.
+- `~/suite/*` in real path usage = FAIL (path retired 2026-05-07 — migrated to `~/revfleet/`).
+- `~/revfleet/*` non-existent = FAIL.
+- `~/projects/*` is the R&D sandbox per `~/projects/CLAUDE.md` — assert existence; do not flag as stale.
 
 ### 4. Rule compliance (via awk linter)
-Run `awk -f "$HOME/suite/revskills/scripts/lib/lint-skill.awk" <skill>`. Emits `ISSUE: <tag>:<line>:<text>` per violation. The linter scopes checks to fenced code blocks and skips deny-listed prose ("Do not", "never", "avoid", "DISABLED") to avoid false positives. Tags:
-- `stale-projects-path` — `~/projects/` in real path usage (migrated to `~/suite/`)
+Run `awk -f "$HOME/revfleet/revskills/scripts/lib/lint-skill.awk" <skill>`. Emits `ISSUE: <tag>:<line>:<text>` per violation. The linter scopes checks to fenced code blocks and skips deny-listed prose ("Do not", "never", "avoid", "DISABLED") to avoid false positives. Tags:
+- `stale-suite-path` — `~/suite/` in real path usage (path retired 2026-05-07 — migrated to `~/revfleet/`)
 - `git-C-violates-bash.md` — `git -C <path>` in executable code
 - `pnpm-dir-violates-bash.md` — `pnpm --dir` / `pnpm -C` in executable code
 - `inline-node-e-violates-hooks.md` — `node -e "…"` in executable code
@@ -63,8 +64,8 @@ Plus a `FAIL summary` section listing every failure with file:line and a remedia
 
 For CI / pre-commit enforcement (no Claude required) run the batch validator directly:
 ```bash
-bash "$HOME/suite/revskills/scripts/lint-all-skills.sh"         # human output
-bash "$HOME/suite/revskills/scripts/lint-all-skills.sh" --json  # machine output
+bash "$HOME/revfleet/revskills/scripts/lint-all-skills.sh"         # human output
+bash "$HOME/revfleet/revskills/scripts/lint-all-skills.sh" --json  # machine output
 ```
 Exits 0 on clean, 1 on any lint / frontmatter / broken-symlink violation. Use this in a pre-push hook to prevent regressions.
 
