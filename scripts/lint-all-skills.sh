@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Batch-lint every skill under ~/suite/revskills/skills/*/SKILL.md using lint-skill.awk,
+# Batch-lint every skill under ~/revfleet/revskills/skills/*/SKILL.md using lint-skill.awk,
 # and verify every ~/.claude/commands/*.md symlink resolves.
 #
 # Exit 0 on clean, 1 on any violation. Designed for pre-commit hooks and CI.
 #
 # Usage:
-#   bash ~/suite/revskills/scripts/lint-all-skills.sh
-#   bash ~/suite/revskills/scripts/lint-all-skills.sh --json    # machine-readable output
+#   bash ~/revfleet/revskills/scripts/lint-all-skills.sh
+#   bash ~/revfleet/revskills/scripts/lint-all-skills.sh --json    # machine-readable output
 
 set -euo pipefail
 

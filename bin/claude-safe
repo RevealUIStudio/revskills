@@ -116,7 +116,7 @@ fi
 # Critical: launch from $HOME, not $REPO. cd-ing into the repo triggers direnv,
 # which triggers `use flake`, which can stall on cold Nix evaluation for many
 # minutes (seen 2026-04-14: 3.1 GiB download mid-recovery). The recover skill
-# uses ss_active_repo (defaults to ~/suite/revealui), so it doesn't need cwd.
+# uses ss_active_repo (defaults to ~/revfleet/revealui), so it doesn't need cwd.
 # We export REVEALUI_CRASHED_REPO so the skill can still target the right repo.
 echo "claude-safe: session exited with $EXIT — spawning recovery tab..." >&2
 "$WT" -w 0 nt -p "$DISTRO" \
