@@ -13,7 +13,7 @@ Sync suite repos to the LTS drive. LTS mode is declared per-repo at `.claude/lts
 
 Load helpers:
 ```bash
-. "$HOME/suite/revskills/scripts/lib/session-state.sh"
+. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Modes
@@ -31,7 +31,7 @@ Load helpers:
 ## Steps
 
 1. **Discover LTS mount**: `mount | grep /mnt/e` — fail if not mounted.
-2. **For each suite repo** (iterate `~/suite/*/` excluding dotfiles):
+2. **For each suite repo** (iterate `~/revfleet/*/` excluding dotfiles):
    - Skip if not a git repo.
    - Read `<repo>/.claude/lts-mode`. If missing, print `unconfigured: <repo>` and continue.
    - If `bundle`: create dated bundle, prune old, verify via `cd /mnt/e/professional/<RepoName> && git bundle verify <file>`.

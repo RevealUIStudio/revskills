@@ -13,7 +13,7 @@ Run a health check on the Claude Code setup and the Studio-native RevealUI workf
 
 Load helpers:
 ```bash
-. "$HOME/suite/revskills/scripts/lib/session-state.sh"
+. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
 ```
 
 ## 1. Hook syntax
@@ -21,19 +21,19 @@ Run `node --check` on every `~/.claude/hooks/*.js`. List failures.
 
 ## 2. Rules directories
 Verify these exist and contain `.md` files:
-- `~/suite/revealui/.claude/rules/`
-- `~/suite/.jv/.claude/rules/`
+- `~/revfleet/revealui/.claude/rules/`
+- `~/revfleet/.jv/.claude/rules/`
 - `~/.claude/rules/`
 
 ## 3. Skills self-test
 For each `~/.claude/commands/*.md`:
 - Parse frontmatter if present.
-- Extract referenced script paths (`$HOME/.claude/...`, `~/.claude/...`, `~/suite/revskills/...`, `node "..."`, `bash "..."`).
+- Extract referenced script paths (`$HOME/.claude/...`, `~/.claude/...`, `~/revfleet/revskills/...`, `node "..."`, `bash "..."`).
 - Assert each referenced script exists. Report missing.
-- Extract referenced repo paths (`~/suite/...`, `~/projects/...`). Assert existence. Flag stale `~/projects/` references.
+- Extract referenced repo paths (`~/revfleet/...`, `~/projects/...`, `~/suite/...`). Assert existence; flag any `~/suite/` references as stale (path retired 2026-05-07 — should be `~/revfleet/`).
 
 ## 4. Git integrity (both suite repos)
-For each repo in `~/suite/revealui` and `~/suite/.jv`:
+For each repo in `~/revfleet/revealui` and `~/revfleet/.jv`:
 ```bash
 cd "$repo" && git fsck --full 2>&1 | grep -E '^(error|fatal|missing)'
 ss_empty_objects "$repo"
@@ -41,10 +41,10 @@ ss_empty_objects "$repo"
 Empty objects = WSL crash damage. Report loudly.
 
 ## 5. Workboard freshness
-Parse `$WORKBOARD` (`~/suite/.jv/.claude/workboard.md`). In the `## Log` section, flag `[CRASHED]` entries older than 24h — these should have been triaged by `/recover`.
+Parse `$WORKBOARD` (`~/revfleet/.jv/.claude/workboard.md`). In the `## Log` section, flag `[CRASHED]` entries older than 24h — these should have been triaged by `/recover`.
 
 ## 6. Events log size
-`~/suite/revealui/.claude/events.jsonl` and `~/suite/.jv/.claude/events.jsonl`. Warn if over 100KB.
+`~/revfleet/revealui/.claude/events.jsonl` and `~/revfleet/.jv/.claude/events.jsonl`. Warn if over 100KB.
 
 ## 7. Daemon + Studio surface health
 ```bash
@@ -65,12 +65,12 @@ Validate `~/.claude/settings.json` and `~/.claude/settings.local.json` if presen
 ## 11. Toolchain
 ```bash
 pnpm -v; node -v; biome --version 2>/dev/null || echo "biome via pnpm exec"
-cd ~/suite/revealui && test -f flake.lock && nix flake metadata --json >/dev/null 2>&1 && echo "flake: ok" || echo "flake: check"
-cd ~/suite/revealui && direnv status 2>&1 | tail -3
+cd ~/revfleet/revealui && test -f flake.lock && nix flake metadata --json >/dev/null 2>&1 && echo "flake: ok" || echo "flake: check"
+cd ~/revfleet/revealui && direnv status 2>&1 | tail -3
 ```
 
 ## 12. LTS sync mode
-Check `~/suite/revealui/.claude/lts-mode` (expected: `bundle` or `mirror`). If absent, flag as unconfigured. Check `/mnt/e/professional/RevealUI/` matches declared mode.
+Check `~/revfleet/revealui/.claude/lts-mode` (expected: `bundle` or `mirror`). If absent, flag as unconfigured. Check `/mnt/e/professional/RevealUI/` matches declared mode.
 
 ## Output
 Traffic-light summary (PASS/WARN/FAIL) per section. JSON sidecar at `/tmp/claude-doctor-last.json` so the daemon can consume results.

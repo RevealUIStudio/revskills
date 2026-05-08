@@ -1,6 +1,6 @@
 ---
 name: revealui-handoff
-description: Strategic context handoff to a fresh Claude/Studio session in the RevealUI Suite. Writes a git-tracked handoff document under ~/suite/.jv/.claude/handoffs/, appends a workboard log entry, and optionally notifies the RPC daemon. Studio-native — no tmux, no launch scripts.
+description: Strategic context handoff to a fresh Claude/Studio session in the RevealUI Suite. Writes a git-tracked handoff document under ~/revfleet/.jv/.claude/handoffs/, appends a workboard log entry, and optionally notifies the RPC daemon. Studio-native — no tmux, no launch scripts.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
@@ -13,7 +13,7 @@ Hand off the current session's in-flight state to a fresh agent. Studio-native: 
 
 Load helpers:
 ```bash
-. "$HOME/suite/revskills/scripts/lib/session-state.sh"
+. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Step 1 — Resolve context
@@ -21,13 +21,13 @@ Load helpers:
 ```bash
 IDENTITY="$(ss_identity)"
 REPO="$(ss_active_repo)"
-HANDOFF_DIR="$HOME/suite/.jv/.claude/handoffs"
+HANDOFF_DIR="$HOME/revfleet/.jv/.claude/handoffs"
 mkdir -p "$HANDOFF_DIR"
 TS="$(date +%Y%m%d-%H%M%S)"
 HANDOFF_FILE="$HANDOFF_DIR/${TS}-${IDENTITY}.md"
 ```
 
-The handoff document lives in `~/suite/.jv/.claude/handoffs/` (git-tracked, survives reboot) — **not** `/tmp`.
+The handoff document lives in `~/revfleet/.jv/.claude/handoffs/` (git-tracked, survives reboot) — **not** `/tmp`.
 
 ## Step 2 — Gather state (automated)
 
@@ -37,7 +37,7 @@ Assemble facts from the live session:
 - **Staged patch** (small): `cd "$REPO" && git diff --cached | head -400`
 - **Hook-tracked edits this session**: `cat /tmp/claude-agent-edits-${PPID}.json 2>/dev/null`
 - **Recent workboard entries for this identity**: `ss_workboard_recent "$IDENTITY" 5`
-- **Memories touched this session** (if tracked): files under `~/.claude/projects/-home-joshua-v-dev-suite/memory/` modified since session start
+- **Memories touched this session** (if tracked): files under `~/.claude/projects/-home-joshua-v-dev-revfleet/memory/` modified since session start
 - **Open run-tasks**: `run-task --list 2>&1 | grep -E 'running|crashed'`
 
 ## Step 3 — Write handoff document
