@@ -1,7 +1,7 @@
 #!/usr/bin/awk -f
 # Lint a single skill file. Emit one "ISSUE: <tag>:<line>" per violation.
 # Rules:
-#   stale-projects-path         — ~/projects/ or $HOME/projects/ used as a real path (not in a Do-not/description/comment)
+#   stale-suite-path            — ~/suite/ or $HOME/suite/ used as a real path (path retired 2026-05-07; migrated to ~/revfleet/)
 #   git-C-violates-bash.md      — `git -C <path>` in executable code
 #   pnpm-dir-violates-bash.md   — `pnpm --dir` or `pnpm -C` in executable code
 #   inline-node-e-violates-hooks.md — `node -e "…"` in executable code
@@ -22,11 +22,11 @@ BEGIN { in_code = 0 }
   if (in_code && line ~ /^[ \t]*#/) next
   # tmux — only flag in code blocks (mentions in prose are usually explanatory)
   if (in_code && line ~ /(tmux|TMUX_PANE)/) print "ISSUE: tmux-legacy:" NR ":" line
-  # ~/projects/ paths — flag only as real path usage (anywhere, since prose paths also misdirect)
-  if (line ~ /(~|\$HOME)\/projects\//) {
+  # ~/suite/ paths — flag only as real path usage (path retired 2026-05-07; migrated to ~/revfleet/)
+  if (line ~ /(~|\$HOME)\/suite\//) {
     # allow if line is clearly a description mentioning the pattern itself in backticks
-    if (line !~ /`[^`]*\/projects\/[^`]*`/ || in_code) {
-      print "ISSUE: stale-projects-path:" NR ":" line
+    if (line !~ /`[^`]*\/suite\/[^`]*`/ || in_code) {
+      print "ISSUE: stale-suite-path:" NR ":" line
     }
   }
   # git -C (code only)
