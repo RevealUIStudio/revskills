@@ -50,7 +50,7 @@ The allowlist is closed: anything not on it stops for human review. This preserv
 ## Installation
 
 ```bash
-bash "$HOME/suite/revskills/bin/install.sh"
+bash "$HOME/revfleet/revskills/bin/install.sh"
 ```
 
 The install script symlinks each executable in `bin/` into `~/.local/bin/`. It is idempotent, refuses to overwrite regular files (back them up first), and accepts `REVSKILLS_BIN_TARGET=<dir>` for non-default targets.

@@ -1,6 +1,6 @@
 ---
 name: revealui-recover
-description: Diagnose and recover from a crashed or interrupted Claude/Studio session in the RevealUI Suite. Surfaces git corruption, stale hook state, orphaned handoffs, daemon status, and workboard CRASHED markers. Diagnostic-first — never executes destructive repairs without explicit approval.
+description: Diagnose and recover from a crashed or interrupted Claude/Studio session in RevFleet. Surfaces git corruption, stale hook state, orphaned handoffs, daemon status, and workboard CRASHED markers. Diagnostic-first — never executes destructive repairs without explicit approval.
 license: MIT
 allowed-tools: Bash, Read, Grep, Glob
 metadata:
@@ -13,7 +13,7 @@ Recover from a crashed or interrupted Claude/Studio session. Diagnostic-first: s
 
 Load shared helpers:
 ```bash
-. "$HOME/suite/revskills/scripts/lib/session-state.sh"
+. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Step 0 — Identity
@@ -99,7 +99,7 @@ Look for `[CRASHED]` entries. If the most recent entry for this identity is CRAS
 ## Step 8 — Relevant memory
 
 ```bash
-grep -l -r "$(basename "$REPO")" "$HOME/.claude/projects/-home-joshua-v-dev-suite/memory/" 2>/dev/null
+grep -l -r "$(basename "$REPO")" "$HOME/.claude/projects/-home-joshua-v-dev-revfleet/memory/" 2>/dev/null
 ```
 
 Surface memory files relevant to the active repo (especially `feedback_*` that might modify recovery behavior).

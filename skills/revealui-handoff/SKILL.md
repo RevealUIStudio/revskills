@@ -1,6 +1,6 @@
 ---
 name: revealui-handoff
-description: Strategic context handoff to a fresh Claude/Studio session in the RevealUI Suite. Writes a git-tracked handoff document under ~/revfleet/.jv/.claude/handoffs/, appends a workboard log entry, and optionally notifies the RPC daemon. Studio-native — no tmux, no launch scripts.
+description: Strategic context handoff to a fresh Claude/Studio session in RevFleet. Writes a git-tracked handoff document under ~/revfleet/.jv/.claude/handoffs/, appends a workboard log entry, and optionally notifies the RPC daemon. Studio-native — no tmux, no launch scripts.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:

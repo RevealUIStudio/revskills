@@ -49,14 +49,14 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 
 ## RevealUI Workflow (Studio-internal)
 
-These skills assume the RevealUI Suite layout (`~/suite/`, `~/suite/.jv`, RevVault, RevDev RPC daemon). Not generically installable — the canonical copies live here and are symlinked into `~/.claude/commands/` on Studio machines.
+These skills assume RevFleet layout (`~/revfleet/`, `~/revfleet/.jv`, RevVault, RevDev RPC daemon). Not generically installable — the canonical copies live here and are symlinked into `~/.claude/commands/` on Studio machines.
 
 | Skill | Description |
 |-------|-------------|
 | [revealui-recover](skills/revealui-recover/) | Diagnose and recover from crashed/interrupted Claude sessions — identity, git integrity, hook state, daemon, workboard |
 | [revealui-handoff](skills/revealui-handoff/) | Strategic context handoff to a fresh session via git-tracked handoff doc + RPC daemon transport |
-| [revealui-doctor](skills/revealui-doctor/) | Health check for Suite Claude setup — hook syntax, rules sync, git-fsck, LTS mode, skill self-test |
-| [revealui-sync-lts](skills/revealui-sync-lts/) | Sync Suite repos to the LTS drive (/mnt/e) per per-repo `.claude/lts-mode` (bundle or mirror) |
+| [revealui-doctor](skills/revealui-doctor/) | Health check for RevFleet Claude setup — hook syntax, rules sync, git-fsck, LTS mode, skill self-test |
+| [revealui-sync-lts](skills/revealui-sync-lts/) | Sync RevFleet repos to the LTS drive (/mnt/e) per per-repo `.claude/lts-mode` (bundle or mirror) |
 | [revealui-sync-rules](skills/revealui-sync-rules/) | Check whether `.claude/rules/` files are in sync across RevealUI repos — asks before copying |
 | [revealui-skills-test](skills/revealui-skills-test/) | Static validator for Claude Code skills — flags stale paths, rule violations, missing scripts |
 
@@ -92,4 +92,4 @@ MIT
 
 ---
 
-Part of the [RevealUI Suite](https://revealui.com) — the agentic business runtime. Build your business, not your boilerplate.
+Part of the [RevFleet](https://revealui.com) — the agentic business runtime. Build your business, not your boilerplate.

@@ -1,6 +1,6 @@
 ---
 name: revealui-sync-lts
-description: Sync RevealUI suite repos to the LTS drive (E: / /mnt/e) per per-repo declared mode (bundle or mirror). Refuses to sync repos without an .claude/lts-mode declaration.
+description: Sync RevFleet repos to the LTS drive (E: / /mnt/e) per per-repo declared mode (bundle or mirror). Refuses to sync repos without an .claude/lts-mode declaration.
 license: MIT
 allowed-tools: Bash, Read
 metadata:
@@ -9,7 +9,7 @@ metadata:
   website: https://revealui.com
 ---
 
-Sync suite repos to the LTS drive. LTS mode is declared per-repo at `.claude/lts-mode` (values: `bundle` or `mirror`). If absent, refuse to sync and prompt user to declare.
+Sync RevFleet repos to the LTS drive. LTS mode is declared per-repo at `.claude/lts-mode` (values: `bundle` or `mirror`). If absent, refuse to sync and prompt user to declare.
 
 Load helpers:
 ```bash
@@ -31,7 +31,7 @@ Load helpers:
 ## Steps
 
 1. **Discover LTS mount**: `mount | grep /mnt/e` — fail if not mounted.
-2. **For each suite repo** (iterate `~/revfleet/*/` excluding dotfiles):
+2. **For each RevFleet repo** (iterate `~/revfleet/*/` excluding dotfiles):
    - Skip if not a git repo.
    - Read `<repo>/.claude/lts-mode`. If missing, print `unconfigured: <repo>` and continue.
    - If `bundle`: create dated bundle, prune old, verify via `cd /mnt/e/professional/<RepoName> && git bundle verify <file>`.

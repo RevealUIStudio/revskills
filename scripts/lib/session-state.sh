@@ -2,9 +2,9 @@
 # Shared session-state helpers for continuity skills (/recover, /handoff, /doctor).
 # Source this file: . ~/.claude/scripts/lib/session-state.sh
 
-SUITE_ROOT="${SUITE_ROOT:-$HOME/suite}"
-REVEALUI_REPO="${REVEALUI_REPO:-$SUITE_ROOT/revealui}"
-JV_REPO="${JV_REPO:-$SUITE_ROOT/.jv}"
+REVFLEET_ROOT="${REVFLEET_ROOT:-$HOME/revfleet}"
+REVEALUI_REPO="${REVEALUI_REPO:-$REVFLEET_ROOT/revealui}"
+JV_REPO="${JV_REPO:-$REVFLEET_ROOT/.jv}"
 WORKBOARD="${WORKBOARD:-$JV_REPO/.claude/workboard.md}"
 DAEMON_SOCKET="${REVEALUI_SOCKET:-${DAEMON_SOCKET:-$HOME/.local/share/revealui/harness.sock}}"
 
@@ -30,9 +30,9 @@ ss_active_repo() {
     printf '%s\n' "$REVEALUI_CRASHED_REPO"
     return 0
   fi
-  # 2. CWD is inside the Suite — infer the enclosing repo.
+  # 2. CWD is inside RevFleet — infer the enclosing repo.
   case "$PWD" in
-    "$SUITE_ROOT"/*) git -C "$PWD" rev-parse --show-toplevel 2>/dev/null && return 0 ;;
+    "$REVFLEET_ROOT"/*) git -C "$PWD" rev-parse --show-toplevel 2>/dev/null && return 0 ;;
   esac
   # 3. Fall back to the canonical primary repo.
   printf '%s\n' "$REVEALUI_REPO"

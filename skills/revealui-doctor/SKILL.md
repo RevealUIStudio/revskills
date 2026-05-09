@@ -1,6 +1,6 @@
 ---
 name: revealui-doctor
-description: Health check for the RevealUI Suite Claude Code setup + Studio-native workflow. Verifies hook syntax, rules directories, skill preconditions, git integrity across suite repos, workboard freshness, daemon status, MCP servers, env file leaks, settings JSON validity, toolchain, and LTS sync mode.
+description: Health check for RevFleet Claude Code setup + Studio-native workflow. Verifies hook syntax, rules directories, skill preconditions, git integrity across RevFleet repos, workboard freshness, daemon status, MCP servers, env file leaks, settings JSON validity, toolchain, and LTS sync mode.
 license: MIT
 allowed-tools: Bash, Read, Glob, Grep
 metadata:
@@ -32,7 +32,7 @@ For each `~/.claude/commands/*.md`:
 - Assert each referenced script exists. Report missing.
 - Extract referenced repo paths (`~/revfleet/...`, `~/projects/...`, `~/suite/...`). Assert existence; flag any `~/suite/` references as stale (path retired 2026-05-07 — should be `~/revfleet/`).
 
-## 4. Git integrity (both suite repos)
+## 4. Git integrity (both RevFleet repos)
 For each repo in `~/revfleet/revealui` and `~/revfleet/.jv`:
 ```bash
 cd "$repo" && git fsck --full 2>&1 | grep -E '^(error|fatal|missing)'
@@ -57,7 +57,7 @@ Flag daemon down (primary coordination layer per hooks-architecture.md).
 Read `~/.claude/config.json`, extract `mcpServers`, verify each `command` binary is on PATH.
 
 ## 9. Git-tracked env files
-In both suite repos: `git ls-files '*.env*'`. Any hit = leak risk.
+In both RevFleet repos: `git ls-files '*.env*'`. Any hit = leak risk.
 
 ## 10. Settings JSON validity
 Validate `~/.claude/settings.json` and `~/.claude/settings.local.json` if present.

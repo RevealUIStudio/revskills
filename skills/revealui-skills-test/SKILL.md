@@ -1,6 +1,6 @@
 ---
 name: revealui-skills-test
-description: Static validator for Claude Code skills. Dry-runs every skill in ~/.claude/commands/*.md, validates referenced scripts exist, flags stale ~/suite/ paths, rule violations (git -C, pnpm --dir, inline node -e), tmux references. Read-only — catches broken skills before users hit them at run time.
+description: Static validator for Claude Code skills. Dry-runs every skill in ~/.claude/commands/*.md, validates referenced scripts exist, flags stale ~/revfleet/ paths, rule violations (git -C, pnpm --dir, inline node -e), tmux references. Read-only — catches broken skills before users hit them at run time.
 license: MIT
 allowed-tools: Bash, Read, Glob, Grep
 metadata:
@@ -31,7 +31,7 @@ Extract every path matching:
 For each, assert the target file exists. Missing = FAIL.
 
 ### 3. Referenced repos
-Extract every path matching `~/revfleet/...`, `~/projects/...`, or `~/suite/...`. Assert existence.
+Extract every path matching `~/revfleet/...`, `~/projects/...`, or `~/revfleet/...`. Assert existence.
 - `~/suite/*` in real path usage = FAIL (path retired 2026-05-07 — migrated to `~/revfleet/`).
 - `~/revfleet/*` non-existent = FAIL.
 - `~/projects/*` is the R&D sandbox per `~/projects/CLAUDE.md` — assert existence; do not flag as stale.
