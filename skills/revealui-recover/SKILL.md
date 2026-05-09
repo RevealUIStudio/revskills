@@ -1,6 +1,6 @@
 ---
 name: revealui-recover
-description: Diagnose and recover from a crashed or interrupted Claude/Studio session in the RevealUI Suite. Surfaces git corruption, stale hook state, orphaned handoffs, daemon status, and workboard CRASHED markers. Diagnostic-first — never executes destructive repairs without explicit approval.
+description: Diagnose and recover from a crashed or interrupted Claude/Studio session in RevFleet. Surfaces git corruption, stale hook state, orphaned handoffs, daemon status, and workboard CRASHED markers. Diagnostic-first — never executes destructive repairs without explicit approval.
 license: MIT
 allowed-tools: Bash, Read, Grep, Glob
 metadata:
