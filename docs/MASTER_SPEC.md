@@ -139,7 +139,7 @@ Full design in [`docs/AUTO_RECOVERY.md`](./AUTO_RECOVERY.md).
 
 ## Versioning
 
-Per-skill SemVer in `SKILL.md` frontmatter `metadata.version`. Pre-1.0 default per fleet [`versioning.md`](https://github.com/RevealUIStudio/revealui-jv/blob/main/.claude/rules/versioning.md).
+Per-skill SemVer in `SKILL.md` frontmatter `metadata.version`. Pre-1.0 default per fleet versioning conventions (SemVer 2.0.0 strict; new artifacts start at 0.1.0; promotion to 1.0.0 requires real external consumers + stable contract across at least one release cycle).
 
 | Bump | When |
 |---|---|
@@ -173,5 +173,4 @@ MIT — everything in this repo. Per-skill `license: MIT` in frontmatter is cano
 - [`docs/MASTER_PLAN.md`](./MASTER_PLAN.md) — current status, phases, owner actions
 - [`docs/AUTO_RECOVERY.md`](./AUTO_RECOVERY.md) — claude-safe + recovery skill design
 - [`README.md`](../README.md) — install + skill list
-- [`revealui-jv:docs/MASTER_INDEX.md`](https://github.com/RevealUIStudio/revealui-jv/blob/main/docs/MASTER_INDEX.md) — fleet-level navigation
-- [`revealui-jv:.claude/rules/versioning.md`](https://github.com/RevealUIStudio/revealui-jv/blob/main/.claude/rules/versioning.md) — SemVer + pre-1.0 rule
+- RevealUI Studio internal coordination hub (private) — fleet-level navigation + versioning conventions

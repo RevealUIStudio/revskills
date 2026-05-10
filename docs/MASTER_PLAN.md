@@ -4,9 +4,9 @@
 **Status:** Active — 15 skills shipped, pre-1.0 per skill
 **Owner:** RevealUI Studio (`founder@revealui.com`)
 **Repo:** [RevealUIStudio/revskills](https://github.com/RevealUIStudio/revskills)
-**Fleet master index:** [`revealui-jv:docs/MASTER_INDEX.md`](https://github.com/RevealUIStudio/revealui-jv/blob/main/docs/MASTER_INDEX.md)
+**Fleet master index:** RevealUI Studio internal coordination hub (private)
 
-> Fleet-level cross-cutting plans live in [`revealui-jv:docs/MASTER_PLAN.md`](https://github.com/RevealUIStudio/revealui-jv/blob/main/docs/MASTER_PLAN.md). This file is RevSkills-scoped only.
+> Fleet-level cross-cutting plans live in the RevealUI Studio internal coordination hub. This file is RevSkills-scoped only.
 
 ---
 
@@ -71,7 +71,7 @@
 ### What does not exist yet
 
 - **Skill-spec test harness** — every skill should have a smoke-test verifying its frontmatter parses + advertised tools are available. `revealui-skills-test` is the seed; needs to be wired into CI.
-- **Versioning discipline check** — every SKILL.md frontmatter has `metadata.version`; no automated check that versions follow [`versioning.md`](https://github.com/RevealUIStudio/revealui-jv/blob/main/.claude/rules/versioning.md) conventions (start at 0.1.0, no premature 1.0).
+- **Versioning discipline check** — every SKILL.md frontmatter has `metadata.version`; no automated check that versions follow fleet versioning conventions (SemVer 2.0.0 strict, start at 0.1.0, no premature 1.0).
 - **Skill changelogs** — per-skill changelog files for ship-tracking. Currently changes ride in repo-level git history.
 - **Public agentskills.io listing** — RevealUIStudio/revskills works with `npx skills add` but isn't featured on the agentskills.io directory.
 
@@ -154,5 +154,4 @@ Per-skill SemVer in SKILL.md frontmatter `metadata.version`. Pre-1.0 default per
 - [`docs/MASTER_SPEC.md`](./MASTER_SPEC.md) — SKILL.md format, distribution surface, harness compatibility
 - [`docs/AUTO_RECOVERY.md`](./AUTO_RECOVERY.md) — auto-recovery launcher details
 - [`README.md`](../README.md) — install instructions + skill list
-- [`revealui-jv:docs/MASTER_INDEX.md`](https://github.com/RevealUIStudio/revealui-jv/blob/main/docs/MASTER_INDEX.md) — fleet-level navigation
-- [`revealui-jv:.claude/rules/versioning.md`](https://github.com/RevealUIStudio/revealui-jv/blob/main/.claude/rules/versioning.md) — SemVer rule (incl. pre-1.0 default for skills)
+- RevealUI Studio internal coordination hub (private) — fleet-level navigation + versioning conventions
