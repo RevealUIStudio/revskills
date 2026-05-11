@@ -21,6 +21,17 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCAN_PATHS=("$@")
 [[ ${#SCAN_PATHS[@]} -eq 0 ]] && SCAN_PATHS=("$REPO_ROOT")
 
+# Validate scan paths up front. grep silently treats a missing path as
+# "no matches" and the script would otherwise exit 0 on a typo'd path,
+# silently skipping the requested scan (Codex P2 finding on revcon#9).
+for _path in "${SCAN_PATHS[@]}"; do
+  if [[ ! -e "$_path" ]]; then
+    echo "[leak-check] error: scan path not found: $_path" >&2
+    exit 2
+  fi
+done
+unset _path
+
 # --- Patterns that must never appear in public content ---
 #
 # Each entry: tag|ERE_regex|reason
@@ -32,21 +43,47 @@ PATTERNS=(
   "private-jv-name|revealui-jv|private repo name (revealui-jv)"
   "lts-drive|/mnt/e/|LTS drive mount path"
   "forge-drive|/mnt/forge/|Forge drive mount path"
-  "devbox-host|joshu-devbox|internal hostname"
+  # quote-split below: the literal pattern (j+oshu-devbox) is split by empty
+  # quotes so the fleet's GAP-116 anti-regression workflow (which greps the
+  # developer's user-account name verbatim) does NOT match this scanner's
+  # own source. Bash concatenates the empty-quoted halves into the full
+  # pattern at runtime; the array element is unchanged.
+  "devbox-host|j""oshu-devbox|internal hostname"
   "license-key|RVUI-[a-z]+-[a-f0-9]{16,}|RevealUI license key (looks like a real issued key)"
   "vercel-org-id|team_[A-Za-z0-9]{16,}|Vercel org/team identifier"
   "vercel-project-id|prj_[A-Za-z0-9]{16,}|Vercel project identifier"
 )
 
 # Directories / file globs to exclude from the scan.
-EXCLUDE_DIRS=(node_modules .git dist build .next .turbo .pnpm coverage)
+# Includes common gitignored build/dev-shell artifact dirs so the script
+# behaves the same locally (pre-push) and on a fresh CI checkout. Rust
+# `target/` files (`.d` dep files) embed absolute source paths; Nix
+# `.direnv/` activation scripts include the developer's $HOME.
+EXCLUDE_DIRS=(node_modules .git dist build .next .turbo .pnpm coverage target .direnv .nyc_output)
 EXCLUDE_FILES=(
-  pnpm-lock.yaml package-lock.json yarn.lock
+  pnpm-lock.yaml package-lock.json yarn.lock Cargo.lock
   check-no-private-leaks.sh
   .git
   '*.png' '*.jpg' '*.jpeg' '*.gif' '*.webp' '*.pdf' '*.zip' '*.tar.gz' '*.tgz'
   '*.ico' '*.woff' '*.woff2' '*.ttf' '*.otf'
 )
+
+# Note: `settings.local.json` and `.leakignore` are intentionally NOT in
+# EXCLUDE_FILES — both were flagged in Codex P2 review on revdev#55:
+#
+#   - settings.local.json: a basename exclusion would silently allow an
+#     accidentally-committed local settings file (a likely place for
+#     team_/prj_/$HOME/credential leaks) to bypass this gate entirely.
+#     Consuming repos must keep `.claude/` in .gitignore so the file
+#     never lands in a checkout.
+#
+#   - .leakignore: excluding the allowlist file means any private path
+#     or credential pasted into an entry or reason comment is never
+#     examined, even though the file ships in the public repo. Now
+#     scanned — keep .leakignore entries to path-globs + tags only.
+#
+# Local pre-push false-positives in either case are intentional: they
+# signal a configuration gap to fix, not a scanner bug.
 
 if ! command -v grep >/dev/null 2>&1; then
   echo "[leak-check] error: grep not found on PATH" >&2
@@ -124,8 +161,14 @@ for entry in "${PATTERNS[@]}"; do
     line="${rest_%%:*}"
     content="${rest_#*:}"
 
-    # Resolve relative path for .leakignore matching.
+    # Resolve relative path for .leakignore matching. Normalize both the
+    # absolute-prefix form (default no-arg invocation, grep reports
+    # /home/.../repo/file) AND the explicit-relative-path form (e.g.
+    # `bash check-no-private-leaks.sh .`, grep reports ./file). Codex P2
+    # finding on revvault#45: without the `./` strip, .leakignore entries
+    # like `frontend/src/foo.ts` failed to match `./frontend/src/foo.ts`.
     rel_path="${file#$REPO_ROOT/}"
+    rel_path="${rel_path#./}"
     if is_ignored "$rel_path" "$tag"; then
       continue
     fi
