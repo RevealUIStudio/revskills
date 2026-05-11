@@ -1,3 +1,11 @@
+---
+type: master-spec
+repo: revskills
+last-updated: 2026-05-10
+owner: RevealUI Studio
+staleness-status: FRESH
+---
+
 # RevSkills — Master Spec
 
 **Last Updated:** 2026-05-10
