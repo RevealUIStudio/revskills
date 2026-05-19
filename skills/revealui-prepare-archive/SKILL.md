@@ -177,6 +177,28 @@ TODO: anything uncommitted, unpushed, pending CI, awaiting review, owner-gated, 
 
 ## Relevant Memories
 <list memory files touched or surfaced this session>
+
+## Next-Agent Prompt
+
+Copy-pasteable prompt for the next Claude Code session. Triple-click the fenced block below to select; paste into a fresh session as the first message. Per `~/.claude/rules/coordination.md` §"Archive-Readiness Convention" (2026-05-11). Same content is also emitted to chat by Step 8 of /prepare-archive — duplicated here so it survives the chat closing.
+
+\`\`\`
+Session <SESSION_ID> — read first: <HANDOFF_FILE absolute path>
+
+TL;DR: <1–2 sentences mirroring §Resume From Here above>
+
+NEXT ACTIONS (mechanical, ready-to-run):
+
+1. <command + exact args>
+2. <command + exact args>
+3. <command + exact args>
+
+LOCKED POSTURE: audit-first SDLC HARDLINE; `core.fileMode=false` on every .jv commit; explicit pathspec (preserve peer-WIP untracked); `-F /tmp/cmsg-*.txt` for commit messages; `--body-file` for PR/issue bodies; `--head`/`--base` explicit on `gh pr create`; no `--auto`/`--no-verify`/`--admin`/`--force-push`; no regex authored; no Stripe live-flip without owner directive; revvault-first secrets; durable-only.
+
+OWNER-GATED (do NOT auto-pick up without explicit sign-off):
+- <item 1>
+- <item 2>
+\`\`\`
 ```
 
 Use the Write tool for this file. Then `git add` it with explicit pathspec.
@@ -251,8 +273,29 @@ fi
 
 Daemon notification is non-blocking. If it fails for any reason, the handoff is still valid: next session's SessionStart hook discovers it via filesystem.
 
+## Step 8 — Emit copy-pasteable next-agent prompt (LAST output — nothing after this)
+
+Per `~/.claude/rules/coordination.md` §"Archive-Readiness Convention" (2026-05-11): the final output of any archive flow MUST be a copy-pasteable "next-agent prompt" the owner can drop straight into a new Claude Code session — no synthesis required, no jumping between docs. **The prompt is non-negotiable.** Without it, the owner has to do friction work (read handoff doc + workboard + memories + figure out the first action) every multi-session handoff. That friction compounds across the fleet.
+
+Compose the prompt with these 5 sections (in order):
+
+1. **First line** — `Session <session-id> — read first: <absolute path to HANDOFF_FILE>`. The path is the absolute filesystem path (`~/revfleet/.jv/docs/HANDOFF-YYYY-MM-DD-*.md`), not a relative path.
+2. **TL;DR** — 1–2 sentences with the single most important next action. Mirror §"Resume From Here" from the handoff doc; do not re-summarize.
+3. **Ordered next-actions** — numbered list with EXACT commands / values / file paths. No "investigate X" / "decide Y" / "look into Z" — those belong in handoff §"Open Loose Ends". Pre-resolve every path, hash, branch name, PR number. If the next-agent has to fill in `<paste prod URL here>`, the convention has been violated.
+4. **Locked-posture reminder** — one line. HARDLINES: `core.fileMode=false` on every .jv commit; explicit pathspec (preserve peer-WIP untracked); `-F /tmp/cmsg-*.txt` for commit messages; `--body-file` for PR/issue bodies; `--head`/`--base` explicit on `gh pr create`; no `--auto`/`--no-verify`/`--admin`/`--force-push`; audit-first SDLC HARDLINE; no regex authored; no Stripe live-flip without owner directive; revvault-first secrets; durable-only.
+5. **Owner-gated deferrals** — one short list of items the next agent must NOT auto-pick up without explicit owner sign-off.
+
+Emit the prompt wrapped in a single triple-backtick fenced code block. The block must be the LAST thing emitted in the turn — no commentary, no "and that's it" trailer, nothing.
+
+If the Step 6 verdict is `READY-TO-ARCHIVE: NO`, the TL;DR must lead with `BLOCKED: <reason>. Resolve before next session.` and the NEXT ACTIONS list must enumerate the blockers (failed validators, uncommitted state, open PRs without owner-gate clearance) as items to clear first.
+
+If the session was a no-op (nothing shipped, no in-flight work), still emit the prompt — TL;DR reads `SESSION END — no follow-up required. Next agent starts fresh.` and NEXT ACTIONS list is empty (the section header still appears for symmetry).
+
+Same content was already written to the handoff doc's §"Next-Agent Prompt" section (Step 4). The chat emission is for immediate copy-paste; the handoff doc is for recovery if chat closes before paste.
+
 ## Do not
 
+- Do NOT emit ANY text or tool call after Step 8's fenced prompt block. The block is the last thing in the turn — the owner triple-clicks to select.
 - Do NOT auto-commit anything — let the owner decide what to commit (handoff doc + workboard line are written but unstaged; they show up in `git status` for owner to commit explicitly).
 - Do NOT run `master-handoff-regen.js` — that's a separate audited operation (agent-invoked, owner-attended, expensive).
 - Do NOT move or delete handoff files — the 7-day sweep handles that.
