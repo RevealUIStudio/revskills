@@ -65,6 +65,21 @@ ss_empty_objects() {
 }
 
 ss_orphaned_handoffs() {
+  # Find handoffs at LEGACY locations that weren't claimed by the receiving
+  # session. Scoped intentionally to legacy paths only — canonical-location
+  # handoffs at $JV_REPO/docs/HANDOFF-*.md (per the master-handoff.md
+  # convention) are discoverable via the workboard `## Log` `[PRE-ARCHIVE]`
+  # entries + git history, not filesystem scan. Scanning the canonical
+  # location for "orphans" would surface every active handoff <7d as orphaned,
+  # which is wrong-by-construction (the sweep keeps them at root for 7 days).
+  #
+  # Legacy locations scanned below:
+  #   /tmp/agent-handoff-*.md     — pre-2026-05-09 ad-hoc handoffs
+  #   $JV_REPO/.claude/handoffs/  — deprecated /handoff slash command target
+  #                                  (skill `revealui-handoff` v0.3.0+
+  #                                  DEPRECATED 2026-05-19; superseded by
+  #                                  /prepare-archive). Kept for backcompat
+  #                                  until next revskills major.
   local age_min="${1:-60}"
   # Validate age_min is numeric
   [[ "$age_min" =~ ^[0-9]+$ ]] || { printf 'ss_orphaned_handoffs: age_min must be numeric, got: %s\n' "$age_min" >&2; return 1; }
