@@ -1,12 +1,32 @@
 ---
 name: revealui-handoff
-description: Strategic context handoff to a fresh Claude/Studio session in RevFleet. Writes a git-tracked handoff document under ~/revfleet/.jv/.claude/handoffs/, appends a workboard log entry, and optionally notifies the RPC daemon. Studio-native — no tmux, no launch scripts.
+description: |
+  DEPRECATED 2026-05-19 — prefer /prepare-archive (revealui-prepare-archive skill)
+  which writes to the canonical docs/HANDOFF-*.md root location and wires 6
+  coherent-tracking validators. This skill remains for backward compatibility
+  but writes to the non-canonical .claude/handoffs/ location and runs no
+  tracking validators. Will be removed in a future revskills major.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.2.0"
+  version: "0.3.0"
   website: https://revealui.com
+  deprecated: true
+  deprecated-at: "2026-05-19"
+  superseded-by: revealui-prepare-archive
+---
+
+## DEPRECATED 2026-05-19
+
+This skill writes handoffs to `~/revfleet/.jv/.claude/handoffs/` — a NON-canonical location per [`master-handoff.md`](~/revfleet/.jv/.claude/rules/master-handoff.md) (canonical = `docs/HANDOFF-*.md` root, with 7-day sweep to `docs/handoffs/archive/`).
+
+It also runs no tracking-surface validators, so handoffs written by this skill have no `READY-TO-ARCHIVE: YES/NO` verdict and won't be caught if the session has uncommitted state or open drift.
+
+**Prefer `/prepare-archive`** — wires 6 coherent-tracking validators + 4 inventory surfaces + writes to canonical location + outputs structured report. See [`revealui-prepare-archive/SKILL.md`](../revealui-prepare-archive/SKILL.md).
+
+This skill remains invocable for backward compatibility (existing muscle memory; quick handoff when full pre-archive isn't needed). It will be removed in the next revskills major version after `/prepare-archive` adoption stabilizes (~Q3 2026).
+
 ---
 
 Hand off the current session's in-flight state to a fresh agent. Studio-native: no tmux, no launch scripts. Transport is the workboard + RPC daemon (when available).
