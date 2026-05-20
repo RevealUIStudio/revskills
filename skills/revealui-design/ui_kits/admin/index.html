@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>RevealUI Studio — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* Cobalt token set — inlined from @revealui/presentation design-context (self-contained) */
+  @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+  :root {
+    --rvui-font-sans: "Inter", system-ui, sans-serif;
+    --rvui-font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+    --rvui-font-display: "Inter Tight", "Inter", system-ui, sans-serif;
+    --rvui-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --rvui-duration-fast: 120ms;
+    --rvui-duration-normal: 200ms;
+    --rvui-duration-slow: 350ms;
+    --rvui-radius-sm: 6px; --rvui-radius-md: 10px; --rvui-radius-lg: 16px; --rvui-radius-xl: 24px;
+    /* Cobalt brand */
+    --rvui-brand: #003E7A;
+    --rvui-brand-hover: #004F8C;
+    --rvui-brand-strong: #001540;
+    --rvui-brand-soft: rgba(0,62,122,0.14);
+    --rvui-brand-subtle: rgba(0,62,122,0.18);
+    --rvui-brand-text: #4485bd;
+    --rvui-brand-glow: rgba(0,62,122,0.42);
+    --rvui-cobalt-300: #4485bd;
+    --rvui-cobalt-400: #004F8C;
+    --rvui-cobalt-500: #003E7A;
+    /* Accent — Solar Amber */
+    --rvui-accent: #f0b519;
+    --rvui-accent-soft: rgba(240,181,25,0.14);
+    /* Dark surfaces (dark-first — admin default) */
+    --rvui-midnight: #0a1320;
+    --rvui-surface-0: #0a1320;
+    --rvui-surface-1: #131e2c;
+    --rvui-surface-2: #1a293b;
+    --rvui-surface-3: #22344a;
+    --rvui-text-0: #f8fafc;
+    --rvui-text-1: #c2d0e0;
+    --rvui-text-2: #8298b3;
+    --rvui-text-on-brand: #f8fafc;
+    --rvui-border: rgba(194,208,224,0.12);
+    --rvui-border-subtle: rgba(194,208,224,0.06);
+    --rvui-border-strong: rgba(194,208,224,0.22);
+    --rvui-shadow-md: 0 6px 18px rgba(0,0,0,0.45), 0 2px 4px rgba(0,0,0,0.25);
+    /* shadcn bridge */
+    --primary: var(--rvui-brand);
+    --ring: var(--rvui-brand);
+    --radius: var(--rvui-radius-md);
+  }
+  html, body { height: 100%; }
+  body { font-family: var(--rvui-font-sans); -webkit-font-smoothing: antialiased; background: var(--rvui-surface-0); color: var(--rvui-text-0); }
+</style>
+</head>
+<body data-screen-label="Admin UI Kit">
+  <div id="root" style="height:100vh"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="Sidebar.jsx"></script>
+  <script type="text/babel" src="Topbar.jsx"></script>
+  <script type="text/babel" src="Dashboard.jsx"></script>
+
+  <script type="text/babel">
+    function App() {
+      return (
+        <div className="flex h-screen">
+          <Sidebar />
+          <div className="flex flex-col flex-1 min-w-0">
+            <Topbar />
+            <Dashboard />
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
