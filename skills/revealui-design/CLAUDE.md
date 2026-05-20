@@ -20,13 +20,23 @@ Before ANY visual / UI / copy / brand decision, read these in order:
 revealui-design/
 ├── CLAUDE.md                          — you are here
 ├── README.md                          — full canonical doc (start here)
-└── SKILL.md                           — short orientation
+├── SKILL.md                           — short orientation
+└── ui_kits/
+    ├── marketing/                     — cobalt light marketing site (self-contained)
+    │   ├── README.md
+    │   ├── index.html                   open directly in browser — no external deps
+    │   ├── NavBar.jsx, Hero.jsx, Primitives.jsx
+    │   ├── Pricing.jsx, Faq.jsx, Footer.jsx
+    └── admin/                         — cobalt dark Studio dashboard (self-contained)
+        ├── README.md
+        ├── index.html                   open directly in browser — no external deps
+        ├── Sidebar.jsx, Topbar.jsx, Dashboard.jsx
 
 Canonical tokens (not in this skill — read from the package):
   @revealui/presentation/design-context/
 ```
 
-The source bundle (preview cards, ui_kits, assets, reference tokens, HTML artifacts) lives separately in the revealui repo and is not part of this skill. Any local token snapshot from the old bundle is stale — the design-context pack is authoritative and drift-gated by CI.
+The ui_kits inline a minimal cobalt token subset for standalone browser use. For production work, read token values from `@revealui/presentation/design-context/` — that pack is authoritative and drift-gated by CI. Any other local token snapshot is stale.
 
 ## Open issues — work around these, don't reintroduce them
 

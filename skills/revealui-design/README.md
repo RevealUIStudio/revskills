@@ -47,13 +47,29 @@ This design system was distilled from the RevealUI monorepo. Canonical tokens ar
 revealui-design/  (this skill)
 ├── SKILL.md                        — skill entrypoint
 ├── README.md                       — you are here (canonical doc)
-└── CLAUDE.md                       — brand orientation, open issues, voice rules
+├── CLAUDE.md                       — brand orientation, open issues, voice rules
+└── ui_kits/
+    ├── marketing/                  — cobalt light marketing site (self-contained)
+    │   ├── README.md
+    │   ├── index.html                open directly in browser — no external deps
+    │   ├── NavBar.jsx
+    │   ├── Hero.jsx
+    │   ├── Primitives.jsx
+    │   ├── Pricing.jsx
+    │   ├── Faq.jsx
+    │   └── Footer.jsx
+    └── admin/                      — cobalt dark Studio dashboard (self-contained)
+        ├── README.md
+        ├── index.html                open directly in browser — no external deps
+        ├── Sidebar.jsx
+        ├── Topbar.jsx
+        └── Dashboard.jsx
 
 Token source (not in this skill — read from the package):
   @revealui/presentation/design-context/  — committed, CI-drift-gated token pack
 ```
 
-The full design-system bundle (ui_kits/, preview/, assets/, reference/, fonts/, HTML artifacts) lives separately in the revealui repo and is not part of this skill. The canonical token source is the `@revealui/presentation/design-context/` pack — never a local snapshot.
+The canonical token source is the `@revealui/presentation/design-context/` pack — never a local snapshot. The ui_kits inline a minimal cobalt token subset for standalone browser use; production code should read from the pack.
 
 ---
 
