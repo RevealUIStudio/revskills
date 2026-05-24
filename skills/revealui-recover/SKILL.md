@@ -68,13 +68,19 @@ run-task --list 2>&1
 - `[running]` → `run-task --status <name>` to confirm alive.
 - `[failed:*]` / `[done:*]` → note only.
 
-## Step 5 — Orphaned handoffs
+## Step 5 — Orphaned handoffs (legacy locations only)
 
 ```bash
 ss_orphaned_handoffs 60
 ```
 
-Any `.md` handoff document older than 60 minutes is orphaned (receiving session never consumed it). Surface path and timestamp; propose reading it.
+Surfaces legacy-location handoffs older than 60 minutes (receiving session never consumed). Scopes to:
+- `/tmp/agent-handoff-*.md` — pre-2026-05-09 ad-hoc handoffs
+- `$JV_REPO/.claude/handoffs/*.md` — deprecated `/handoff` slash command target (skill `revealui-handoff` v0.3.0+ DEPRECATED 2026-05-19; superseded by `/prepare-archive`)
+
+**Does NOT scan the canonical location** (`$JV_REPO/docs/HANDOFF-*.md` root, per `master-handoff.md`). Canonical-location handoffs are discoverable via the workboard `## Log` `[PRE-ARCHIVE]` / `[HANDOFF]` entries + git history; scanning would surface every active <7d handoff as "orphaned" (wrong-by-construction — the sweep keeps active handoffs at root for 7 days).
+
+Surface path + timestamp for each hit; propose reading. If recent canonical handoffs exist but no workboard log entry references them, that's a real orphan — surface separately by parsing `$WORKBOARD` for `[PRE-ARCHIVE]` lines and cross-checking against `git log --since='7 days ago' -- docs/HANDOFF-*.md`.
 
 ## Step 6 — Daemon + environment
 
