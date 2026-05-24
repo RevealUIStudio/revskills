@@ -90,8 +90,6 @@ jobs:
           BEHIND: ${{ steps.check.outputs.behind }}
           REPO: ${{ github.repository }}
         run: |
-          existing=$(gh pr list --repo "$REPO" --base test --head chore/backflow-main-into-test --json number --jq '.[0].number // empty')
-
           title="chore(test): backflow main into test ($BEHIND commit(s) behind)"
           {
             echo "## Summary"
@@ -119,10 +117,33 @@ jobs:
             echo "_Per \`feedback_no_auto_merge\`: manual merge only — no \`--auto\`._"
           } > /tmp/pr-body.md
 
-          if [ -n "$existing" ]; then
-            gh pr edit "$existing" --repo "$REPO" --title "$title" --body-file /tmp/pr-body.md
-            echo "Updated existing backflow PR #$existing"
-          else
-            gh pr create --repo "$REPO" --base test --head chore/backflow-main-into-test --title "$title" --body-file /tmp/pr-body.md
-            echo "Created new backflow PR"
-          fi
+          # Idempotent open-or-update: re-checks for an existing backflow PR on each
+          # call, so a retry after a failed attempt edits rather than double-creates.
+          open_or_update_pr() {
+            local existing
+            existing=$(gh pr list --repo "$REPO" --base test --head chore/backflow-main-into-test --json number --jq '.[0].number // empty') || return 1
+            if [ -n "$existing" ]; then
+              gh pr edit "$existing" --repo "$REPO" --title "$title" --body-file /tmp/pr-body.md || return 1
+              echo "Updated existing backflow PR #$existing"
+            else
+              gh pr create --repo "$REPO" --base test --head chore/backflow-main-into-test --title "$title" --body-file /tmp/pr-body.md || return 1
+              echo "Created new backflow PR"
+            fi
+          }
+
+          # Retry with backoff. "GitHub Actions is not permitted to create or approve
+          # pull requests" (and transient API 5xx) can fire right after a promotion
+          # while the org→repo PR-creation permission propagates; a retry lets the
+          # blip self-heal without a manual rerun. A persistent failure still exits
+          # non-zero so genuinely-unhealed staleness stays visible (red), not silent.
+          attempt=0
+          max=4
+          until open_or_update_pr; do
+            attempt=$((attempt + 1))
+            if [ "$attempt" -ge "$max" ]; then
+              echo "::error title=Backflow PR open failed::Could not open/update the backflow PR after $max attempts. The chore/backflow-main-into-test branch is already pushed (it carries the main→test merge), so recovery is just opening the PR. If the cause is 'GitHub Actions is not permitted to create or approve pull requests', enable Settings → Actions → General → Workflow permissions → 'Allow GitHub Actions to create and approve pull requests', then re-run this job."
+              exit 1
+            fi
+            echo "::warning::backflow PR open attempt $attempt/$max failed; retrying in $((attempt * 15))s..."
+            sleep "$((attempt * 15))"
+          done
