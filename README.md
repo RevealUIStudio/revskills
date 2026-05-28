@@ -47,6 +47,12 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 |-------|-------------|
 | [vitest-testing](skills/vitest-testing/) | Vitest patterns — mocking, coverage, PGlite, monorepo testing |
 
+## Design
+
+| Skill | Description |
+|-------|-------------|
+| [revealui-design](skills/revealui-design/) | Brand-correct UI for RevealUI Studio — Cobalt design system, voice rules, and self-contained marketing + admin UI kits |
+
 ## RevealUI Workflow (Studio-internal)
 
 These skills assume RevFleet layout (`~/revfleet/`, `~/revfleet/.jv`, RevVault, RevDev RPC daemon). Not generically installable — the canonical copies live here and are symlinked into `~/.claude/commands/` on Studio machines.
@@ -54,9 +60,10 @@ These skills assume RevFleet layout (`~/revfleet/`, `~/revfleet/.jv`, RevVault, 
 | Skill | Description |
 |-------|-------------|
 | [revealui-recover](skills/revealui-recover/) | Diagnose and recover from crashed/interrupted Claude sessions — identity, git integrity, hook state, daemon, workboard |
-| [revealui-handoff](skills/revealui-handoff/) | Strategic context handoff to a fresh session via git-tracked handoff doc + RPC daemon transport |
-| [revealui-doctor](skills/revealui-doctor/) | Health check for RevFleet Claude setup — hook syntax, rules sync, git-fsck, LTS mode, skill self-test |
-| [revealui-sync-lts](skills/revealui-sync-lts/) | Sync RevFleet repos to the LTS drive (/mnt/e) per per-repo `.claude/lts-mode` (bundle or mirror) |
+| [revealui-prepare-archive](skills/revealui-prepare-archive/) | Pre-archive checklist — validates 6 coherent-tracking surfaces, writes canonical `docs/HANDOFF-*.md`, appends workboard log entry |
+| [revealui-handoff](skills/revealui-handoff/) | **Deprecated (2026-05-19) — use revealui-prepare-archive instead.** Legacy handoff to `.claude/handoffs/`; retained for backward compatibility |
+| [revealui-doctor](skills/revealui-doctor/) | Health check for RevFleet Claude setup — hook syntax, rules dirs, git-fsck, workboard freshness, daemon, MCP servers, env leaks, toolchain |
+| [revealui-sync-lts](skills/revealui-sync-lts/) | Sync RevFleet repos to the LTS drive (/mnt/e) per per-repo declared mode (bundle or mirror) |
 | [revealui-sync-rules](skills/revealui-sync-rules/) | Check whether `.claude/rules/` files are in sync across RevealUI repos — asks before copying |
 | [revealui-skills-test](skills/revealui-skills-test/) | Static validator for Claude Code skills — flags stale paths, rule violations, missing scripts |
 
