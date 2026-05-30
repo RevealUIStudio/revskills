@@ -159,6 +159,14 @@ validate_skill_md() {
 while IFS= read -r manifest; do
   plugin_dir="$(dirname "$(dirname "$manifest")")"
   plugin_id="${plugin_dir#$CACHE_ROOT/}"
+  # When linting a single plugin rooted at the repo (CACHE_ROOT="."), plugin_id
+  # collapses to "." — which no .pluginlintignore glob can target. Fall back to
+  # the manifest's own "name" so suppression rules (and report labels) stay
+  # stable no matter where the plugin is checked out.
+  if [[ "$plugin_id" == "." || -z "$plugin_id" ]]; then
+    manifest_name="$(grep -E '"name"\s*:' "$manifest" | head -1 | sed -E 's/.*"name"\s*:\s*"([^"]+)".*/\1/')"
+    [[ -n "$manifest_name" ]] && plugin_id="$manifest_name"
+  fi
   PLUGIN_COUNT=$((PLUGIN_COUNT+1))
 
   # Required fields.
