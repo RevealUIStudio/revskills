@@ -3,10 +3,10 @@ name: revealui-design
 description: Use this skill to generate well-branded interfaces and assets for RevealUI Studio, either for production or throwaway prototypes/mocks/etc. Contains essential design guidelines, colors, type, and brand voice rules for the RevealUI design system (Cobalt brand, dark-first OKLCH tokens). Read README.md for the full canonical doc and CLAUDE.md for brand orientation, voice rules, and assessment summaries.
 user-invocable: true
 license: MIT
-allowed-tools: Read, Grep, Glob
+allowed-tools: Read, Grep, Glob, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.1.0"
+  version: "0.1.1"
   website: https://revealui.com
 ---
 
