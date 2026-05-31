@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Lint plugin metadata and security
-        run: bash scripts/lint-plugins.sh skills/
+        run: bash scripts/lint-plugins.sh .
 
   private-leak-scan:
     name: Private Leak Scan

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "revskills",
+  "description": "RevealUI fleet developer skills for Claude Code — product development, testing, deployment, and framework integration.",
+  "owner": {
+    "name": "RevealUI Studio",
+    "email": "founder@revealui.com"
+  },
+  "plugins": [
+    {
+      "name": "revskills",
+      "source": "./",
+      "description": "RevealUI fleet developer-skills bundle: framework, database, sync, testing, security, and RevealUI-native workflow skills.",
+      "version": "0.1.0",
+      "author": {
+        "name": "RevealUI Studio",
+        "email": "founder@revealui.com"
+      },
+      "category": "development",
+      "homepage": "https://github.com/RevealUIStudio/revskills",
+      "license": "MIT"
+    }
+  ]
+}
