@@ -1,7 +1,7 @@
 ---
 name: revealui-handoff
 description: |
-  DEPRECATED 2026-05-19 — prefer /prepare-archive (revealui-prepare-archive skill)
+  DEPRECATED 2026-05-19 — prefer /checkpoint (revealui-checkpoint skill)
   which writes to the canonical docs/HANDOFF-*.md root location and wires 6
   coherent-tracking validators. This skill remains for backward compatibility
   but writes to the non-canonical .claude/handoffs/ location and runs no
@@ -10,22 +10,22 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.3.0"
+  version: "0.3.1"
   website: https://revealui.com
   deprecated: true
   deprecated-at: "2026-05-19"
-  superseded-by: revealui-prepare-archive
+  superseded-by: revealui-checkpoint
 ---
 
 ## DEPRECATED 2026-05-19
 
 This skill writes handoffs to `~/revfleet/.jv/.claude/handoffs/` — a NON-canonical location per [`master-handoff.md`](~/revfleet/.jv/.claude/rules/master-handoff.md) (canonical = `docs/HANDOFF-*.md` root, with 7-day sweep to `docs/handoffs/archive/`).
 
-It also runs no tracking-surface validators, so handoffs written by this skill have no `READY-TO-ARCHIVE: YES/NO` verdict and won't be caught if the session has uncommitted state or open drift.
+It also runs no tracking-surface validators, so handoffs written by this skill have no `CHECKPOINT-READY: YES/NO` verdict and won't be caught if the session has uncommitted state or open drift.
 
-**Prefer `/prepare-archive`** — wires 6 coherent-tracking validators + 4 inventory surfaces + writes to canonical location + outputs structured report. See [`revealui-prepare-archive/SKILL.md`](../revealui-prepare-archive/SKILL.md).
+**Prefer `/checkpoint`** — wires 6 coherent-tracking validators + 4 inventory surfaces + writes to canonical location + outputs structured report. See [`revealui-checkpoint/SKILL.md`](../revealui-checkpoint/SKILL.md).
 
-This skill remains invocable for backward compatibility (existing muscle memory; quick handoff when full pre-archive isn't needed). It will be removed in the next revskills major version after `/prepare-archive` adoption stabilizes (~Q3 2026).
+This skill remains invocable for backward compatibility (existing muscle memory; quick handoff when full checkpoint isn't needed). It will be removed in the next revskills major version after `/checkpoint` adoption stabilizes (~Q3 2026).
 
 ---
 

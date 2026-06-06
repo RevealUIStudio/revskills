@@ -60,8 +60,8 @@ These skills assume RevFleet layout (`~/revfleet/`, `~/revfleet/.jv`, RevVault, 
 | Skill | Description |
 |-------|-------------|
 | [revealui-recover](skills/revealui-recover/) | Diagnose and recover from crashed/interrupted Claude sessions — identity, git integrity, hook state, daemon, workboard |
-| [revealui-prepare-archive](skills/revealui-prepare-archive/) | Pre-archive checklist — validates 6 coherent-tracking surfaces, writes canonical `docs/HANDOFF-*.md`, appends workboard log entry |
-| [revealui-handoff](skills/revealui-handoff/) | **Deprecated (2026-05-19) — use revealui-prepare-archive instead.** Legacy handoff to `.claude/handoffs/`; retained for backward compatibility |
+| [revealui-checkpoint](skills/revealui-checkpoint/) | Checkpoint checklist — validates 6 coherent-tracking surfaces, writes canonical `docs/HANDOFF-*.md`, appends workboard log entry |
+| [revealui-handoff](skills/revealui-handoff/) | **Deprecated (2026-05-19) — use revealui-checkpoint instead.** Legacy handoff to `.claude/handoffs/`; retained for backward compatibility |
 | [revealui-doctor](skills/revealui-doctor/) | Health check for RevFleet Claude setup — hook syntax, rules dirs, git-fsck, workboard freshness, daemon, MCP servers, env leaks, toolchain |
 | [revealui-sync-lts](skills/revealui-sync-lts/) | Sync RevFleet repos to the LTS drive (/mnt/e) per per-repo declared mode (bundle or mirror) |
 | [revealui-sync-rules](skills/revealui-sync-rules/) | Check whether `.claude/rules/` files are in sync across RevealUI repos — asks before copying |

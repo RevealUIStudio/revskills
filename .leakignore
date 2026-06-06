@@ -18,7 +18,7 @@ skills/revealui-doctor/**        private-jv-repo,lts-drive                    # 
 skills/revealui-sync-rules/**    private-jv-name                              # coordinates rules across suite repos
 skills/revealui-sync-lts/**      lts-drive,private-jv-name                    # backup target is LTS drive
 skills/revealui-skills-test/**   private-jv-repo                              # validates both public + internal skills
-skills/revealui-prepare-archive/** private-jv-repo,private-jv-name              # pre-archive checklist orchestrates handoffs + workboard + lane plans + M-1 validators across suite repos
+skills/revealui-checkpoint/** private-jv-repo,private-jv-name              # checkpoint checklist orchestrates handoffs + workboard + lane plans + M-1 validators across suite repos
 
 # Top-level README acknowledges these are Studio-internal.
 README.md                        private-jv-repo                              # documents suite-layout assumption
