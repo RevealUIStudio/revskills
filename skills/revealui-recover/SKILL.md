@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Grep, Glob
 metadata:
   author: RevealUI Studio
-  version: "0.2.0"
+  version: "0.2.1"
   website: https://revealui.com
 ---
 
@@ -76,11 +76,11 @@ ss_orphaned_handoffs 60
 
 Surfaces legacy-location handoffs older than 60 minutes (receiving session never consumed). Scopes to:
 - `/tmp/agent-handoff-*.md` — pre-2026-05-09 ad-hoc handoffs
-- `$JV_REPO/.claude/handoffs/*.md` — deprecated `/handoff` slash command target (skill `revealui-handoff` v0.3.0+ DEPRECATED 2026-05-19; superseded by `/prepare-archive`)
+- `$JV_REPO/.claude/handoffs/*.md` — deprecated `/handoff` slash command target (skill `revealui-handoff` v0.3.0+ DEPRECATED 2026-05-19; superseded by `/checkpoint`)
 
-**Does NOT scan the canonical location** (`$JV_REPO/docs/HANDOFF-*.md` root, per `master-handoff.md`). Canonical-location handoffs are discoverable via the workboard `## Log` `[PRE-ARCHIVE]` / `[HANDOFF]` entries + git history; scanning would surface every active <7d handoff as "orphaned" (wrong-by-construction — the sweep keeps active handoffs at root for 7 days).
+**Does NOT scan the canonical location** (`$JV_REPO/docs/HANDOFF-*.md` root, per `master-handoff.md`). Canonical-location handoffs are discoverable via the workboard `## Log` `[CHECKPOINT]` / `[HANDOFF]` entries + git history; scanning would surface every active <7d handoff as "orphaned" (wrong-by-construction — the sweep keeps active handoffs at root for 7 days).
 
-Surface path + timestamp for each hit; propose reading. If recent canonical handoffs exist but no workboard log entry references them, that's a real orphan — surface separately by parsing `$WORKBOARD` for `[PRE-ARCHIVE]` lines and cross-checking against `git log --since='7 days ago' -- docs/HANDOFF-*.md`.
+Surface path + timestamp for each hit; propose reading. If recent canonical handoffs exist but no workboard log entry references them, that's a real orphan — surface separately by parsing `$WORKBOARD` for `[CHECKPOINT]` lines and cross-checking against `git log --since='7 days ago' -- docs/HANDOFF-*.md`.
 
 ## Step 6 — Daemon + environment
 
