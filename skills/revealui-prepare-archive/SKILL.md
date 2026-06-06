@@ -65,9 +65,9 @@ Validates each lane's frontmatter + plan.md presence.
 
 ### 2e. M-1 ADR tracking-issue compliance
 ```bash
-~/revfleet/revealui/node_modules/.bin/tsx "$JV_ROOT/scripts/m1-adr-tracking-check.ts" --mode=ci
+~/revfleet/revealui/node_modules/.bin/tsx "$JV_ROOT/scripts/m1-adr-tracking-check.ts" --base-ref=origin/main --head-ref=HEAD --mode=ci
 ```
-Every ADR (post-2026-05-16 cutoff) must carry `tracking-issue:` frontmatter.
+Every ADR (post-2026-05-16 cutoff) must carry `tracking-issue:` frontmatter. The check needs a diff range: `origin/main...HEAD` scopes it to ADRs on the current branch not yet on `main` (empty on a fresh `main` → exit 0). Invoking it with no range exits 2 with a usage error — that was the Step 2e bug, fixed 2026-06-06. Requires `origin/main` to be fetched (the inventory step already hits the network, so a stale ref is the only failure mode).
 
 ### 2f. M-1 frontmatter staleness
 ```bash
