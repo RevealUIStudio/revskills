@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.2.0"
+  version: "0.3.0"
   website: https://revealui.com
 ---
 
@@ -34,6 +34,23 @@ HANDOFF_FILE="$JV_ROOT/docs/HANDOFF-${ISO_DATE}-${TOPIC_SLUG}.md"
 ```
 
 Canonical handoff location per `master-handoff.md`: `~/revfleet/.jv/docs/HANDOFF-YYYY-MM-DD-*.md` at root. Active stays here until 7-day mtime; `master-handoff-regen.js` sweeps to `docs/handoffs/archive/`. Never write to `~/revfleet/.jv/.claude/handoffs/` (non-canonical) or `/tmp/agent-handoff-*.md` (orphaned).
+
+## Step 1b — Load the auto-checkpoint snapshot (fidelity source)
+
+The auto-checkpoint hooks capture a session snapshot at the soft-context line, while fidelity is still high. When one exists it is the PRIMARY source for the narrative sections in Step 4 — more trustworthy than reconstructing from now-deep session memory.
+
+```bash
+SNAP_DIR="$HOME/.claude/coordination/snapshots"
+# Most-recent snapshot = the current session's (its hooks just wrote it).
+SNAPSHOT="$(ls -t "$SNAP_DIR"/*.md 2>/dev/null | head -1)"
+if [ -n "$SNAPSHOT" ]; then
+  echo "snapshot found: $SNAPSHOT"
+else
+  echo "no snapshot — Step 4 falls back to session memory"
+fi
+```
+
+If `$SNAPSHOT` is set, READ it and verify it is THIS session's: its `## Resume-From-Here` / `## What-Shipped` must match the work you just did. If concurrent sessions are running, the most-recent file may be a peer's — pick the one whose content is yours, or skip if none match. Use the snapshot's five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 handoff; they map onto the template's sections. With no snapshot, Step 4 proceeds from session memory as before.
 
 ## Step 2 — Run coherent-tracking validators
 
@@ -120,7 +137,7 @@ stat -c '%Y' "$JV_ROOT/.claude/DIRECTION.md"
 
 ## Step 4 — Write handoff document
 
-Write to `$HANDOFF_FILE` (canonical: `docs/HANDOFF-YYYY-MM-DD-*.md` root) using this template. Fill `TODO:` sections from session memory + Step 2-3 results:
+Write to `$HANDOFF_FILE` (canonical: `docs/HANDOFF-YYYY-MM-DD-*.md` root) using this template. Fill `TODO:` sections PRIMARILY from the Step 1b snapshot when present (it is the high-fidelity early capture), supplemented by session memory + Step 2-3 results. With no snapshot, fall back to session memory as before:
 
 ```markdown
 ---
