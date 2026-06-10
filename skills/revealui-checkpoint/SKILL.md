@@ -1,15 +1,15 @@
 ---
-name: revealui-prepare-archive
-description: Pre-archive checklist for RevFleet sessions. Validates the 6 coherent-tracking surfaces (doc-locations, workboard, MASTER_HANDOFF staleness, lane plans, M-1 ADR tracking, M-1 frontmatter staleness), inventories tracking state (branches.json, open PRs, active lanes, uncommitted .jv changes), writes a handoff doc at the canonical `docs/HANDOFF-*.md` root, appends a workboard log entry, and outputs a structured READY-TO-ARCHIVE report. Non-destructive — never auto-commits or runs master-handoff regen.
+name: revealui-checkpoint
+description: Checkpoint checklist for RevFleet sessions. Validates the 6 coherent-tracking surfaces (doc-locations, workboard, MASTER_HANDOFF staleness, lane plans, M-1 ADR tracking, M-1 frontmatter staleness), inventories tracking state (branches.json, open PRs, active lanes, uncommitted .jv changes), writes a handoff doc at the canonical `docs/HANDOFF-*.md` root, appends a workboard log entry, and outputs a structured CHECKPOINT-READY report. Non-destructive — never auto-commits or runs master-handoff regen.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.1.0"
+  version: "0.3.0"
   website: https://revealui.com
 ---
 
-Pre-archive orchestrator. Run before ending a meaningful session to ensure the next agent can pick up cleanly. Wires together the 6 coherent-tracking validators + 4 inventory surfaces + writes a canonical-location handoff + reports a structured READY-TO-ARCHIVE checklist.
+Checkpoint orchestrator. Run before ending a meaningful session to ensure the next agent can pick up cleanly. Wires together the 6 coherent-tracking validators + 4 inventory surfaces + writes a canonical-location handoff + reports a structured CHECKPOINT-READY checklist.
 
 Authority on locations + tiers: [`master-handoff.md`](~/revfleet/.jv/.claude/rules/master-handoff.md) (active at `docs/HANDOFF-*.md` root; archive at `docs/handoffs/archive/`). Authority on doc-location enforcement: [`jv-doc-locations.md`](~/revfleet/.jv/.claude/rules/jv-doc-locations.md).
 
@@ -28,12 +28,29 @@ WORKBOARD="$JV_ROOT/.claude/workboard.md"
 ISO_DATE="$(date -u +%Y-%m-%d)"
 ISO_DATETIME="$(date -u +%Y-%m-%dT%H:%MZ)"
 # Optional topic from $ARGUMENTS; default to identity-based slug.
-TOPIC="${ARGUMENTS:-session-archive}"
+TOPIC="${ARGUMENTS:-session-checkpoint}"
 TOPIC_SLUG="$(echo "$TOPIC" | tr '[:upper:]' '[:lower:]' | tr -s ' ' '-')"
 HANDOFF_FILE="$JV_ROOT/docs/HANDOFF-${ISO_DATE}-${TOPIC_SLUG}.md"
 ```
 
 Canonical handoff location per `master-handoff.md`: `~/revfleet/.jv/docs/HANDOFF-YYYY-MM-DD-*.md` at root. Active stays here until 7-day mtime; `master-handoff-regen.js` sweeps to `docs/handoffs/archive/`. Never write to `~/revfleet/.jv/.claude/handoffs/` (non-canonical) or `/tmp/agent-handoff-*.md` (orphaned).
+
+## Step 1b — Load the auto-checkpoint snapshot (fidelity source)
+
+The auto-checkpoint hooks capture a session snapshot at the soft-context line, while fidelity is still high. When one exists it is the PRIMARY source for the narrative sections in Step 4 — more trustworthy than reconstructing from now-deep session memory.
+
+```bash
+SNAP_DIR="$HOME/.claude/coordination/snapshots"
+# Most-recent snapshot = the current session's (its hooks just wrote it).
+SNAPSHOT="$(ls -t "$SNAP_DIR"/*.md 2>/dev/null | head -1)"
+if [ -n "$SNAPSHOT" ]; then
+  echo "snapshot found: $SNAPSHOT"
+else
+  echo "no snapshot — Step 4 falls back to session memory"
+fi
+```
+
+If `$SNAPSHOT` is set, READ it and verify it is THIS session's: its `## Resume-From-Here` / `## What-Shipped` must match the work you just did. If concurrent sessions are running, the most-recent file may be a peer's — pick the one whose content is yours, or skip if none match. Use the snapshot's five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 handoff; they map onto the template's sections. With no snapshot, Step 4 proceeds from session memory as before.
 
 ## Step 2 — Run coherent-tracking validators
 
@@ -65,9 +82,9 @@ Validates each lane's frontmatter + plan.md presence.
 
 ### 2e. M-1 ADR tracking-issue compliance
 ```bash
-~/revfleet/revealui/node_modules/.bin/tsx "$JV_ROOT/scripts/m1-adr-tracking-check.ts" --mode=ci
+~/revfleet/revealui/node_modules/.bin/tsx "$JV_ROOT/scripts/m1-adr-tracking-check.ts" --base-ref=origin/main --head-ref=HEAD --mode=ci
 ```
-Every ADR (post-2026-05-16 cutoff) must carry `tracking-issue:` frontmatter.
+Every ADR (post-2026-05-16 cutoff) must carry `tracking-issue:` frontmatter. The check needs a diff range: `origin/main...HEAD` scopes it to ADRs on the current branch not yet on `main` (empty on a fresh `main` → exit 0). Invoking it with no range exits 2 with a usage error — that was the Step 2e bug, fixed 2026-06-06. Requires `origin/main` to be fetched (the inventory step already hits the network, so a stale ref is the only failure mode).
 
 ### 2f. M-1 frontmatter staleness
 ```bash
@@ -120,7 +137,7 @@ stat -c '%Y' "$JV_ROOT/.claude/DIRECTION.md"
 
 ## Step 4 — Write handoff document
 
-Write to `$HANDOFF_FILE` (canonical: `docs/HANDOFF-YYYY-MM-DD-*.md` root) using this template. Fill `TODO:` sections from session memory + Step 2-3 results:
+Write to `$HANDOFF_FILE` (canonical: `docs/HANDOFF-YYYY-MM-DD-*.md` root) using this template. Fill `TODO:` sections PRIMARILY from the Step 1b snapshot when present (it is the high-fidelity early capture), supplemented by session memory + Step 2-3 results. With no snapshot, fall back to session memory as before:
 
 ```markdown
 ---
@@ -147,7 +164,7 @@ TODO: decisions not yet committed to CLAUDE.md / MASTER_PLAN.md / a lane plan. O
 ## Do Not Repeat
 TODO: tried approaches, already-rejected paths, peer-WIP territory to avoid.
 
-## Tracking-Surface State (from Step 2-3 of /prepare-archive)
+## Tracking-Surface State (from Step 2-3 of /checkpoint)
 - doc-locations-check:           <PASS | N violations>
 - workboard freshness:           <FRESH | WARN>
 - MASTER_HANDOFF staleness:      <FRESH | STALE | EXPIRED>
@@ -180,7 +197,7 @@ TODO: anything uncommitted, unpushed, pending CI, awaiting review, owner-gated, 
 
 ## Next-Agent Prompt
 
-Copy-pasteable prompt for the next Claude Code session. Triple-click the fenced block below to select; paste into a fresh session as the first message. Per `~/.claude/rules/coordination.md` §"Archive-Readiness Convention" (2026-05-11). Same content is also emitted to chat by Step 8 of /prepare-archive — duplicated here so it survives the chat closing.
+Copy-pasteable prompt for the next Claude Code session. Triple-click the fenced block below to select; paste into a fresh session as the first message. Per `~/.claude/rules/coordination.md` §"Archive-Readiness Convention" (2026-05-11). Same content is also emitted to chat by Step 8 of /checkpoint — duplicated here so it survives the chat closing.
 
 \`\`\`
 Session <SESSION_ID> — read first: <HANDOFF_FILE absolute path>
@@ -207,7 +224,7 @@ Use the Write tool for this file. Then `git add` it with explicit pathspec.
 
 Append one line under `## Log` in `$WORKBOARD`:
 ```
-- [YYYY-MM-DD HH:MM] <IDENTITY>: [PRE-ARCHIVE] → <HANDOFF_FILE> | tracking: <X pass / Y fail> | next: <one-line next action from §Resume From Here>
+- [YYYY-MM-DD HH:MM] <IDENTITY>: [CHECKPOINT] → <HANDOFF_FILE> | tracking: <X pass / Y fail> | next: <one-line next action from §Resume From Here>
 ```
 
 Use Edit tool with old_string targeting the existing `## Log` header (insert immediately after). Do not rewrite the workboard.
@@ -217,7 +234,7 @@ Use Edit tool with old_string targeting the existing `## Log` header (insert imm
 Print this structured summary to the user (NOT just the assistant log — actual user-facing report):
 
 ```
-=== PRE-ARCHIVE REPORT — <ISO_DATETIME> ===
+=== CHECKPOINT REPORT — <ISO_DATETIME> ===
 
 Handoff written:      <HANDOFF_FILE>
 Workboard updated:    <WORKBOARD>
@@ -241,16 +258,16 @@ OUTSTANDING (action by owner or next agent)
   - <enumerate uncommitted/unpushed work>
   - <enumerate owner-gated items>
 
-READY-TO-ARCHIVE: <YES | NO — see outstanding>
+CHECKPOINT-READY: <YES | NO — see outstanding>
 ```
 
-**READY-TO-ARCHIVE rules:**
+**CHECKPOINT-READY rules:**
 - `YES` only when: all 6 validators PASS (or only `master-handoff-staleness` is STALE which is non-blocking) AND uncommitted .jv changes are zero (or explicitly peer-WIP untracked files only) AND every open PR for the active branches is either GREEN-AND-MERGEABLE or owner-gated.
 - `NO` otherwise. Owner must address outstanding items before letting the session close.
 
 ## Step 7 — Optionally notify daemon
 
-If the RPC daemon is up (`ss_daemon_alive`) and `nc` is installed, post an `archive` event (advisory — not required):
+If the RPC daemon is up (`ss_daemon_alive`) and `nc` is installed, post a `checkpoint` event (advisory — not required):
 ```bash
 DAEMON_NOTIFIED="no"
 DAEMON_NOTIFY_REASON=""
@@ -262,7 +279,7 @@ elif ! command -v jq >/dev/null 2>&1; then
   DAEMON_NOTIFY_REASON="jq-missing"
 else
   PAYLOAD="$(jq -cn --arg file "$HANDOFF_FILE" --arg from "$IDENTITY" \
-    '{type:"pre-archive", file:$file, from:$from}')"
+    '{type:"checkpoint", file:$file, from:$from}')"
   if printf '%s\n' "$PAYLOAD" | nc -U -w 1 "$DAEMON_SOCKET" >/dev/null 2>&1; then
     DAEMON_NOTIFIED="yes"
   else
@@ -275,7 +292,7 @@ Daemon notification is non-blocking. If it fails for any reason, the handoff is 
 
 ## Step 8 — Emit copy-pasteable next-agent prompt (LAST output — nothing after this)
 
-Per `~/.claude/rules/coordination.md` §"Archive-Readiness Convention" (2026-05-11): the final output of any archive flow MUST be a copy-pasteable "next-agent prompt" the owner can drop straight into a new Claude Code session — no synthesis required, no jumping between docs. **The prompt is non-negotiable.** Without it, the owner has to do friction work (read handoff doc + workboard + memories + figure out the first action) every multi-session handoff. That friction compounds across the fleet.
+Per `~/.claude/rules/coordination.md` §"Archive-Readiness Convention" (2026-05-11): the final output of any checkpoint flow MUST be a copy-pasteable "next-agent prompt" the owner can drop straight into a new Claude Code session — no synthesis required, no jumping between docs. **The prompt is non-negotiable.** Without it, the owner has to do friction work (read handoff doc + workboard + memories + figure out the first action) every multi-session handoff. That friction compounds across the fleet.
 
 Compose the prompt with these 5 sections (in order):
 
@@ -287,7 +304,7 @@ Compose the prompt with these 5 sections (in order):
 
 Emit the prompt wrapped in a single triple-backtick fenced code block. The block must be the LAST thing emitted in the turn — no commentary, no "and that's it" trailer, nothing.
 
-If the Step 6 verdict is `READY-TO-ARCHIVE: NO`, the TL;DR must lead with `BLOCKED: <reason>. Resolve before next session.` and the NEXT ACTIONS list must enumerate the blockers (failed validators, uncommitted state, open PRs without owner-gate clearance) as items to clear first.
+If the Step 6 verdict is `CHECKPOINT-READY: NO`, the TL;DR must lead with `BLOCKED: <reason>. Resolve before next session.` and the NEXT ACTIONS list must enumerate the blockers (failed validators, uncommitted state, open PRs without owner-gate clearance) as items to clear first.
 
 If the session was a no-op (nothing shipped, no in-flight work), still emit the prompt — TL;DR reads `SESSION END — no follow-up required. Next agent starts fresh.` and NEXT ACTIONS list is empty (the section header still appears for symmetry).
 
@@ -309,9 +326,9 @@ Same content was already written to the handoff doc's §"Next-Agent Prompt" sect
 
 - End of a meaningful session (something shipped that needs handoff).
 - Before a planned absence (owner stepping away mid-flight).
-- When the user types `/prepare-archive`, `/prepare-archive <topic>`, or the Stop hook decides to run a final check.
+- When the user types `/checkpoint`, `/checkpoint <topic>`, or the Stop hook decides to run a final check.
 - NOT for one-off questions, read-only sessions, or aborted starts.
 
 ## Relationship to /handoff
 
-`/handoff` is the predecessor — writes a basic handoff doc to the (now non-canonical) `.claude/handoffs/` location with no tracking-surface validation. `/prepare-archive` supersedes it: canonical location + 6 validators + inventory + structured report. Recommend the slash command symlink at `~/.claude/commands/handoff.md` be retargeted to this skill in a follow-up (separate revskills PR).
+`/handoff` is the predecessor — writes a basic handoff doc to the (now non-canonical) `.claude/handoffs/` location with no tracking-surface validation. `/checkpoint` supersedes it: canonical location + 6 validators + inventory + structured report. Recommend the slash command symlink at `~/.claude/commands/handoff.md` be retargeted to this skill in a follow-up (separate revskills PR).

@@ -12,3 +12,10 @@
 # Anthropic official plugins — upstream bugs we can't fix here.
 claude-plugins-official/huggingface-skills/*  missing YAML frontmatter       # upstream: hugging-face-dataset-viewer SKILL.md lacks frontmatter (report to anthropics/claude-plugins-official)
 claude-plugins-official/plugin-dev/*          predictable /tmp paths          # upstream: test-hook.sh example uses $$ pattern (example code; low risk)
+
+# revskills self-suppression — with marketplace source "./" the repo root ships
+# as the plugin, so scripts/lint-plugins.sh travels inside the plugin and the
+# scanner scans itself. Its comments + one failure-message embed the very
+# patterns it detects (not real commands). Scoped to lint-plugins.sh only.
+revskills* lint-plugins.sh contains unquoted 'rm -rf $VAR'   # self-match: scanner comment embeds the rm-rf pattern it scans for
+revskills* lint-plugins.sh contains 'curl | bash'   # self-match: scanner comment+message embed the curl|bash pattern it scans for

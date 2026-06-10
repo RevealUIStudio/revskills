@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "revskills",
+  "version": "0.1.0",
+  "description": "RevealUI fleet developer-skills bundle: framework, database, sync, testing, security, and RevealUI-native workflow skills for Claude Code.",
+  "author": {
+    "name": "RevealUI Studio",
+    "email": "founder@revealui.com"
+  },
+  "homepage": "https://github.com/RevealUIStudio/revskills",
+  "license": "MIT",
+  "keywords": ["revealui", "revfleet", "claude-code", "skills"]
+}
