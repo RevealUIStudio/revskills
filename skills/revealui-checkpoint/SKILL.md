@@ -1,15 +1,15 @@
 ---
 name: revealui-checkpoint
-description: Checkpoint checklist for RevFleet sessions. Validates the 6 coherent-tracking surfaces (doc-locations, workboard, MASTER_HANDOFF staleness, lane plans, M-1 ADR tracking, M-1 frontmatter staleness), inventories tracking state (branches.json, open PRs, active lanes, uncommitted .jv changes), writes a handoff doc at the canonical `docs/HANDOFF-*.md` root, appends a workboard log entry, and outputs a structured CHECKPOINT-READY report. Non-destructive — never auto-commits or runs master-handoff regen.
+description: Checkpoint checklist for RevFleet sessions. Validates the 6 coherent-tracking surfaces (doc-locations, workboard, MASTER_HANDOFF staleness, lane plans, M-1 ADR tracking, M-1 frontmatter staleness), inventories tracking state (branches.json, open PRs, active lanes, uncommitted .jv changes), merges the session delta into the rolling CURRENT-HANDOFF.md, appends a workboard log entry, and outputs a structured CHECKPOINT-READY report + archive-readiness next-agent prompt. Non-destructive — never auto-commits or runs master-handoff regen.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.3.0"
+  version: "0.4.0"
   website: https://revealui.com
 ---
 
-Checkpoint orchestrator. Run before ending a meaningful session to ensure the next agent can pick up cleanly. Wires together the 6 coherent-tracking validators + 4 inventory surfaces + writes a canonical-location handoff + reports a structured CHECKPOINT-READY checklist.
+Checkpoint orchestrator. Run before ending a meaningful session to ensure the next agent can pick up cleanly. Wires together the 6 coherent-tracking validators + 4 inventory surfaces + merges the session delta into the rolling `~/revfleet/.jv/docs/handoffs/CURRENT-HANDOFF.md` + reports a structured CHECKPOINT-READY checklist + emits the archive-readiness next-agent prompt.
 
 Authority on locations + tiers: [`master-handoff.md`](~/revfleet/.jv/.claude/rules/master-handoff.md) (active at `docs/HANDOFF-*.md` root; archive at `docs/handoffs/archive/`). Authority on doc-location enforcement: [`jv-doc-locations.md`](~/revfleet/.jv/.claude/rules/jv-doc-locations.md).
 
@@ -27,13 +27,11 @@ JV_ROOT="$HOME/revfleet/.jv"
 WORKBOARD="$JV_ROOT/.claude/workboard.md"
 ISO_DATE="$(date -u +%Y-%m-%d)"
 ISO_DATETIME="$(date -u +%Y-%m-%dT%H:%MZ)"
-# Optional topic from $ARGUMENTS; default to identity-based slug.
-TOPIC="${ARGUMENTS:-session-checkpoint}"
-TOPIC_SLUG="$(echo "$TOPIC" | tr '[:upper:]' '[:lower:]' | tr -s ' ' '-')"
-HANDOFF_FILE="$JV_ROOT/docs/HANDOFF-${ISO_DATE}-${TOPIC_SLUG}.md"
+# Rolling handoff — always merged into this one file.
+CURRENT_HANDOFF="$JV_ROOT/docs/handoffs/CURRENT-HANDOFF.md"
 ```
 
-Canonical handoff location per `master-handoff.md`: `~/revfleet/.jv/docs/HANDOFF-YYYY-MM-DD-*.md` at root. Active stays here until 7-day mtime; `master-handoff-regen.js` sweeps to `docs/handoffs/archive/`. Never write to `~/revfleet/.jv/.claude/handoffs/` (non-canonical) or `/tmp/agent-handoff-*.md` (orphaned).
+Rolling handoff target per `~/.claude/rules/model-allocation.md` §Session handoff loop: `~/revfleet/.jv/docs/handoffs/CURRENT-HANDOFF.md`. Every session merges its delta here rather than creating a dated file. When the file exceeds ~150 lines, the ending session prunes shipped items to `docs/handoffs/archive/` as part of the merge (Step 4b).
 
 ## Step 1b — Load the auto-checkpoint snapshot (fidelity source)
 
@@ -50,7 +48,7 @@ else
 fi
 ```
 
-If `$SNAPSHOT` is set, READ it and verify it is THIS session's: its `## Resume-From-Here` / `## What-Shipped` must match the work you just did. If concurrent sessions are running, the most-recent file may be a peer's — pick the one whose content is yours, or skip if none match. Use the snapshot's five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 handoff; they map onto the template's sections. With no snapshot, Step 4 proceeds from session memory as before.
+If `$SNAPSHOT` is set, READ it and verify it is THIS session's: its `## Resume-From-Here` / `## What-Shipped` must match the work you just did. If concurrent sessions are running, the most-recent file may be a peer's — pick the one whose content is yours, or skip if none match. Use the snapshot's five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 merge; they map onto the rolling file's sections. With no snapshot, Step 4 proceeds from session memory as before.
 
 ## Step 2 — Run coherent-tracking validators
 
@@ -135,96 +133,56 @@ stat -c '%Y' "$JV_ROOT/.claude/DIRECTION.md"
 # MASTER_PLAN.md staleness check is part of M-1 (covered by 2f).
 ```
 
-## Step 4 — Write handoff document
+## Step 4 — Merge session delta into CURRENT-HANDOFF.md
 
-Write to `$HANDOFF_FILE` (canonical: `docs/HANDOFF-YYYY-MM-DD-*.md` root) using this template. Fill `TODO:` sections PRIMARILY from the Step 1b snapshot when present (it is the high-fidelity early capture), supplemented by session memory + Step 2-3 results. With no snapshot, fall back to session memory as before:
+**Target:** `$CURRENT_HANDOFF` — the rolling file; never create a dated HANDOFF-YYYY-MM-DD-*.md file. Read the current contents first. Compose the delta PRIMARILY from the Step 1b snapshot when present, supplemented by session memory + Step 2-3 results. With no snapshot, fall back to session memory.
 
-```markdown
----
-from: <IDENTITY>
-to: <suggested next identity or "ensemble">
-created: <ISO_DATETIME>
-repo: <REPO>
-branch: <branch name>
-topic: <TOPIC>
-related-lanes: []   # add lane-ids if this session touched specific lanes
----
+Update each section using the Edit tool:
 
-# Handoff — <ISO_DATETIME> — <TOPIC>
-
-## Resume From Here
-TODO: one sentence — the single most important next action. Name files, functions, commands. No vague wording.
-
-## What Shipped This Session
-TODO: PRs opened/merged, commits, durable artifacts. Include URLs.
-
-## Active Constraints
-TODO: decisions not yet committed to CLAUDE.md / MASTER_PLAN.md / a lane plan. Owner-gated holds.
-
-## Do Not Repeat
-TODO: tried approaches, already-rejected paths, peer-WIP territory to avoid.
-
-## Tracking-Surface State (from Step 2-3 of /checkpoint)
-- doc-locations-check:           <PASS | N violations>
-- workboard freshness:           <FRESH | WARN>
-- MASTER_HANDOFF staleness:      <FRESH | STALE | EXPIRED>
-- lanes-check:                   <PASS | N issues>
-- m1-adr-tracking:               <PASS | N missing>
-- m1-frontmatter-staleness:      <PASS | N stale>
-- active branches (branches.json): <N>
-- open PRs across fleet:         <N>
-- active lanes:                  <N>
-- uncommitted .jv changes:       <N files>
-
-## Open Loose Ends
-TODO: anything uncommitted, unpushed, pending CI, awaiting review, owner-gated, deferred.
-
-## Locked Posture
-- audit-first SDLC (HARDLINE)
-- core.fileMode=false on every .jv commit
-- explicit pathspec on every commit (preserve peer-WIP untracked)
-- -F /tmp/cmsg-*-<sessionid>.txt for commit messages
-- --body-file for PR/issue bodies (no bash heredoc)
-- --base test (revealui) or --base main (.jv); --head explicit
-- no --auto, no --no-verify, no --admin, no --force-push
-- no regex authored (AST/typed predicates/Intl.Segmenter only)
-- revvault-first secrets; no env-var fallbacks
-- durable-only HARDLINE
-- questions one-at-a-time
-
-## Relevant Memories
-<list memory files touched or surfaced this session>
-
-## Next-Agent Prompt
-
-Copy-pasteable prompt for the next Claude Code session. Triple-click the fenced block below to select; paste into a fresh session as the first message. Per `~/.claude/rules/coordination.md` §"Archive-Readiness Convention" (2026-05-11). Same content is also emitted to chat by Step 8 of /checkpoint — duplicated here so it survives the chat closing.
-
-\`\`\`
-Session <SESSION_ID> — read first: <HANDOFF_FILE absolute path>
-
-TL;DR: <1–2 sentences mirroring §Resume From Here above>
-
-NEXT ACTIONS (mechanical, ready-to-run):
-
-1. <command + exact args>
-2. <command + exact args>
-3. <command + exact args>
-
-LOCKED POSTURE: audit-first SDLC HARDLINE; `core.fileMode=false` on every .jv commit; explicit pathspec (preserve peer-WIP untracked); `-F /tmp/cmsg-*.txt` for commit messages; `--body-file` for PR/issue bodies; `--head`/`--base` explicit on `gh pr create`; no `--auto`/`--no-verify`/`--admin`/`--force-push`; no regex authored; no Stripe live-flip without owner directive; revvault-first secrets; durable-only.
-
-OWNER-GATED (do NOT auto-pick up without explicit sign-off):
-- <item 1>
-- <item 2>
-\`\`\`
+**`## Last merge`** — Replace the existing one-line value with:
+```
+<ISO_DATE> — <IDENTITY> (<brief session description, ≤15 words>)
 ```
 
-Use the Write tool for this file. Then `git add` it with explicit pathspec.
+**`## Done + verified this cycle`** — PREPEND new items from this session above the existing list. Do NOT delete prior items (Step 4b handles pruning). Each item is a one-line bullet citing PR numbers, commits, or artifact paths. Example:
+```
+- **admin /api/media forwarder** — [revealui#1395](url) MERGED to test; POST route + 7 tests; rides next test→main promotion.
+```
+
+**`## In-flight`** — REPLACE entirely with the current in-flight state: branches not yet merged, open PRs awaiting review or CI, uncommitted work with worktree paths, lanes with pending code. If nothing in flight: `- None.`
+
+**`## Ordered next actions`** — REPLACE entirely with ordered mechanical next actions for the next agent. Lead with the highest-priority item. Use exact commands, file paths, branch names, PR numbers. No "investigate X" vagueness — those go in an optional `## Notes` section below. Number each action.
+
+**`## Owner-gated`** — MERGE: keep existing items unless resolved this session, then prepend any new owner-gated items from this session.
+
+**Optional `## Next-agent prompt (<lane>)` section** — Add or update at the end of the file when there is a specific actionable lane the next agent should pick up. Include a fenced next-agent prompt block as a convenience copy (the canonical emission happens in Step 8).
+
+## Step 4b — Prune CURRENT-HANDOFF.md if it exceeds ~150 lines
+
+```bash
+LINE_COUNT="$(wc -l < "$CURRENT_HANDOFF")"
+echo "CURRENT-HANDOFF.md: $LINE_COUNT lines"
+```
+
+If `$LINE_COUNT` exceeds approximately 150: identify items in `## Done + verified this cycle` that are clearly stale history — work that shipped in a prior cycle, whose PRs are merged, and that the next agent does not need for orientation. Move those items (only from `## Done + verified`) to an archive file:
+
+Archive target: `$JV_ROOT/docs/handoffs/archive/CURRENT-HANDOFF-PRUNE-${ISO_DATE}.md`
+
+Write the archive file with a short header (prune date, source section). Then use the Edit tool to remove the pruned items from `$CURRENT_HANDOFF`. Keep the most recent session's items plus anything still relevant to in-flight work or the ordered next actions. When in doubt, keep it — the goal is to prevent the file from becoming unreadably long, not to scrub history.
+
+```bash
+# Confirm prune file written (if pruning occurred)
+[ -f "$JV_ROOT/docs/handoffs/archive/CURRENT-HANDOFF-PRUNE-${ISO_DATE}.md" ] && \
+  echo "pruned to: docs/handoffs/archive/CURRENT-HANDOFF-PRUNE-${ISO_DATE}.md"
+```
+
+If line count is below ~150, skip this step.
 
 ## Step 5 — Workboard log entry
 
 Append one line under `## Log` in `$WORKBOARD`:
 ```
-- [YYYY-MM-DD HH:MM] <IDENTITY>: [CHECKPOINT] → <HANDOFF_FILE> | tracking: <X pass / Y fail> | next: <one-line next action from §Resume From Here>
+- [YYYY-MM-DD HH:MM] <IDENTITY>: [CHECKPOINT] → CURRENT-HANDOFF.md | tracking: <X pass / Y fail> | next: <one-line next action from §Ordered next actions>
 ```
 
 Use Edit tool with old_string targeting the existing `## Log` header (insert immediately after). Do not rewrite the workboard.
@@ -236,7 +194,7 @@ Print this structured summary to the user (NOT just the assistant log — actual
 ```
 === CHECKPOINT REPORT — <ISO_DATETIME> ===
 
-Handoff written:      <HANDOFF_FILE>
+Handoff merged:       <CURRENT_HANDOFF>
 Workboard updated:    <WORKBOARD>
 
 TRACKING SURFACES (6)
@@ -278,7 +236,7 @@ elif [ ! -S "$DAEMON_SOCKET" ]; then
 elif ! command -v jq >/dev/null 2>&1; then
   DAEMON_NOTIFY_REASON="jq-missing"
 else
-  PAYLOAD="$(jq -cn --arg file "$HANDOFF_FILE" --arg from "$IDENTITY" \
+  PAYLOAD="$(jq -cn --arg file "$CURRENT_HANDOFF" --arg from "$IDENTITY" \
     '{type:"checkpoint", file:$file, from:$from}')"
   if printf '%s\n' "$PAYLOAD" | nc -U -w 1 "$DAEMON_SOCKET" >/dev/null 2>&1; then
     DAEMON_NOTIFIED="yes"
@@ -290,15 +248,21 @@ fi
 
 Daemon notification is non-blocking. If it fails for any reason, the handoff is still valid: next session's SessionStart hook discovers it via filesystem.
 
+## Step 7.5 — Leave /session-note
+
+Invoke the `session-note` skill (Skill tool) pointing at CURRENT-HANDOFF.md. This note surfaces in the next session's `[beacons]` block automatically and is the lowest-friction way for the next agent to orient before any context is loaded.
+
+Suggested note text: `Handoff merged into ~/revfleet/.jv/docs/handoffs/CURRENT-HANDOFF.md — read first. Top action: <first item from §Ordered next actions>.`
+
 ## Step 8 — Emit copy-pasteable next-agent prompt (LAST output — nothing after this)
 
-Per `~/.claude/rules/coordination.md` §"Archive-Readiness Convention" (2026-05-11): the final output of any checkpoint flow MUST be a copy-pasteable "next-agent prompt" the owner can drop straight into a new Claude Code session — no synthesis required, no jumping between docs. **The prompt is non-negotiable.** Without it, the owner has to do friction work (read handoff doc + workboard + memories + figure out the first action) every multi-session handoff. That friction compounds across the fleet.
+Per `~/.claude/rules/coordination.md` §"Archive-Readiness Convention" (2026-05-11): the final output of any checkpoint flow MUST be a copy-pasteable "next-agent prompt" the owner can drop straight into a new Claude Code session — no synthesis required, no jumping between docs. **The prompt is non-negotiable.** Without it, the owner has to do friction work (read CURRENT-HANDOFF.md + workboard + memories + figure out the first action) every multi-session handoff. That friction compounds across the fleet.
 
 Compose the prompt with these 5 sections (in order):
 
-1. **First line** — `Session <session-id> — read first: <absolute path to HANDOFF_FILE>`. The path is the absolute filesystem path (`~/revfleet/.jv/docs/HANDOFF-YYYY-MM-DD-*.md`), not a relative path.
-2. **TL;DR** — 1–2 sentences with the single most important next action. Mirror §"Resume From Here" from the handoff doc; do not re-summarize.
-3. **Ordered next-actions** — numbered list with EXACT commands / values / file paths. No "investigate X" / "decide Y" / "look into Z" — those belong in handoff §"Open Loose Ends". Pre-resolve every path, hash, branch name, PR number. If the next-agent has to fill in `<paste prod URL here>`, the convention has been violated.
+1. **First line** — `Session <session-id> — read first: ~/revfleet/.jv/docs/handoffs/CURRENT-HANDOFF.md`. The path is the absolute filesystem path to the rolling handoff file.
+2. **TL;DR** — 1–2 sentences with the single most important next action. Mirror §"Ordered next actions" item 1 from CURRENT-HANDOFF.md; do not re-summarize.
+3. **Ordered next-actions** — numbered list with EXACT commands / values / file paths. No "investigate X" / "decide Y" / "look into Z" — those belong in CURRENT-HANDOFF.md body. Pre-resolve every path, hash, branch name, PR number. If the next-agent has to fill in `<paste prod URL here>`, the convention has been violated.
 4. **Locked-posture reminder** — one line. HARDLINES: `core.fileMode=false` on every .jv commit; explicit pathspec (preserve peer-WIP untracked); `-F /tmp/cmsg-*.txt` for commit messages; `--body-file` for PR/issue bodies; `--head`/`--base` explicit on `gh pr create`; no `--auto`/`--no-verify`/`--admin`/`--force-push`; audit-first SDLC HARDLINE; no regex authored; no Stripe live-flip without owner directive; revvault-first secrets; durable-only.
 5. **Owner-gated deferrals** — one short list of items the next agent must NOT auto-pick up without explicit owner sign-off.
 
@@ -308,17 +272,17 @@ If the Step 6 verdict is `CHECKPOINT-READY: NO`, the TL;DR must lead with `BLOCK
 
 If the session was a no-op (nothing shipped, no in-flight work), still emit the prompt — TL;DR reads `SESSION END — no follow-up required. Next agent starts fresh.` and NEXT ACTIONS list is empty (the section header still appears for symmetry).
 
-Same content was already written to the handoff doc's §"Next-Agent Prompt" section (Step 4). The chat emission is for immediate copy-paste; the handoff doc is for recovery if chat closes before paste.
+The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional Step 4 section). The chat emission is for immediate copy-paste; CURRENT-HANDOFF.md is for recovery if chat closes before paste.
 
 ## Do not
 
 - Do NOT emit ANY text or tool call after Step 8's fenced prompt block. The block is the last thing in the turn — the owner triple-clicks to select.
-- Do NOT auto-commit anything — let the owner decide what to commit (handoff doc + workboard line are written but unstaged; they show up in `git status` for owner to commit explicitly).
+- Do NOT auto-commit anything — let the owner decide what to commit (CURRENT-HANDOFF.md edits + workboard line are written but unstaged; they show up in `git status` for owner to commit explicitly).
 - Do NOT run `master-handoff-regen.js` — that's a separate audited operation (agent-invoked, owner-attended, expensive).
-- Do NOT move or delete handoff files — the 7-day sweep handles that.
-- Do NOT modify lane plans or MASTER_PLAN.md — validators here are READ-ONLY against body content.
-- Do NOT write the handoff to `~/revfleet/.jv/.claude/handoffs/` (non-canonical; retired 2026-05-19 in favor of `docs/HANDOFF-*.md` root per master-handoff.md).
+- Do NOT create dated standalone handoff files (`docs/HANDOFF-YYYY-MM-DD-*.md`) — the rolling CURRENT-HANDOFF.md is the target. Do NOT write to `~/revfleet/.jv/.claude/handoffs/` (non-canonical, retired 2026-05-19).
 - Do NOT write to `/tmp/agent-handoff-*.md` (orphaned by design).
+- Do NOT move or delete handoff files — the 7-day sweep handles dated files; the CURRENT-HANDOFF.md prune (Step 4b) handles the rolling file.
+- Do NOT modify lane plans or MASTER_PLAN.md — validators here are READ-ONLY against body content.
 - Do NOT reference tmux, tmux windows, panes, or `TMUX_PANE` — Studio-native.
 - Do NOT attempt to spawn a new agent process — the user (or Studio UI) controls session creation.
 
@@ -331,4 +295,4 @@ Same content was already written to the handoff doc's §"Next-Agent Prompt" sect
 
 ## Relationship to /handoff
 
-`/handoff` is the predecessor — writes a basic handoff doc to the (now non-canonical) `.claude/handoffs/` location with no tracking-surface validation. `/checkpoint` supersedes it: canonical location + 6 validators + inventory + structured report. Recommend the slash command symlink at `~/.claude/commands/handoff.md` be retargeted to this skill in a follow-up (separate revskills PR).
+`/handoff` is the predecessor — writes a basic handoff doc to the (now non-canonical) `.claude/handoffs/` location with no tracking-surface validation. `/checkpoint` supersedes it: rolling merge into CURRENT-HANDOFF.md + 6 validators + inventory + structured report. Recommend the slash command symlink at `~/.claude/commands/handoff.md` be retargeted to this skill in a follow-up (separate revskills PR).
