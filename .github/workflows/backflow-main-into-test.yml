@@ -10,8 +10,8 @@ on:
 
 jobs:
   backflow:
-    # Pinned to an immutable SHA (RevealUIStudio/.github main @ 2026-05-30) so a
+    # Pinned to an immutable SHA (RevealUIStudio/.github main @ 2026-06-12) so a
     # later push to the shared repo cannot silently change this production gate.
     # Bump via Dependabot (github-actions) like every other pinned ref.
-    uses: RevealUIStudio/.github/.github/workflows/backflow-reusable.yml@3626bec684c4e98db506cf3a0c973dea58ed0cc4
+    uses: RevealUIStudio/.github/.github/workflows/backflow-reusable.yml@018dbca12f2b6588b456cb2f450aadf4814729cd # main @ 2026-06-12
     secrets: inherit
