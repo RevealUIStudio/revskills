@@ -54,7 +54,13 @@ ss_revvault_alive && echo "revvault: up" || echo "revvault: down"
 Flag daemon down (primary coordination layer per hooks-architecture.md).
 
 ## 8. MCP servers
-Read `~/.claude/config.json`, extract `mcpServers`, verify each `command` binary is on PATH.
+Read `~/.claude/config.json`, extract `mcpServers`. For each server verify BOTH:
+- `command` resolves — an absolute path is executable, a bare name is on PATH.
+- `cwd` exists as a directory, and any absolute path in `args` exists.
+
+A `pnpm`-launched server still fails silently if its `cwd` points at a missing tree, so
+checking `command` alone undercounts. Flag any stale `~/projects/RevealUI` path (retired
+tree — should be `~/revfleet/revealui`).
 
 ## 9. Git-tracked env files
 In both RevFleet repos: `git ls-files '*.env*'`.
