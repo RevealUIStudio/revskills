@@ -11,7 +11,7 @@
 
 The repo is a Turborepo with **five apps and 26 packages** (21 published on npm under `@revealui/*` plus `create-revealui`; 5 private workspace packages). License posture is split: OSS subset under MIT, Pro packages (`@revealui/ai`, `@revealui/engines`, `@revealui/harnesses`, `@revealui/mcp`, `@revealui/services`) under **FSL-1.1-MIT** (Fair Source — source-visible, JWT-gated, auto-converts to MIT after 2 years).
 
-The brand is **dark-first**, **OKLCH-based**, with a **Cobalt (Electric Verdigris)** brand hue at `oklch(0.36 0.190 240)` (light) / `oklch(0.58 0.150 240)` (dark, AA-compliant) and a **Solar Amber** accent at `oklch(0.80 0.165 85)`. The marketing site flips this to a **cool paper + cobalt-ink + amber-accent** palette while still consuming the same `@revealui/presentation` token set. Brand decision recorded internally (May 2026).
+The brand is **dark-first**, **OKLCH-based**, with a **Cobalt (Electric Verdigris)** brand hue at `oklch(0.36 0.190 240)` (light) / `oklch(0.58 0.150 240)` (dark, AA-compliant) and a **Solar Amber** accent at `oklch(0.80 0.165 85)`. The marketing site flips this to a **cool paper + cobalt-ink + amber-accent** palette while still consuming the same `@revealui/tokens` token set. Brand decision recorded internally (May 2026).
 
 ### Status (as of this design system, May 2026)
 
@@ -26,11 +26,11 @@ The brand is **dark-first**, **OKLCH-based**, with a **Cobalt (Electric Verdigri
 
 ## Sources
 
-This design system was distilled from the RevealUI monorepo. Canonical tokens are published via the `@revealui/presentation` package and its `design-context/` pack (CI drift-gated — see CLAUDE.md for how to read them).
+This design system was distilled from the RevealUI monorepo. Canonical tokens are published via the `@revealui/tokens` package and its `design-context/` pack (CI drift-gated — see CLAUDE.md for how to read them).
 
 | Source | What was extracted |
 |---|---|
-| `packages/presentation/src/tokens.css` (revealui repo) | Canonical OKLCH token source — read via `@revealui/presentation/design-context/` |
+| `packages/tokens/src/tokens.css` (revealui repo) | Canonical OKLCH token source — read via `@revealui/tokens/design-context/` |
 | Marketing site `apps/marketing/app/` | NavBar, Footer, GetStarted, ContactForm, NewsletterSignup, ProductMockup; landing sections: Hero, Problem, Demo, Primitives, WhatsShipped, Persona, Proof, PricingTeaser, Faq |
 | Admin app `apps/admin/src/` | shadcn-style Button/Card/Input components, `scrap*` Tailwind palette |
 | llms.txt | Product positioning, tier names, suite ("RevFleet") |
@@ -66,10 +66,10 @@ revealui-design/  (this skill)
         └── Dashboard.jsx
 
 Token source (not in this skill — read from the package):
-  @revealui/presentation/design-context/  — committed, CI-drift-gated token pack
+  @revealui/tokens/design-context/  — committed, CI-drift-gated token pack
 ```
 
-The canonical token source is the `@revealui/presentation/design-context/` pack — never a local snapshot. The ui_kits inline a minimal cobalt token subset for standalone browser use; production code should read from the pack.
+The canonical token source is the `@revealui/tokens/design-context/` pack — never a local snapshot. The ui_kits inline a minimal cobalt token subset for standalone browser use; production code should read from the pack.
 
 ---
 
@@ -121,7 +121,7 @@ RevealUI sounds like a **technical co-founder writing to another technical co-fo
 
 ## VISUAL FOUNDATIONS
 
-> The visual system is split across two surfaces. **Admin / docs / docs-pro** use the canonical `@revealui/presentation` token set: dark-first, OKLCH, cobalt-on-cool-slate. **Marketing** flips to a cool paper surface with `gray-950` (remapped to midnight) for headlines and the cobalt brand as the ink accent, but still imports the same tokens for components, motion, and radii. The named Tailwind palettes `emerald-*` and `gray-*` are aliased in `apps/marketing/app/index.css` so utility classes (`text-emerald-700`, `bg-emerald-50`) resolve to cobalt/smoke values — no component edits required.
+> The visual system is split across two surfaces. **Admin / docs / docs-pro** use the canonical `@revealui/tokens` token set: dark-first, OKLCH, cobalt-on-cool-slate. **Marketing** flips to a cool paper surface with `gray-950` (remapped to midnight) for headlines and the cobalt brand as the ink accent, but still imports the same tokens for components, motion, and radii. The named Tailwind palettes `emerald-*` and `gray-*` are aliased in `apps/marketing/app/index.css` so utility classes (`text-emerald-700`, `bg-emerald-50`) resolve to cobalt/smoke values — no component edits required.
 
 - **Brand hue: Cobalt (Electric Verdigris).** `oklch(0.36 0.190 240)` on light (paper) surfaces, `oklch(0.58 0.150 240)` on dark surfaces (AA-compliant — lifted in shipped code). On marketing, use `var(--rvui-brand)` for ink and primary CTAs, `var(--rvui-brand-strong)` for press / deep ink moments, `var(--rvui-brand-soft)` for ringed soft chips and code-pill backgrounds. The Tailwind `emerald-*` palette is **aliased to the Cobalt ladder** in `apps/marketing/app/index.css`, so existing utility classes (`text-emerald-700`, `bg-emerald-50`, `ring-emerald-200`) all paint Cobalt without component edits.
 - **Accent: Solar Amber.** `oklch(0.80 0.165 85)` — honey-gold complement (kept away from rusty-orange). Reserved for premium tier highlights, warning state, the hero pulse-dot, and the brand-glow press shadow. **Never** becomes a primary CTA color.
