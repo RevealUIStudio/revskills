@@ -6,14 +6,14 @@ license: MIT
 allowed-tools: Read, Grep, Glob, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.1.1"
+  version: "0.1.2"
   website: https://revealui.com
 ---
 
 Read the README.md file within this skill for canonical brand, voice, and visual foundations.
 Read CLAUDE.md for brand orientation, open issues, voice rules, and substitution tables.
 
-For canonical tokens, read from `@revealui/presentation/design-context/` — a committed, CI-drift-gated pack generated from the revealui repo's `packages/presentation/src/tokens.css`. Do not rely on local token snapshots.
+For canonical tokens, read from `@revealui/tokens/design-context/` — a committed, CI-drift-gated pack generated from the revealui repo's `packages/tokens/src/tokens.css`. Do not rely on local token snapshots.
 
 This skill includes cobalt starting-point UI kits:
 - `ui_kits/marketing/` — light marketing site recreation (NavBar, Hero, Primitives, Pricing, Faq, Footer)

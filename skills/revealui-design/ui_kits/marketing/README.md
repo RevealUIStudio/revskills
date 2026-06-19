@@ -2,7 +2,7 @@
 
 Recreation of the public marketing site (`apps/marketing`). Light surface, cool paper + cobalt-ink + amber-accent palette, Tailwind utilities + Inter/Inter Tight/JetBrains Mono.
 
-The `emerald-*` and `gray-*` Tailwind names are **aliased to cobalt/smoke** in `apps/marketing/app/index.css` — utility classes like `text-emerald-700` and `bg-emerald-50` render as cobalt; the alias is accurate, not a brand reference. For canonical token values read from `@revealui/presentation/design-context/`.
+The `emerald-*` and `gray-*` Tailwind names are **aliased to cobalt/smoke** in `apps/marketing/app/index.css` — utility classes like `text-emerald-700` and `bg-emerald-50` render as cobalt; the alias is accurate, not a brand reference. For canonical token values read from `@revealui/tokens/design-context/`.
 
 ## Components
 
