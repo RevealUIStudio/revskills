@@ -1,0 +1,13 @@
+name: "RevealUI CodeQL config"
+paths-ignore:
+  - "**/__tests__/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "**/e2e/**"
+  - "**/*.e2e.ts"
+  - "**/test-fixtures/**"
+  - "**/*-corpus/**"
+queries:
+  - uses: security-and-quality
