@@ -19,7 +19,6 @@ The brand is **dark-first**, **OKLCH-based**, with a **Cobalt (Electric Verdigri
 - Stripe runs in **test mode** in production.
 - **RevealUI Fleet** self-host runtime kit is **preview**; it is deployed via the **RevForge** stamping tool (the kit was renamed per an internal ADR — the *kit* is now "RevealUI Fleet", the *stamper* is "RevForge").
 - **Ollama** is the working open-model path today; Ubuntu Inference Snaps integration is in progress.
-- RevealCoin (RVC) on Solana mainnet; trading gated on multi-sig + vesting.
 - **Supabase** is being phased out in favor of NeonDB + ElectricSQL.
 
 ---
@@ -92,7 +91,7 @@ RevealUI sounds like a **technical co-founder writing to another technical co-fo
 - **Second person ("you")** to the reader. First person plural ("we") rare; reserved for the studio in legal/contact contexts.
 - **Sentence case for headings**, including h1 and section titles. Title case appears only in nav labels and proper-noun product names.
 - **Eyebrows are ALL CAPS, letter-spaced.** They open every section: `THE PROBLEM`, `WATCH IT WORK`, `WHO IT'S FOR`, `PRICING`. 12px / `0.2em` tracking / cobalt brand color or smoke-500.
-- **Brand mark casing.** `RevealUI` is camel-cased prose; `REVEALUI` is reserved for the legal entity (`REVEALUI STUDIO L.L.C.`). Sub-products use `Rev`-prefix camel: `RevDev`, `RevVault`, `RevCon`, `RevSkills`, `RevKit`, `RevForge`, `RevealCoin`.
+- **Brand mark casing.** `RevealUI` is camel-cased prose; `REVEALUI` is reserved for the legal entity (`REVEALUI STUDIO L.L.C.`). Sub-products use `Rev`-prefix camel: `RevDev`, `RevVault`, `RevCon`, `RevSkills`, `RevKit`, `RevForge`.
 
 ### Numbers, time, status
 
@@ -248,5 +247,5 @@ These five icons are the visual backbone of the marketing site. They appear in:
 |---|---|---|
 | Display font | **Inter Tight** | Canonical as of v4 (Cobalt). The previous Mona Sans plan was retired with the brand migration — Inter Tight is now the declared display family in `--rvui-font-display`, no fallback substitution required. |
 | Icon library | inlined Heroicons paths | Codebase does not depend on `@heroicons/react`; it pastes paths inline. We follow the same pattern. |
-| RevealCoin app | not extracted | The `apps/revealcoin` Solana surface is out-of-scope for this design system (separate brand layer). |
+| RevealCoin app | n/a (cancelled) | RevealCoin was cancelled 2026-05-29; the former `apps/revealcoin` surface was removed and is out-of-scope for this design system. |
 | Server / API responses | not extracted | This system is visual only; backend contracts live in `@revealui/contracts`. |
