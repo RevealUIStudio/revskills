@@ -57,7 +57,7 @@ Assemble facts from the live session:
 - **Staged patch** (small): `cd "$REPO" && git diff --cached | head -400`
 - **Hook-tracked edits this session**: `cat /tmp/claude-agent-edits-${PPID}.json 2>/dev/null`
 - **Recent workboard entries for this identity**: `ss_workboard_recent "$IDENTITY" 5`
-- **Memories touched this session** (if tracked): files under `~/.claude/projects/-home-joshua-v-dev-revfleet/memory/` modified since session start
+- **Memories touched this session** (if tracked): files under `~/.claude/projects/<project-slug>/memory/` modified since session start
 - **Open run-tasks**: `run-task --list 2>&1 | grep -E 'running|crashed'`
 
 ## Step 3 — Write handoff document
