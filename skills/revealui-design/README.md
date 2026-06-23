@@ -197,7 +197,7 @@ Proof → PricingTeaser → Faq → GetStarted → Footer
 
 Three are new vs the prior DS guide:
 
-- **`WhatsShipped.tsx`** — a 9-card "capabilities, file by file" grid linking each card directly to a source file in the repo (audit chain, RBAC engine, Stripe webhook reconciliation, CRDT replay, circuit breakers, MCP hypervisor, envelope encryption, code provenance). The trust strategy is *specificity*: a buyer comparing to Convex / Supabase / Payload sees primitives those products don't ship.
+- **`WhatsShipped.tsx`** — a 9-card "capabilities, file by file" grid linking each card directly to a source file in the repo (audit chain, RBAC engine, Stripe webhook reconciliation, CRDT replay, circuit breakers, MCP hypervisor, envelope encryption, code provenance). The trust strategy is *specificity*: these are primitives most platforms ship as separate products, or never ship at all.
 - **`Proof.tsx`** — three sub-blocks: live GitHub shields-badges + CI gates ("Live signals"), the tech stack card on a dark mat ("Standards your team already knows"), and a "Verifiable in three places" trio (repo / schema / production).
 - **`GetStarted.tsx`** — final CTA section before the footer. Mirrors the Hero terminal pill with a longer secondary CTA path.
 
