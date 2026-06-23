@@ -105,7 +105,7 @@ Look for `[CRASHED]` entries. If the most recent entry for this identity is CRAS
 ## Step 8 — Relevant memory
 
 ```bash
-grep -l -r "$(basename "$REPO")" "$HOME/.claude/projects/-home-joshua-v-dev-revfleet/memory/" 2>/dev/null
+grep -l -r "$(basename "$REPO")" "$HOME"/.claude/projects/*revfleet*/memory/ 2>/dev/null
 ```
 
 Surface memory files relevant to the active repo (especially `feedback_*` that might modify recovery behavior).
