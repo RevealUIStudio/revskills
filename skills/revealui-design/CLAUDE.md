@@ -11,7 +11,7 @@
 Before ANY visual / UI / copy / brand decision, read these in order:
 
 1. **`README.md`** (this skill) — canonical state. Branding, voice, primitives, sections.
-2. **`@revealui/presentation/design-context/`** — the canonical token pack. A committed, CI-drift-gated pack generated from `packages/presentation/src/tokens.css` in the revealui repo / published `@revealui/presentation` package. **This is the source of truth for color, type, motion, and radii.** Read tokens from this pack; never trust a local snapshot.
+2. **`@revealui/tokens/design-context/`** — the canonical token pack. A committed, CI-drift-gated pack generated from `packages/tokens/src/tokens.css` in the revealui repo / published `@revealui/tokens` package. **This is the source of truth for color, type, motion, and radii.** Read tokens from this pack; never trust a local snapshot.
 3. **`SKILL.md`** (this skill) — short orientation. Brand is Cobalt; README + the design-context pack supersede any stale values.
 
 ## What's in this skill
@@ -33,10 +33,10 @@ revealui-design/
         ├── Sidebar.jsx, Topbar.jsx, Dashboard.jsx
 
 Canonical tokens (not in this skill — read from the package):
-  @revealui/presentation/design-context/
+  @revealui/tokens/design-context/
 ```
 
-The ui_kits inline a minimal cobalt token subset for standalone browser use. For production work, read token values from `@revealui/presentation/design-context/` — that pack is authoritative and drift-gated by CI. Any other local token snapshot is stale.
+The ui_kits inline a minimal cobalt token subset for standalone browser use. For production work, read token values from `@revealui/tokens/design-context/` — that pack is authoritative and drift-gated by CI. Any other local token snapshot is stale.
 
 ## Open issues — work around these, don't reintroduce them
 
@@ -123,4 +123,4 @@ Then proceed.
 
 ---
 
-*Bundled from the RevealUI Design System project, including the May 19, 2026 assessment pass (6 audit artifacts). Token source: `@revealui/presentation/design-context/` (committed, CI-drift-gated).*
+*Bundled from the RevealUI Design System project, including the May 19, 2026 assessment pass (6 audit artifacts). Token source: `@revealui/tokens/design-context/` (committed, CI-drift-gated).*
