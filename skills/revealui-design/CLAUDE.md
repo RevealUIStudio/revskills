@@ -97,7 +97,7 @@ Across 10 dogfooded artifacts, these patterns are universal and you should reuse
 | **ALL CAPS** only for eyebrows | At `0.20em` letter-spacing, 11–12px size, brand color or smoke-500 |
 | **Second person** for the user | First-person plural ("we") only in legal/contact contexts |
 | **Operational verbs** | build, run, ship, deploy, wire, save, publish. Never revolutionize / supercharge / unleash / empower |
-| **Brand casing** | `RevealUI` in prose. `REVEALUI` only for legal entity. `Rev`-prefix camel for sub-products (RevDev, RevForge, RevealCoin) |
+| **Brand casing** | `RevealUI` in prose. `REVEALUI` only for legal entity. `Rev`-prefix camel for sub-products (RevDev, RevForge) |
 | **Honest about status** | Stripe in test mode? Say so. Component preview? Say so. Don't hide pre-launch state |
 | **Canonical CTAs** | "Start free", "See Pro pricing", "Talk to us" — never "Buy now" or "Subscribe" |
 | **Numbers stay numeric** | "60 seconds", not "sixty seconds" |

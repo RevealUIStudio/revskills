@@ -37,6 +37,7 @@ unset _path
 # Each entry: tag|ERE_regex|reason
 # Anchored where possible to keep false-positive noise low.
 PATTERNS=(
+  "lit-username|joshua[-]v-dev|literal developer username; use a placeholder"
   "abs-home-path|/home/[a-z][a-z0-9_-]+|absolute user home path (/home/<username>/...)"
   "abs-windows-user|[Cc]:[\\\\/]Users[\\\\/][A-Za-z0-9_-]+|absolute Windows user path (C:\\\\Users\\\\<name>)"
   "private-jv-repo|/?revfleet/\\.jv|private repo path (~/revfleet/.jv/...)"

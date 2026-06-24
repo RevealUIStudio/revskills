@@ -11,7 +11,7 @@
 
 The repo is a Turborepo with **five apps and 26 packages** (21 published on npm under `@revealui/*` plus `create-revealui`; 5 private workspace packages). License posture is split: OSS subset under MIT, Pro packages (`@revealui/ai`, `@revealui/engines`, `@revealui/harnesses`, `@revealui/mcp`, `@revealui/services`) under **FSL-1.1-MIT** (Fair Source — source-visible, JWT-gated, auto-converts to MIT after 2 years).
 
-The brand is **dark-first**, **OKLCH-based**, with a **Cobalt (Electric Verdigris)** brand hue at `oklch(0.36 0.190 240)` (light) / `oklch(0.58 0.150 240)` (dark, AA-compliant) and a **Solar Amber** accent at `oklch(0.80 0.165 85)`. The marketing site flips this to a **cool paper + cobalt-ink + amber-accent** palette while still consuming the same `@revealui/tokens` token set. Brand decision recorded internally (May 2026).
+The brand is **dark-first**, **OKLCH-based**, with a **Cobalt** brand hue at `oklch(0.36 0.190 240)` (light) / `oklch(0.58 0.150 240)` (dark, AA-compliant) and a **Solar Amber** accent at `oklch(0.80 0.165 85)`. The marketing site flips this to a **cool paper + cobalt-ink + amber-accent** palette while still consuming the same `@revealui/tokens` token set. Brand decision recorded internally (May 2026).
 
 ### Status (as of this design system, May 2026)
 
@@ -19,7 +19,6 @@ The brand is **dark-first**, **OKLCH-based**, with a **Cobalt (Electric Verdigri
 - Stripe runs in **test mode** in production.
 - **RevealUI Fleet** self-host runtime kit is **preview**; it is deployed via the **RevForge** stamping tool (the kit was renamed per an internal ADR — the *kit* is now "RevealUI Fleet", the *stamper* is "RevForge").
 - **Ollama** is the working open-model path today; Ubuntu Inference Snaps integration is in progress.
-- RevealCoin (RVC) on Solana mainnet; trading gated on multi-sig + vesting.
 - **Supabase** is being phased out in favor of NeonDB + ElectricSQL.
 
 ---
@@ -92,7 +91,7 @@ RevealUI sounds like a **technical co-founder writing to another technical co-fo
 - **Second person ("you")** to the reader. First person plural ("we") rare; reserved for the studio in legal/contact contexts.
 - **Sentence case for headings**, including h1 and section titles. Title case appears only in nav labels and proper-noun product names.
 - **Eyebrows are ALL CAPS, letter-spaced.** They open every section: `THE PROBLEM`, `WATCH IT WORK`, `WHO IT'S FOR`, `PRICING`. 12px / `0.2em` tracking / cobalt brand color or smoke-500.
-- **Brand mark casing.** `RevealUI` is camel-cased prose; `REVEALUI` is reserved for the legal entity (`REVEALUI STUDIO L.L.C.`). Sub-products use `Rev`-prefix camel: `RevDev`, `RevVault`, `RevCon`, `RevSkills`, `RevKit`, `RevForge`, `RevealCoin`.
+- **Brand mark casing.** `RevealUI` is camel-cased prose; `REVEALUI` is reserved for the legal entity (`REVEALUI STUDIO L.L.C.`). Sub-products use `Rev`-prefix camel: `RevDev`, `RevVault`, `RevCon`, `RevSkills`, `RevKit`, `RevForge`.
 
 ### Numbers, time, status
 
@@ -123,7 +122,7 @@ RevealUI sounds like a **technical co-founder writing to another technical co-fo
 
 > The visual system is split across two surfaces. **Admin / docs / docs-pro** use the canonical `@revealui/tokens` token set: dark-first, OKLCH, cobalt-on-cool-slate. **Marketing** flips to a cool paper surface with `gray-950` (remapped to midnight) for headlines and the cobalt brand as the ink accent, but still imports the same tokens for components, motion, and radii. The named Tailwind palettes `emerald-*` and `gray-*` are aliased in `apps/marketing/app/index.css` so utility classes (`text-emerald-700`, `bg-emerald-50`) resolve to cobalt/smoke values — no component edits required.
 
-- **Brand hue: Cobalt (Electric Verdigris).** `oklch(0.36 0.190 240)` on light (paper) surfaces, `oklch(0.58 0.150 240)` on dark surfaces (AA-compliant — lifted in shipped code). On marketing, use `var(--rvui-brand)` for ink and primary CTAs, `var(--rvui-brand-strong)` for press / deep ink moments, `var(--rvui-brand-soft)` for ringed soft chips and code-pill backgrounds. The Tailwind `emerald-*` palette is **aliased to the Cobalt ladder** in `apps/marketing/app/index.css`, so existing utility classes (`text-emerald-700`, `bg-emerald-50`, `ring-emerald-200`) all paint Cobalt without component edits.
+- **Brand hue: Cobalt.** `oklch(0.36 0.190 240)` on light (paper) surfaces, `oklch(0.58 0.150 240)` on dark surfaces (AA-compliant — lifted in shipped code). On marketing, use `var(--rvui-brand)` for ink and primary CTAs, `var(--rvui-brand-strong)` for press / deep ink moments, `var(--rvui-brand-soft)` for ringed soft chips and code-pill backgrounds. The Tailwind `emerald-*` palette is **aliased to the Cobalt ladder** in `apps/marketing/app/index.css`, so existing utility classes (`text-emerald-700`, `bg-emerald-50`, `ring-emerald-200`) all paint Cobalt without component edits.
 - **Accent: Solar Amber.** `oklch(0.80 0.165 85)` — honey-gold complement (kept away from rusty-orange). Reserved for premium tier highlights, warning state, the hero pulse-dot, and the brand-glow press shadow. **Never** becomes a primary CTA color.
 - **Neutrals are cool blue-tinted slate.** Tailwind's `gray-*` ramp is **aliased to the smoke ladder** (`oklch(L 0.025-0.032 250-260)`) so existing utilities (`text-gray-950`, `bg-gray-50`, `text-gray-600`) all read as cool slate. Admin's dark surfaces are OKLCH near-midnights (`0.16 0.030 260`) — cool blue, never warm.
 - **Primitive palette stays multi-hue.** Users (Cobalt — the brand itself), Content (blue), Products (amber, the accent), Payments (cyan), Intelligence (violet). Users moved from the prior build's emerald to Cobalt, preserving the "Users is the brand color" relationship.
@@ -248,5 +247,5 @@ These five icons are the visual backbone of the marketing site. They appear in:
 |---|---|---|
 | Display font | **Inter Tight** | Canonical as of v4 (Cobalt). The previous Mona Sans plan was retired with the brand migration — Inter Tight is now the declared display family in `--rvui-font-display`, no fallback substitution required. |
 | Icon library | inlined Heroicons paths | Codebase does not depend on `@heroicons/react`; it pastes paths inline. We follow the same pattern. |
-| RevealCoin app | not extracted | The `apps/revealcoin` Solana surface is out-of-scope for this design system (separate brand layer). |
+| RevealCoin app | n/a (cancelled) | RevealCoin was cancelled 2026-05-29; the former `apps/revealcoin` surface was removed and is out-of-scope for this design system. |
 | Server / API responses | not extracted | This system is visual only; backend contracts live in `@revealui/contracts`. |

@@ -25,7 +25,7 @@ RevealUI is dual-surface:
 - **Marketing site** (revealui.com) — cool paper + cobalt-ink + amber-accent, Tailwind utilities (emerald-* and gray-* aliased to cobalt/smoke)
 - **Admin / Studio** (admin.revealui.com) — dark, OKLCH-based `--rvui-*` tokens, Cobalt brand
 
-Brand: **Cobalt (Electric Verdigris)** — `--rvui-brand: oklch(0.36 0.190 240)` on light surfaces, `oklch(0.58 0.150 240)` on dark (AA-compliant). Accent: Solar Amber `oklch(0.80 0.165 85)`.
+Brand: **Cobalt** — `--rvui-brand: oklch(0.36 0.190 240)` on light surfaces, `oklch(0.58 0.150 240)` on dark (AA-compliant). Accent: Solar Amber `oklch(0.80 0.165 85)`.
 
 Type stack: Inter (sans), Inter Tight (display, 800 weight, -0.02em tracking), JetBrains Mono (mono, ligatures OFF). Brand signature: the `npx create-revealui@latest my-app` terminal pill on the marketing hero — reuse it verbatim when relevant.
 
