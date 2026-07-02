@@ -1,12 +1,35 @@
 ---
 name: revealui-sync-lts
-description: Sync RevFleet repos to the LTS drive (E: / /mnt/e) per per-repo declared mode (bundle or mirror). Refuses to sync repos without an .claude/lts-mode declaration.
+description: |
+  DEPRECATED 2026-07-02 — the per-repo LTS sync model (bundle/mirror declared
+  in .claude/lts-mode) is retired. Disaster recovery is the weekly whole-distro
+  WSL snapshot (Windows scheduled task RevealUI-WSL-Weekly-Backup, shipped as
+  revkit scripts/weekly-wsl-backup.ps1 with staleness alerting). Retained for
+  reference; will be removed in a future revskills major.
 license: MIT
 allowed-tools: Bash, Read
 metadata:
   author: RevealUI Studio
-  version: "0.2.0"
+  version: "0.3.0"
   website: https://revealui.com
+  deprecated: true
+  deprecated-at: "2026-07-02"
+  superseded-by: revkit weekly WSL snapshot task (no in-repo skill successor)
+---
+
+## DEPRECATED 2026-07-02
+
+The per-repo LTS model this skill drives (`.claude/lts-mode` = `bundle` |
+`mirror`, per-repo copies under the LTS drive) was retired when disaster
+recovery moved to weekly whole-distro WSL snapshots (`wsl --export` via the
+Windows scheduled task `RevealUI-WSL-Weekly-Backup`; source + staleness
+alerting live in revkit `scripts/weekly-wsl-backup.ps1` +
+`scripts/check-backup-staleness.ps1`). GitHub remains the source of truth for
+repo content. Do not re-adopt per-repo bundles/mirrors; leftover
+`.claude/lts-mode` files are stale residue.
+
+The original skill body follows for historical reference.
+
 ---
 
 Sync RevFleet repos to the LTS drive. LTS mode is declared per-repo at `.claude/lts-mode` (values: `bundle` or `mirror`). If absent, refuse to sync and prompt user to declare.
