@@ -63,7 +63,7 @@ staleness-status: FRESH
 | `revealui-handoff` | Generate handoff docs for session close |
 | `revealui-recover` | Auto-recovery flow after session crash (paired with `bin/claude-safe`) |
 | `revealui-skills-test` | Test-suite skill for validating other skills |
-| `revealui-sync-lts` | Sync repos to LTS backup target |
+| `revealui-sync-lts` | **Deprecated 2026-07-02** — legacy per-repo LTS sync; DR = weekly WSL snapshot (revkit) |
 | `revealui-sync-rules` | Sync `.claude/rules/` files across linked targets |
 
 ### What works
