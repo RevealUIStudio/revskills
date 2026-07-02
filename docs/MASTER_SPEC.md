@@ -9,7 +9,7 @@ staleness-status: FRESH
 # RevSkills — Master Spec
 
 **Last Updated:** 2026-05-10
-**Status:** Pre-1.0 per skill — surface stable, format proven across 15 skills
+**Status:** Pre-1.0 per skill — surface stable, format proven across 17 skills
 **Repo:** [RevealUIStudio/revskills](https://github.com/RevealUIStudio/revskills)
 
 > SKILL.md format, distribution surface, harness compatibility. Companion to [`MASTER_PLAN.md`](./MASTER_PLAN.md) (status + roadmap).
@@ -39,7 +39,7 @@ revskills/
 │   ├── tailwind-v4/
 │   │   └── SKILL.md
 │   ├── ...
-│   └── (15 skills total)
+│   └── (17 skills total)
 └── docs/
     ├── MASTER_PLAN.md              # this file's companion
     ├── MASTER_SPEC.md              # this file
@@ -100,7 +100,7 @@ metadata:
 npx skills add RevealUIStudio/revskills
 ```
 
-Installs all 15 skills into the agent harness's skills directory.
+Installs all 17 skills into the agent harness's skills directory.
 
 ### Single-skill install
 
@@ -172,7 +172,7 @@ MIT — everything in this repo. Per-skill `license: MIT` in frontmatter is cano
 | **RevealUI** | Several skills are RevealUI-specific (`revealui-doctor`, `revealui-handoff`, `revealui-recover`, `revealui-sync-lts`, `revealui-sync-rules`, `revealui-skills-test`) |
 | **RevCon** | RevCon's `harnesses/skills/` carries pointers/symlinks to the skills shipped by this repo |
 | **RevDev** | Studio + Console will eventually list/invoke skills via the harness daemon |
-| **RevVault, RevForge, RevealCoin, RevKit** | Independent — skills are markdown, harness-agnostic |
+| **RevVault, RevForge, RevKit** | Independent — skills are markdown, harness-agnostic |
 
 ---
 

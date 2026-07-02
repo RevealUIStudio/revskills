@@ -106,7 +106,7 @@ fi
 
 ### 3b. Open PRs across RevFleet repos
 ```bash
-for repo in revealui revealui-jv revvault revdev revforge revkit revskills revealcoin revcon; do
+for repo in revealui revealui-jv revvault revdev revforge revkit revskills revcon; do
   count="$(gh pr list --repo RevealUIStudio/$repo --state open --json number 2>/dev/null | jq 'length' 2>/dev/null)"
   if [ "${count:-0}" != "0" ]; then
     echo "$repo: $count open"
