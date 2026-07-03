@@ -1,11 +1,11 @@
 ---
 name: revealui-doctor
-description: Health check for RevFleet Claude Code setup + Studio-native workflow. Verifies hook syntax, rules directories, skill preconditions, git integrity across RevFleet repos, workboard freshness, daemon status, MCP servers, env file leaks, settings JSON validity, toolchain, and LTS sync mode.
+description: Health check for RevFleet Claude Code setup + Studio-native workflow. Verifies hook syntax, rules directories, skill preconditions, git integrity across RevFleet repos, workboard freshness, daemon status, MCP servers, env file leaks, settings JSON validity, toolchain, and disaster-recovery snapshot state.
 license: MIT
 allowed-tools: Bash, Read, Glob, Grep
 metadata:
   author: RevealUI Studio
-  version: "0.2.0"
+  version: "0.3.0"
   website: https://revealui.com
 ---
 
@@ -88,8 +88,8 @@ cd ~/revfleet/revealui && test -f flake.lock && nix flake metadata --json >/dev/
 cd ~/revfleet/revealui && direnv status 2>&1 | tail -3
 ```
 
-## 12. LTS sync mode
-Check `~/revfleet/revealui/.claude/lts-mode` (expected: `bundle` or `mirror`). If absent, flag as unconfigured. Check `/mnt/e/professional/RevealUI/` matches declared mode.
+## 12. Disaster recovery (WSL snapshot)
+The per-repo LTS sync model (`.claude/lts-mode` = bundle/mirror) is retired — DR is the weekly whole-distro WSL export run by the Windows scheduled task `RevealUI-WSL-Weekly-Backup` (revkit `scripts/weekly-wsl-backup.ps1`, staleness alerting via `scripts/check-backup-staleness.ps1`). From WSL: flag any leftover `.claude/lts-mode` files under `~/revfleet/*/` as stale residue (PASS when none). Snapshot freshness itself is Windows-side — report SKIP with a pointer to `check-backup-staleness.ps1` when the LTS drive isn't reachable.
 
 ## Output
 Traffic-light summary (PASS/WARN/FAIL) per section. JSON sidecar at `/tmp/claude-doctor-last.json` so the daemon can consume results.

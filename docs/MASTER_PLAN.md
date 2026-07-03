@@ -9,7 +9,7 @@ staleness-status: FRESH
 # RevSkills — Master Plan
 
 **Last Updated:** 2026-05-10
-**Status:** Active — 15 skills shipped, pre-1.0 per skill
+**Status:** Active — 17 skills shipped, pre-1.0 per skill
 **Owner:** RevealUI Studio (`founder@revealui.com`)
 **Repo:** [RevealUIStudio/revskills](https://github.com/RevealUIStudio/revskills)
 **Fleet master index:** RevealUI Studio internal coordination hub (private)
@@ -63,7 +63,7 @@ staleness-status: FRESH
 | `revealui-handoff` | Generate handoff docs for session close |
 | `revealui-recover` | Auto-recovery flow after session crash (paired with `bin/claude-safe`) |
 | `revealui-skills-test` | Test-suite skill for validating other skills |
-| `revealui-sync-lts` | Sync repos to LTS backup target |
+| `revealui-sync-lts` | **Deprecated 2026-07-02** — legacy per-repo LTS sync; DR = weekly WSL snapshot (revkit) |
 | `revealui-sync-rules` | Sync `.claude/rules/` files across linked targets |
 
 ### What works
@@ -92,7 +92,7 @@ staleness-status: FRESH
 | **RevealUI** | Primary consumer — `revealui-doctor`/`revealui-handoff`/`revealui-recover`/`revealui-sync-*` are RevealUI-specific operational skills |
 | **RevDev** | Studio + Console can list/invoke skills via the harness daemon (eventually) |
 | **RevCon** | RevCon's `harnesses/skills/` carries pointers to the skills shipped by RevSkills (overlap is intentional — RevCon delivers, RevSkills authors) |
-| **RevVault, RevForge, RevealCoin, RevKit** | Independent — skills are markdown, work in any environment |
+| **RevVault, RevForge, RevKit** | Independent — skills are markdown, work in any environment |
 
 ---
 
@@ -118,7 +118,7 @@ Pre-1.0 per skill. Each skill's promotion to 1.0.0 gated independently — real 
 
 ### Phase 0 — Skill bundle ships (DONE)
 
-15 skills, MIT licensed, installable via `npx skills add`.
+17 skills, MIT licensed, installable via `npx skills add`.
 
 ### Phase 1 — CI + versioning discipline (NOT STARTED)
 

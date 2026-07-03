@@ -100,10 +100,13 @@ else
   } > "$CRASH_MARKER"
 fi
 
-# Locate wt.exe — overridable for portability
-WT="${REVEALUI_WT_EXE:-/mnt/c/Users/joshu/AppData/Local/Microsoft/WindowsApps/wt.exe}"
-if [[ ! -x "$WT" ]]; then
-  WT="$(command -v wt.exe 2>/dev/null || true)"
+# Locate wt.exe — override with REVEALUI_WT_EXE, else discover via PATH, else
+# scan the per-user WindowsApps dir (username-agnostic; no hardcoded home path).
+WT="${REVEALUI_WT_EXE:-$(command -v wt.exe 2>/dev/null || true)}"
+if [[ -z "$WT" || ! -x "$WT" ]]; then
+  for cand in /mnt/c/Users/*/AppData/Local/Microsoft/WindowsApps/wt.exe; do
+    [[ -x "$cand" ]] && { WT="$cand"; break; }
+  done
 fi
 if [[ -z "$WT" || ! -x "$WT" ]]; then
   echo "claude-safe: session exited with $EXIT — wt.exe not found, cannot auto-relaunch." >&2

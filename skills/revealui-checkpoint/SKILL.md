@@ -1,11 +1,11 @@
 ---
 name: revealui-checkpoint
-description: Checkpoint checklist for RevFleet sessions. Validates the 6 coherent-tracking surfaces (doc-locations, workboard, MASTER_HANDOFF staleness, lane plans, M-1 ADR tracking, M-1 frontmatter staleness), inventories tracking state (branches.json, open PRs, active lanes, uncommitted .jv changes), merges the session delta into the rolling CURRENT-HANDOFF.md, appends a workboard log entry, and outputs a structured CHECKPOINT-READY report + archive-readiness next-agent prompt. Non-destructive — never auto-commits or runs master-handoff regen.
+description: Checkpoint checklist for RevFleet sessions. Validates the 6 coherent-tracking surfaces (doc-locations, workboard, MASTER_HANDOFF staleness, lane plans, M-1 ADR tracking, M-1 frontmatter staleness), inventories tracking state (branches.json, open PRs, active lanes, uncommitted .jv changes), merges the session delta into the rolling CURRENT-HANDOFF.md, appends a workboard log entry, commits + converges the .jv delta (worktree-gated when a peer is live, per the .jv Single-Writer Discipline) unless run with --no-commit, and outputs a structured CHECKPOINT-READY report + archive-readiness next-agent prompt. Never runs master-handoff regen or auto-merges with --admin.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.4.0"
+  version: "0.5.0"
   website: https://revealui.com
 ---
 
@@ -106,7 +106,7 @@ fi
 
 ### 3b. Open PRs across RevFleet repos
 ```bash
-for repo in revealui revealui-jv revvault revdev revforge revkit revskills revealcoin revcon; do
+for repo in revealui revealui-jv revvault revdev revforge revkit revskills revcon; do
   count="$(gh pr list --repo RevealUIStudio/$repo --state open --json number 2>/dev/null | jq 'length' 2>/dev/null)"
   if [ "${count:-0}" != "0" ]; then
     echo "$repo: $count open"
@@ -187,6 +187,54 @@ Append one line under `## Log` in `$WORKBOARD`:
 
 Use Edit tool with old_string targeting the existing `## Log` header (insert immediately after). Do not rewrite the workboard.
 
+## Step 5b — Commit + converge the .jv delta (worktree-gated)
+
+DEFAULT: commit the `CURRENT-HANDOFF.md` + `workboard.md` writes and converge them to `origin/test`, so the checkpoint is durable and a concurrent `.jv` writer can't clobber it. Pass `--no-commit` to skip this and leave the writes UNSTAGED for owner review (the legacy 0.4.0 behavior) — then jump to Step 6 and list the unstaged writes under OUTSTANDING.
+
+**CRITICAL — never strand the main checkout.** A naive commit on the MAIN `.jv` checkout was the root cause of the 8-session checkpoint-merge divergence: it left the main checkout on a `chore/checkpoint-*` branch that later merged+deleted, so every subsequent checkpoint merged onto the dead branch and never converged. The fix is the `.jv` Single-Writer Discipline — when a peer is live, do the commit from a throwaway `~/revfleet/.jv-wt/` worktree so the main checkout never moves.
+
+Determine the writer mode (count live interactive, non-headless `claude` sessions):
+```bash
+PEERS="$(node "$JV_ROOT/scripts/jv-single-writer-check.js" --count 2>/dev/null \
+  || (pgrep -af claude | grep -ivE ' -p |grep|pgrep' | grep -c claude))"
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+CMSG="/tmp/cmsg-ckpt-${STAMP}.txt"   # write the commit message here (Step 5b uses -F)
+```
+If `jv-single-writer-check.js` has no `--count` mode yet, the `pgrep` fallback is authoritative.
+
+Throughout: `core.fileMode=false` on every `.jv` commit; **explicit pathspec** `-- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md` (NEVER stage `tmp/` or other peer-WIP untracked); `-F "$CMSG"` messages; `--body-file` PR bodies; `--head`/`--base` explicit; **merge-COMMIT only, never squash**; NO `--admin`/`--no-verify`/`--force-push`. `.jv` `test` is branch-protected, so commits reach it via a `chore/checkpoint-*` PR. The two red checks on a `.jv` docs PR ("Doc currency stale-fact check" + "Local-gate / CI parity" — ~3s, "log not found") are the GitHub-Actions org BILLING BLOCK: non-required `UNSTABLE`, NOT real failures — merge with a plain `gh pr merge <n> --merge --delete-branch`.
+
+**SOLO (`PEERS` ≤ 1)** — the main checkout is the only writer; commit on the current `.jv` branch directly:
+```bash
+cd "$JV_ROOT"
+BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
+git -c core.fileMode=false commit -F "$CMSG" -- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md
+git push origin "HEAD:refs/heads/$BR"
+gh pr create --base test --head "$BR" --body-file "$CMSG"     # body can reuse the message
+gh pr merge <n> --merge --delete-branch
+git fetch origin test && git merge --ff-only origin/test      # converge the main checkout
+```
+
+**PEER LIVE (`PEERS` > 1)** — do NOT commit on the main checkout; use a dedicated worktree so it never moves onto a chore branch:
+```bash
+cd "$JV_ROOT"
+git fetch origin test && git merge --ff-only origin/test      # converge main FIRST; if not a clean ff, ABORT to --no-commit
+WT="$HOME/revfleet/.jv-wt/ckpt-${ISO_DATE}-$$"; BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
+git -c core.fileMode=false stash push -- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md  # move delta off main (leaves tmp/ + peer-WIP untouched)
+git worktree add "$WT" -b "$BR" origin/test
+cd "$WT" && git -c core.fileMode=false stash pop              # reconcile vs current origin/test
+# CURRENT-HANDOFF.md usually applies clean; workboard.md is a 3-way merge — on conflict
+# keep BOTH the peer ## Coordination Notes AND this session's ## Log line, then `git add` it.
+git -c core.fileMode=false commit -F "$CMSG" -- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md
+git push origin "HEAD:refs/heads/$BR"
+gh pr create --base test --head "$BR" --body-file "$CMSG"
+gh pr merge <n> --merge --delete-branch
+cd "$JV_ROOT" && git worktree remove "$WT"                    # cleanup
+git fetch origin test && git merge --ff-only origin/test      # converge main
+```
+
+**Cleanup + failure handling.** On success the temp worktree is removed and the chore branch deleted (`--delete-branch`). On ANY failure — the initial converge is not a clean fast-forward, an unresolved `stash pop` conflict, or a push/merge error — DO NOT silently drop the delta: surface the stash ref (`git stash list`) or the worktree path, fall back to the `--no-commit` end state (writes left for the owner), and leave the main checkout on its original branch. Never leave the main checkout on a `chore/checkpoint-*` branch.
+
 ## Step 6 — Report
 
 Print this structured summary to the user (NOT just the assistant log — actual user-facing report):
@@ -196,6 +244,7 @@ Print this structured summary to the user (NOT just the assistant log — actual
 
 Handoff merged:       <CURRENT_HANDOFF>
 Workboard updated:    <WORKBOARD>
+Commit:               <#N merged to .jv test | committed locally <branch> | --no-commit: left unstaged for owner>
 
 TRACKING SURFACES (6)
   [PASS|FAIL]  doc-locations-check.ts
@@ -277,7 +326,7 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 ## Do not
 
 - Do NOT emit ANY text or tool call after Step 8's fenced prompt block. The block is the last thing in the turn — the owner triple-clicks to select.
-- Do NOT auto-commit anything — let the owner decide what to commit (CURRENT-HANDOFF.md edits + workboard line are written but unstaged; they show up in `git status` for owner to commit explicitly).
+- Do NOT auto-commit on the MAIN `.jv` checkout — committing there strands it on a `chore/checkpoint-*` branch (the 8-session divergence bug). Commit ONLY via Step 5b (worktree-gated when a peer is live), or pass `--no-commit` to defer to the owner. Still NEVER auto-merge with `--admin` or squash.
 - Do NOT run `master-handoff-regen.js` — that's a separate audited operation (agent-invoked, owner-attended, expensive).
 - Do NOT create dated standalone handoff files (`docs/HANDOFF-YYYY-MM-DD-*.md`) — the rolling CURRENT-HANDOFF.md is the target. Do NOT write to `~/revfleet/.jv/.claude/handoffs/` (non-canonical, retired 2026-05-19).
 - Do NOT write to `/tmp/agent-handoff-*.md` (orphaned by design).
@@ -292,6 +341,8 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 - Before a planned absence (owner stepping away mid-flight).
 - When the user types `/checkpoint`, `/checkpoint <topic>`, or the Stop hook decides to run a final check.
 - NOT for one-off questions, read-only sessions, or aborted starts.
+
+**Arguments:** `/checkpoint --no-commit` skips Step 5b and leaves the `CURRENT-HANDOFF.md` + workboard writes UNSTAGED for the owner to review/commit (the pre-0.5.0 behavior) — use it when the handoff needs an eyeball before it lands. The default (no flag) commits + converges the delta to `.jv` `test` per Step 5b.
 
 ## Relationship to /handoff
 

@@ -6,7 +6,7 @@ updated: 2026-05-15
 
 # RevSkills — Documentation Index
 
-Curated Agent Skills for Claude Code / Cursor. 15 skills shipped, pre-1.0.
+Curated Agent Skills for Claude Code / Cursor. 17 skills shipped, pre-1.0.
 
 ## This repo's masters
 

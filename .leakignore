@@ -14,11 +14,12 @@
 # Continuity skills — Studio-internal by design (see README).
 skills/revealui-recover/**       private-jv-repo,private-jv-name,lts-drive   # targets fleet layout
 skills/revealui-handoff/**       private-jv-repo                              # handoff dir under .jv by design
-skills/revealui-doctor/**        private-jv-repo,lts-drive                    # diagnoses full fleet layout
+skills/revealui-doctor/**        private-jv-repo                              # diagnoses full fleet layout
 skills/revealui-sync-rules/**    private-jv-name                              # coordinates rules across fleet repos
 skills/revealui-sync-lts/**      lts-drive,private-jv-name                    # backup target is LTS drive
 skills/revealui-skills-test/**   private-jv-repo                              # validates both public + internal skills
 skills/revealui-checkpoint/** private-jv-repo,private-jv-name              # checkpoint checklist orchestrates handoffs + workboard + lane plans + M-1 validators across fleet repos
+docs/decisions/**            private-jv-repo,private-jv-name              # decision records for fleet tooling (e.g. checkpoint) reference the .jv coordination repo by design
 
 # Top-level README acknowledges these are Studio-internal.
 README.md                        private-jv-repo                              # documents fleet-layout assumption
