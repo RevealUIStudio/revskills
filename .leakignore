@@ -23,3 +23,10 @@ skills/revealui-recover/**       private-jv-repo,private-jv-name,lts-drive   # t
 skills/revealui-sync-lts/**      lts-drive,private-jv-name                    # backup target is LTS drive
 skills/revealui-skills-test/**   private-jv-repo                              # validates both public + internal skills
 skills/revealui-checkpoint/**    private-jv-name                              # §3b PR-scan loop iterates the private fleet repo by name (functional; paths sanitized to $JV_REPO)
+
+# By-design: the issue/PR-body leak-scan gitleaks config (consumed by
+# .github/workflows/issue-leak-scan.yml) must name the private-path and
+# username literals in its detection regexes + keywords to catch them in
+# issue bodies. This is the config that enforces the rule, not a leak of
+# it (mirrors the ci.yml anti-regression entries).
+.gitleaks.issues.toml                   lit-username,abs-home-path,private-jv-repo,private-jv-name
