@@ -1,6 +1,6 @@
 ---
 name: drizzle-db
-description: Drizzle ORM schema design, migrations, and query patterns for PostgreSQL. Use when creating tables, writing queries, defining relations, managing migrations, or working with NeonDB or Supabase. Covers pgTable, indexes, enums, jsonb columns, transactions, soft delete, pagination, drizzle-kit generate/migrate, and serverless connection patterns.
+description: Drizzle ORM schema design, migrations, and query patterns for PostgreSQL. Use when creating tables, writing queries, defining relations, managing migrations, or working with NeonDB. Covers pgTable, indexes, enums, jsonb columns, transactions, soft delete, pagination, drizzle-kit generate/migrate, and serverless connection patterns.
 license: MIT
 allowed-tools: Read, Grep, Glob
 metadata:

@@ -1,6 +1,6 @@
 ---
 name: electric-sync
-description: ElectricSQL v1.x real-time sync patterns for PostgreSQL. Use when setting up shape subscriptions, authenticated proxy routes, mutation endpoints, offline-first sync, or connecting Electric to Neon/Supabase. Covers read-only sync, row-level filtering, write-through-API, and conflict resolution.
+description: ElectricSQL v1.x real-time sync patterns for PostgreSQL. Use when setting up shape subscriptions, authenticated proxy routes, mutation endpoints, offline-first sync, or connecting Electric to Neon. Covers read-only sync, row-level filtering, write-through-API, and conflict resolution.
 license: MIT
 allowed-tools: Read, Grep, Glob
 metadata:

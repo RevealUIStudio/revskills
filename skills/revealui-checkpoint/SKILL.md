@@ -9,9 +9,9 @@ metadata:
   website: https://revealui.com
 ---
 
-Checkpoint orchestrator. Run before ending a meaningful session to ensure the next agent can pick up cleanly. Wires together the 6 coherent-tracking validators + 4 inventory surfaces + merges the session delta into the rolling `~/revfleet/.jv/docs/handoffs/CURRENT-HANDOFF.md` + reports a structured CHECKPOINT-READY checklist + emits the archive-readiness next-agent prompt.
+Checkpoint orchestrator. Run before ending a meaningful session to ensure the next agent can pick up cleanly. Wires together the 6 coherent-tracking validators + 4 inventory surfaces + merges the session delta into the rolling `$JV_REPO/docs/handoffs/CURRENT-HANDOFF.md` + reports a structured CHECKPOINT-READY checklist + emits the archive-readiness next-agent prompt.
 
-Authority on locations + tiers: [`master-handoff.md`](~/revfleet/.jv/.claude/rules/master-handoff.md) (active at `docs/HANDOFF-*.md` root; archive at `docs/handoffs/archive/`). Authority on doc-location enforcement: [`jv-doc-locations.md`](~/revfleet/.jv/.claude/rules/jv-doc-locations.md).
+Authority on locations + tiers: [`master-handoff.md`]($JV_REPO/.claude/rules/master-handoff.md) (active at `docs/HANDOFF-*.md` root; archive at `docs/handoffs/archive/`). Authority on doc-location enforcement: [`jv-doc-locations.md`]($JV_REPO/.claude/rules/jv-doc-locations.md).
 
 Load helpers:
 ```bash
@@ -23,7 +23,7 @@ Load helpers:
 ```bash
 IDENTITY="$(ss_identity)"
 REPO="$(ss_active_repo)"
-JV_ROOT="$HOME/revfleet/.jv"
+JV_ROOT="$JV_REPO"
 WORKBOARD="$JV_ROOT/.claude/workboard.md"
 ISO_DATE="$(date -u +%Y-%m-%d)"
 ISO_DATETIME="$(date -u +%Y-%m-%dT%H:%MZ)"
@@ -31,7 +31,7 @@ ISO_DATETIME="$(date -u +%Y-%m-%dT%H:%MZ)"
 CURRENT_HANDOFF="$JV_ROOT/docs/handoffs/CURRENT-HANDOFF.md"
 ```
 
-Rolling handoff target per `~/.claude/rules/model-allocation.md` §Session handoff loop: `~/revfleet/.jv/docs/handoffs/CURRENT-HANDOFF.md`. Every session merges its delta here rather than creating a dated file. When the file exceeds ~150 lines, the ending session prunes shipped items to `docs/handoffs/archive/` as part of the merge (Step 4b).
+Rolling handoff target per `~/.claude/rules/model-allocation.md` §Session handoff loop: `$JV_REPO/docs/handoffs/CURRENT-HANDOFF.md`. Every session merges its delta here rather than creating a dated file. When the file exceeds ~150 lines, the ending session prunes shipped items to `docs/handoffs/archive/` as part of the merge (Step 4b).
 
 ## Step 1b — Load the auto-checkpoint snapshot (fidelity source)
 
@@ -191,7 +191,7 @@ Use Edit tool with old_string targeting the existing `## Log` header (insert imm
 
 DEFAULT: commit the `CURRENT-HANDOFF.md` + `workboard.md` writes and converge them to `origin/test`, so the checkpoint is durable and a concurrent `.jv` writer can't clobber it. Pass `--no-commit` to skip this and leave the writes UNSTAGED for owner review (the legacy 0.4.0 behavior) — then jump to Step 6 and list the unstaged writes under OUTSTANDING.
 
-**CRITICAL — never strand the main checkout.** A naive commit on the MAIN `.jv` checkout was the root cause of the 8-session checkpoint-merge divergence: it left the main checkout on a `chore/checkpoint-*` branch that later merged+deleted, so every subsequent checkpoint merged onto the dead branch and never converged. The fix is the `.jv` Single-Writer Discipline — when a peer is live, do the commit from a throwaway `~/revfleet/.jv-wt/` worktree so the main checkout never moves.
+**CRITICAL — never strand the main checkout.** A naive commit on the MAIN `.jv` checkout was the root cause of the 8-session checkpoint-merge divergence: it left the main checkout on a `chore/checkpoint-*` branch that later merged+deleted, so every subsequent checkpoint merged onto the dead branch and never converged. The fix is the `.jv` Single-Writer Discipline — when a peer is live, do the commit from a throwaway `$JV_REPO-wt/` worktree so the main checkout never moves.
 
 Determine the writer mode (count live interactive, non-headless `claude` sessions):
 ```bash
@@ -219,7 +219,7 @@ git fetch origin test && git merge --ff-only origin/test      # converge the mai
 ```bash
 cd "$JV_ROOT"
 git fetch origin test && git merge --ff-only origin/test      # converge main FIRST; if not a clean ff, ABORT to --no-commit
-WT="$HOME/revfleet/.jv-wt/ckpt-${ISO_DATE}-$$"; BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
+WT="$JV_REPO-wt/ckpt-${ISO_DATE}-$$"; BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
 git -c core.fileMode=false stash push -- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md  # move delta off main (leaves tmp/ + peer-WIP untouched)
 git worktree add "$WT" -b "$BR" origin/test
 cd "$WT" && git -c core.fileMode=false stash pop              # reconcile vs current origin/test
@@ -301,7 +301,7 @@ Daemon notification is non-blocking. If it fails for any reason, the handoff is 
 
 Invoke the `session-note` skill (Skill tool) pointing at CURRENT-HANDOFF.md. This note surfaces in the next session's `[beacons]` block automatically and is the lowest-friction way for the next agent to orient before any context is loaded.
 
-Suggested note text: `Handoff merged into ~/revfleet/.jv/docs/handoffs/CURRENT-HANDOFF.md — read first. Top action: <first item from §Ordered next actions>.`
+Suggested note text: `Handoff merged into $JV_REPO/docs/handoffs/CURRENT-HANDOFF.md — read first. Top action: <first item from §Ordered next actions>.`
 
 ## Step 8 — Emit copy-pasteable next-agent prompt (LAST output — nothing after this)
 
@@ -309,7 +309,7 @@ Per `~/.claude/rules/coordination.md` §"Archive-Readiness Convention" (2026-05-
 
 Compose the prompt with these 5 sections (in order):
 
-1. **First line** — `Session <session-id> — read first: ~/revfleet/.jv/docs/handoffs/CURRENT-HANDOFF.md`. The path is the absolute filesystem path to the rolling handoff file.
+1. **First line** — `Session <session-id> — read first: $JV_REPO/docs/handoffs/CURRENT-HANDOFF.md`. The path is the absolute filesystem path to the rolling handoff file.
 2. **TL;DR** — 1–2 sentences with the single most important next action. Mirror §"Ordered next actions" item 1 from CURRENT-HANDOFF.md; do not re-summarize.
 3. **Ordered next-actions** — numbered list with EXACT commands / values / file paths. No "investigate X" / "decide Y" / "look into Z" — those belong in CURRENT-HANDOFF.md body. Pre-resolve every path, hash, branch name, PR number. If the next-agent has to fill in `<paste prod URL here>`, the convention has been violated.
 4. **Locked-posture reminder** — one line. HARDLINES: `core.fileMode=false` on every .jv commit; explicit pathspec (preserve peer-WIP untracked); `-F /tmp/cmsg-*.txt` for commit messages; `--body-file` for PR/issue bodies; `--head`/`--base` explicit on `gh pr create`; no `--auto`/`--no-verify`/`--admin`/`--force-push`; audit-first SDLC HARDLINE; no regex authored; no Stripe live-flip without owner directive; revvault-first secrets; durable-only.
@@ -328,7 +328,7 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 - Do NOT emit ANY text or tool call after Step 8's fenced prompt block. The block is the last thing in the turn — the owner triple-clicks to select.
 - Do NOT auto-commit on the MAIN `.jv` checkout — committing there strands it on a `chore/checkpoint-*` branch (the 8-session divergence bug). Commit ONLY via Step 5b (worktree-gated when a peer is live), or pass `--no-commit` to defer to the owner. Still NEVER auto-merge with `--admin` or squash.
 - Do NOT run `master-handoff-regen.js` — that's a separate audited operation (agent-invoked, owner-attended, expensive).
-- Do NOT create dated standalone handoff files (`docs/HANDOFF-YYYY-MM-DD-*.md`) — the rolling CURRENT-HANDOFF.md is the target. Do NOT write to `~/revfleet/.jv/.claude/handoffs/` (non-canonical, retired 2026-05-19).
+- Do NOT create dated standalone handoff files (`docs/HANDOFF-YYYY-MM-DD-*.md`) — the rolling CURRENT-HANDOFF.md is the target. Do NOT write to `$JV_REPO/.claude/handoffs/` (non-canonical, retired 2026-05-19).
 - Do NOT write to `/tmp/agent-handoff-*.md` (orphaned by design).
 - Do NOT move or delete handoff files — the 7-day sweep handles dated files; the CURRENT-HANDOFF.md prune (Step 4b) handles the rolling file.
 - Do NOT modify lane plans or MASTER_PLAN.md — validators here are READ-ONLY against body content.

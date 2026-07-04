@@ -60,7 +60,6 @@ staleness-status: FRESH
 | Skill | Purpose |
 |---|---|
 | `revealui-doctor` | Diagnose common RevealUI dev-environment issues |
-| `revealui-handoff` | Generate handoff docs for session close |
 | `revealui-recover` | Auto-recovery flow after session crash (paired with `bin/claude-safe`) |
 | `revealui-skills-test` | Test-suite skill for validating other skills |
 | `revealui-sync-lts` | **Deprecated 2026-07-02** — legacy per-repo LTS sync; DR = weekly WSL snapshot (revkit) |
@@ -89,7 +88,7 @@ staleness-status: FRESH
 
 | Other product | Relationship |
 |---|---|
-| **RevealUI** | Primary consumer — `revealui-doctor`/`revealui-handoff`/`revealui-recover`/`revealui-sync-*` are RevealUI-specific operational skills |
+| **RevealUI** | Primary consumer — `revealui-doctor`/`revealui-recover`/`revealui-sync-*` are RevealUI-specific operational skills |
 | **RevDev** | Studio + Console can list/invoke skills via the harness daemon (eventually) |
 | **RevCon** | RevCon's `harnesses/skills/` carries pointers to the skills shipped by RevSkills (overlap is intentional — RevCon delivers, RevSkills authors) |
 | **RevVault, RevForge, RevKit** | Independent — skills are markdown, work in any environment |
