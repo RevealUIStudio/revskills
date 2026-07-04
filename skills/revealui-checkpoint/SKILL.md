@@ -227,12 +227,17 @@ git fetch origin test && git merge --ff-only origin/test      # converge the mai
 cd "$JV_ROOT"
 git fetch origin test && git merge --ff-only origin/test      # converge main FIRST; if not a clean ff, ABORT to --no-commit
 WT="$JV_REPO-wt/ckpt-${ISO_DATE}-$$"; BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
-git -c core.fileMode=false stash push -- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md  # move delta off main (leaves tmp/ + peer-WIP untouched)
+# Only CURRENT-HANDOFF.md is dirty on main now — the Log line becomes a fragment written
+# IN the worktree below, and workboard.md is generated (never hand-merged):
+git -c core.fileMode=false stash push -- docs/handoffs/CURRENT-HANDOFF.md  # move handoff off main (leaves tmp/ + peer-WIP untouched)
 git worktree add "$WT" -b "$BR" origin/test
-cd "$WT" && git -c core.fileMode=false stash pop              # reconcile vs current origin/test
-# CURRENT-HANDOFF.md usually applies clean; workboard.md is a 3-way merge — on conflict
-# keep BOTH the peer ## Coordination Notes AND this session's ## Log line, then `git add` it.
-git -c core.fileMode=false commit -F "$CMSG" -- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md
+cd "$WT" && git -c core.fileMode=false stash pop              # reconcile CURRENT-HANDOFF.md vs current origin/test
+# Write the Log fragment into THIS worktree + render its workboard from fragments. No
+# workboard.md 3-way merge: peer ## Coordination Notes / Active Sessions (outside the
+# fragment blocks) are carried forward from origin/test verbatim; log fragments fold in.
+node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY" --base "$WT/.claude/workboard.d" --body "$LOG_LINE"
+node "$JV_ROOT/scripts/workboard-sweep.js" --render-only --workboard "$WT/.claude/workboard.md" --base "$WT/.claude/workboard.d"
+git -c core.fileMode=false commit -F "$CMSG" -- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md .claude/workboard.d
 git push origin "HEAD:refs/heads/$BR"
 gh pr create --base test --head "$BR" --body-file "$CMSG"
 gh pr merge <n> --merge --delete-branch
