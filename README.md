@@ -55,13 +55,12 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 
 ## RevealUI Workflow (Studio-internal)
 
-These skills assume RevFleet layout (`~/revfleet/`, `~/revfleet/.jv`, RevVault, RevDev RPC daemon). Not generically installable — the canonical copies live here and are symlinked into `~/.claude/commands/` on Studio machines.
+These skills assume RevFleet layout (`~/revfleet/`, `$JV_REPO`, RevVault, RevDev RPC daemon). Not generically installable — the canonical copies live here and are symlinked into `~/.claude/commands/` on Studio machines.
 
 | Skill | Description |
 |-------|-------------|
 | [revealui-recover](skills/revealui-recover/) | Diagnose and recover from crashed/interrupted Claude sessions — identity, git integrity, hook state, daemon, workboard |
 | [revealui-checkpoint](skills/revealui-checkpoint/) | Checkpoint checklist — validates 6 coherent-tracking surfaces, writes canonical `docs/HANDOFF-*.md`, appends workboard log entry |
-| [revealui-handoff](skills/revealui-handoff/) | **Deprecated (2026-05-19) — use revealui-checkpoint instead.** Legacy handoff to `.claude/handoffs/`; retained for backward compatibility |
 | [revealui-doctor](skills/revealui-doctor/) | Health check for RevFleet Claude setup — hook syntax, rules dirs, git-fsck, workboard freshness, daemon, MCP servers, env leaks, toolchain |
 | [revealui-sync-lts](skills/revealui-sync-lts/) | **Deprecated (2026-07-02) — DR moved to weekly WSL snapshots (revkit).** Legacy per-repo LTS sync; retained for reference |
 | [revealui-sync-rules](skills/revealui-sync-rules/) | Check whether `.claude/rules/` files are in sync across RevealUI repos — asks before copying |
