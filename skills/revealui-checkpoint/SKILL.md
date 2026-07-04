@@ -215,6 +215,7 @@ BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
 # Write this session's Log line as a fragment, then render workboard.md from fragments:
 node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY" --body "$LOG_LINE"
 node "$JV_ROOT/scripts/workboard-sweep.js" --render-only
+git add .claude/workboard.d   # MUST stage first: the fragment is a NEW untracked file, and `git commit -- <path>` will NOT add untracked files (it errors / silently omits them)
 git -c core.fileMode=false commit -F "$CMSG" -- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md .claude/workboard.d
 git push origin "HEAD:refs/heads/$BR"
 gh pr create --base test --head "$BR" --body-file "$CMSG"     # body can reuse the message
