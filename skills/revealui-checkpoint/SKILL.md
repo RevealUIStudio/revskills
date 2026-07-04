@@ -185,11 +185,13 @@ If line count is below ~150, skip this step.
 - [YYYY-MM-DD HH:MM] <IDENTITY>: [CHECKPOINT] → CURRENT-HANDOFF.md | tracking: <X pass / Y fail> | next: <one-line next action from §Ordered next actions>
 ```
 
-Hold it in a shell var for Step 5b, which writes it as a **fragment** (`.claude/workboard.d/log/<ts>-<id>.md` — a new per-session file that can never collide with a peer) and re-renders `workboard.md` from the fragments, in the correct checkout (main for SOLO, the worktree for PEER):
+Step 5b writes it as a **fragment** (`.claude/workboard.d/log/<ts>-<id>.md` — a new per-session file that can never collide with a peer) and re-renders `workboard.md`, in the correct checkout (main for SOLO, the worktree for PEER). Set the volatile parts **as single-quoted literals** so a next-action containing backticks / `$(…)` / quotes is never command-substituted (`§Ordered next actions` holds exact commands + paths, which routinely use backticks):
 ```bash
-LOG_LINE="- [$(date -u '+%Y-%m-%d %H:%M')] $IDENTITY: [CHECKPOINT] → CURRENT-HANDOFF.md | tracking: <X pass / Y fail> | next: <one-line>"
+TS="$(date -u '+%Y-%m-%d %H:%M')"
+TRACK='<X pass / Y fail>'
+NEXT='<one-line next action from §Ordered next actions>'   # single-quoted literal; a literal ' inside → close+reopen: '\''
 ```
-Because the log line is a fresh file (never an edit to the shared `workboard.md`), it sidesteps both the `rogue-workboard` hook and the dirty-file guard, so this step can never strand the checkout.
+Step 5b assembles the line with `printf %s` (never re-evaluates) and pipes it to `workboard-fragment.js` on stdin. Because the log line is a fresh file (never an edit to the shared `workboard.md`), it sidesteps both the `rogue-workboard` hook and the dirty-file guard, so this step can never strand the checkout.
 
 ## Step 5b — Commit + converge the .jv delta (worktree-gated)
 
