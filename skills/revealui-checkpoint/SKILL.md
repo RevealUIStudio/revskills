@@ -238,6 +238,7 @@ cd "$WT" && git -c core.fileMode=false stash pop              # reconcile CURREN
 # fragment blocks) are carried forward from origin/test verbatim; log fragments fold in.
 node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY" --base "$WT/.claude/workboard.d" --body "$LOG_LINE"
 node "$JV_ROOT/scripts/workboard-sweep.js" --render-only --workboard "$WT/.claude/workboard.md" --base "$WT/.claude/workboard.d"
+git add .claude/workboard.d   # cwd is $WT; MUST stage the new (untracked) fragment before the pathspec commit
 git -c core.fileMode=false commit -F "$CMSG" -- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md .claude/workboard.d
 git push origin "HEAD:refs/heads/$BR"
 gh pr create --base test --head "$BR" --body-file "$CMSG"
