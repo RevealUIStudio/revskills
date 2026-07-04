@@ -229,17 +229,22 @@ git fetch origin test && git merge --ff-only origin/test      # converge the mai
 **PEER LIVE (`PEERS` > 1)** — do NOT commit on the main checkout; use a dedicated worktree so it never moves onto a chore branch:
 ```bash
 cd "$JV_ROOT"
-git fetch origin test && git merge --ff-only origin/test      # converge main FIRST; if not a clean ff, ABORT to --no-commit
 WT="$JV_REPO-wt/ckpt-${ISO_DATE}-$$"; BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
-# Only CURRENT-HANDOFF.md is dirty on main now — the Log line becomes a fragment written
-# IN the worktree below, and workboard.md is generated (never hand-merged):
-git -c core.fileMode=false stash push -- docs/handoffs/CURRENT-HANDOFF.md  # move handoff off main (leaves tmp/ + peer-WIP untouched)
+# Stash the handoff BEFORE converging: a dirty CURRENT-HANDOFF.md makes the ff-only ABORT
+# whenever a peer advanced it (the common multi-session case). Only pop what we actually stash.
+STASHED=0
+if ! git diff --quiet -- docs/handoffs/CURRENT-HANDOFF.md; then
+  git -c core.fileMode=false stash push -- docs/handoffs/CURRENT-HANDOFF.md && STASHED=1
+fi
+git fetch origin test && git merge --ff-only origin/test      # pure divergence check on a clean tree; if not a clean ff, ABORT to --no-commit (restore: [ "$STASHED" = 1 ] && git stash pop)
 git worktree add "$WT" -b "$BR" origin/test
-cd "$WT" && git -c core.fileMode=false stash pop              # reconcile CURRENT-HANDOFF.md vs current origin/test
+cd "$WT"
+[ "$STASHED" = 1 ] && git -c core.fileMode=false stash pop    # reconcile CURRENT-HANDOFF.md vs origin/test; on conflict resolve, else fall back to --no-commit
 # Write the Log fragment into THIS worktree + render its workboard from fragments. No
 # workboard.md 3-way merge: peer ## Coordination Notes / Active Sessions (outside the
-# fragment blocks) are carried forward from origin/test verbatim; log fragments fold in.
-node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY" --base "$WT/.claude/workboard.d" --body "$LOG_LINE"
+# fragment blocks) carry forward from origin/test verbatim; log fragments fold in.
+printf -- '- [%s] %s: [CHECKPOINT] → CURRENT-HANDOFF.md | tracking: %s | next: %s\n' "$TS" "$IDENTITY" "$TRACK" "$NEXT" \
+  | node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY" --base "$WT/.claude/workboard.d"
 node "$JV_ROOT/scripts/workboard-sweep.js" --render-only --workboard "$WT/.claude/workboard.md" --base "$WT/.claude/workboard.d"
 git add .claude/workboard.d   # cwd is $WT; MUST stage the new (untracked) fragment before the pathspec commit
 git -c core.fileMode=false commit -F "$CMSG" -- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md .claude/workboard.d
