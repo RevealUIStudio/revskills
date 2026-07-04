@@ -11,15 +11,22 @@
 # not generically installable — the README makes this explicit. Every
 # entry below must have a real reason; "convenience" is not one.
 
+# The 2026-07-03 audit sanitized the coordination-path leaks: checkpoint /
+# doctor now reference paths via the $JV_REPO variable (session-state.sh),
+# the deprecated revealui-handoff skill was unpublished, and README / the
+# checkpoint ADR / sync-rules prose were cleaned. Entries below are the
+# residual, deliberate exceptions — do NOT broaden them to re-cover a
+# sanitized path; fix the source instead.
+
 # Continuity skills — Studio-internal by design (see README).
 skills/revealui-recover/**       private-jv-repo,private-jv-name,lts-drive   # targets fleet layout
-skills/revealui-handoff/**       private-jv-repo                              # handoff dir under .jv by design
-skills/revealui-doctor/**        private-jv-repo                              # diagnoses full fleet layout
-skills/revealui-sync-rules/**    private-jv-name                              # coordinates rules across fleet repos
 skills/revealui-sync-lts/**      lts-drive,private-jv-name                    # backup target is LTS drive
 skills/revealui-skills-test/**   private-jv-repo                              # validates both public + internal skills
-skills/revealui-checkpoint/** private-jv-repo,private-jv-name              # checkpoint checklist orchestrates handoffs + workboard + lane plans + M-1 validators across fleet repos
-docs/decisions/**            private-jv-repo,private-jv-name              # decision records for fleet tooling (e.g. checkpoint) reference the .jv coordination repo by design
+skills/revealui-checkpoint/**    private-jv-name                              # §3b PR-scan loop iterates the private fleet repo by name (functional; paths sanitized to $JV_REPO)
 
-# Top-level README acknowledges these are Studio-internal.
-README.md                        private-jv-repo                              # documents fleet-layout assumption
+# By-design: the issue/PR-body leak-scan gitleaks config (consumed by
+# .github/workflows/issue-leak-scan.yml) must name the private-path and
+# username literals in its detection regexes + keywords to catch them in
+# issue bodies. This is the config that enforces the rule, not a leak of
+# it (mirrors the ci.yml anti-regression entries).
+.gitleaks.issues.toml                   lit-username,abs-home-path,private-jv-repo,private-jv-name

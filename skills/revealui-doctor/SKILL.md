@@ -22,7 +22,7 @@ Run `node --check` on every `~/.claude/hooks/*.js`. List failures.
 ## 2. Rules directories
 Verify these exist and contain `.md` files:
 - `~/revfleet/revealui/.claude/rules/`
-- `~/revfleet/.jv/.claude/rules/`
+- `$JV_REPO/.claude/rules/`
 - `~/.claude/rules/`
 
 ## 3. Skills self-test
@@ -33,7 +33,7 @@ For each `~/.claude/commands/*.md`:
 - Extract referenced repo paths (`~/revfleet/...`, `~/projects/...`, `~/suite/...`). Assert existence; flag any `~/suite/` references as stale (path retired 2026-05-07 — should be `~/revfleet/`).
 
 ## 4. Git integrity (both RevFleet repos)
-For each repo in `~/revfleet/revealui` and `~/revfleet/.jv`:
+For each repo in `~/revfleet/revealui` and `$JV_REPO`:
 ```bash
 cd "$repo" && git fsck --full 2>&1 | grep -E '^(error|fatal|missing)'
 ss_empty_objects "$repo"
@@ -41,10 +41,10 @@ ss_empty_objects "$repo"
 Empty objects = WSL crash damage. Report loudly.
 
 ## 5. Workboard freshness
-Parse `$WORKBOARD` (`~/revfleet/.jv/.claude/workboard.md`). In the `## Log` section, flag `[CRASHED]` entries older than 24h — these should have been triaged by `/recover`.
+Parse `$WORKBOARD` (`$JV_REPO/.claude/workboard.md`). In the `## Log` section, flag `[CRASHED]` entries older than 24h — these should have been triaged by `/recover`.
 
 ## 6. Events log size
-`~/revfleet/revealui/.claude/events.jsonl` and `~/revfleet/.jv/.claude/events.jsonl`. Warn if over 100KB.
+`~/revfleet/revealui/.claude/events.jsonl` and `$JV_REPO/.claude/events.jsonl`. Warn if over 100KB.
 
 ## 7. Daemon + Studio surface health
 ```bash

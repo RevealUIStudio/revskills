@@ -169,7 +169,7 @@ MIT — everything in this repo. Per-skill `license: MIT` in frontmatter is cano
 
 | Other product | Relationship |
 |---|---|
-| **RevealUI** | Several skills are RevealUI-specific (`revealui-doctor`, `revealui-handoff`, `revealui-recover`, `revealui-sync-lts`, `revealui-sync-rules`, `revealui-skills-test`) |
+| **RevealUI** | Several skills are RevealUI-specific (`revealui-doctor`, `revealui-recover`, `revealui-sync-lts`, `revealui-sync-rules`, `revealui-skills-test`) |
 | **RevCon** | RevCon's `harnesses/skills/` carries pointers/symlinks to the skills shipped by this repo |
 | **RevDev** | Studio + Console will eventually list/invoke skills via the harness daemon |
 | **RevVault, RevForge, RevKit** | Independent — skills are markdown, harness-agnostic |

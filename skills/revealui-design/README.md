@@ -19,7 +19,7 @@ The brand is **dark-first**, **OKLCH-based**, with a **Cobalt** brand hue at `ok
 - Stripe runs in **test mode** in production.
 - **RevealUI Fleet** self-host runtime kit is **preview**; it is deployed via the **RevForge** stamping tool (the kit was renamed per an internal ADR — the *kit* is now "RevealUI Fleet", the *stamper* is "RevForge").
 - **Ollama** is the working open-model path today; Ubuntu Inference Snaps integration is in progress.
-- **Supabase** is being phased out in favor of NeonDB + ElectricSQL.
+- **Supabase** was removed in favor of NeonDB + ElectricSQL.
 
 ---
 
