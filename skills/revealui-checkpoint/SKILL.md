@@ -180,12 +180,16 @@ If line count is below ~150, skip this step.
 
 ## Step 5 — Workboard log entry
 
-Append one line under `## Log` in `$WORKBOARD`:
+**Compose** this session's Log line (do NOT hand-edit `## Log` — the workboard `## Log` block is now GENERATED from per-session fragments per ADR `2026-07-04-workboard-fragment-store`, the contention-free write path):
 ```
 - [YYYY-MM-DD HH:MM] <IDENTITY>: [CHECKPOINT] → CURRENT-HANDOFF.md | tracking: <X pass / Y fail> | next: <one-line next action from §Ordered next actions>
 ```
 
-Use Edit tool with old_string targeting the existing `## Log` header (insert immediately after). Do not rewrite the workboard.
+Hold it in a shell var for Step 5b, which writes it as a **fragment** (`.claude/workboard.d/log/<ts>-<id>.md` — a new per-session file that can never collide with a peer) and re-renders `workboard.md` from the fragments, in the correct checkout (main for SOLO, the worktree for PEER):
+```bash
+LOG_LINE="- [$(date -u '+%Y-%m-%d %H:%M')] $IDENTITY: [CHECKPOINT] → CURRENT-HANDOFF.md | tracking: <X pass / Y fail> | next: <one-line>"
+```
+Because the log line is a fresh file (never an edit to the shared `workboard.md`), it sidesteps both the `rogue-workboard` hook and the dirty-file guard, so this step can never strand the checkout.
 
 ## Step 5b — Commit + converge the .jv delta (worktree-gated)
 
