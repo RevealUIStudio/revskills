@@ -9,7 +9,7 @@
 
 **RevealUI** is the **agentic business runtime** by **REVEALUI STUDIO L.L.C.** (Tennessee). The product positions itself as a pre-wired stack of five primitives — **Users, Content, Products, Payments, AI** — that an indie founder or AI product team can run with one command (`npx create-revealui@latest my-app`) and have agents drive via MCP.
 
-The repo is a Turborepo with **five apps and 26 packages** (21 published on npm under `@revealui/*` plus `create-revealui`; 5 private workspace packages). License posture is split: OSS subset under MIT, Pro packages (`@revealui/ai`, `@revealui/engines`, `@revealui/harnesses`, `@revealui/mcp`, `@revealui/services`) under **FSL-1.1-MIT** (Fair Source — source-visible, JWT-gated, auto-converts to MIT after 2 years).
+The repo is a Turborepo with **four apps and 27 packages** (21 published on npm under `@revealui/*` plus `create-revealui`; 5 private workspace packages under Fair Source; 1 internal build-tooling package outside the OSS/Pro split). License posture is split: OSS subset under MIT, Pro packages (`@revealui/ai`, `@revealui/engines`, `@revealui/harnesses`, `@revealui/mcp`, `@revealui/services`) under **FSL-1.1-MIT** (Fair Source — source-visible, JWT-gated, auto-converts to MIT after 2 years).
 
 The brand is **dark-first**, **OKLCH-based**, with a **Cobalt** brand hue at `oklch(0.36 0.190 240)` (light) / `oklch(0.58 0.150 240)` (dark, AA-compliant) and a **Solar Amber** accent at `oklch(0.80 0.165 85)`. The marketing site flips this to a **cool paper + cobalt-ink + amber-accent** palette while still consuming the same `@revealui/tokens` token set. Brand decision recorded internally (May 2026).
 
