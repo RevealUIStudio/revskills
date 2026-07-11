@@ -1,11 +1,11 @@
 ---
 name: revealui-checkpoint
-description: Checkpoint checklist for RevFleet sessions. Validates the 6 coherent-tracking surfaces (doc-locations, workboard, MASTER_HANDOFF staleness, lane plans, M-1 ADR tracking, M-1 frontmatter staleness), inventories tracking state (branches.json, open PRs, active lanes, uncommitted .jv changes), merges the session delta into the rolling CURRENT-HANDOFF.md, appends a workboard log entry, commits + converges the .jv delta (worktree-gated when a peer is live, per the .jv Single-Writer Discipline) unless run with --no-commit, and outputs a structured CHECKPOINT-READY report + archive-readiness next-agent prompt. Never runs master-handoff regen or auto-merges with --admin.
+description: Checkpoint checklist for RevFleet sessions. Validates the 6 coherent-tracking surfaces (doc-locations, workboard, MASTER_HANDOFF staleness, lane plans, M-1 ADR tracking, M-1 frontmatter staleness), inventories tracking state (branches.json, open PRs, active lanes, uncommitted .jv changes), merges the session delta into the rolling CURRENT-HANDOFF.md, appends a workboard log entry, commits + converges the .jv delta (worktree-gated when a peer is live, per the .jv Single-Writer Discipline) unless run with --no-commit, runs the read-only prepare-for-exit verifier, and outputs a structured CHECKPOINT-READY report + archive-readiness next-agent prompt. Never runs master-handoff regen or auto-merges with --admin.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.6.1"
+  version: "0.7.0"
   website: https://revealui.com
 ---
 
@@ -257,6 +257,18 @@ git fetch origin test && git merge --ff-only origin/test      # converge main
 
 **Cleanup + failure handling.** On success the temp worktree is removed and the chore branch deleted (`--delete-branch`). On ANY failure — the initial converge is not a clean fast-forward, an unresolved `stash pop` conflict, or a push/merge error — DO NOT silently drop the delta: surface the stash ref (`git stash list`) or the worktree path, fall back to the `--no-commit` end state (writes left for the owner), and leave the main checkout on its original branch. Never leave the main checkout on a `chore/checkpoint-*` branch.
 
+## Step 5c — Prepare-for-exit verifier (read-only, runs after 5b converges)
+
+Runs the seed `prepare-for-exit` workflow's read-only session-exit verifier ([GAP-314 §5]($JV_REPO/docs/gap-specs/GAP-314-operational-workflow-layer-design.md)) — 7 report-only checks (clean fleet checkouts, no lingering session worktrees, no unpushed commits, temp scripts confirmed, memory files indexed, `CURRENT-HANDOFF.md` committed + pushed, scratchpad helpers flagged). It runs here, after 5b, specifically because checks 1 and 6 verify against the artifacts 5b just committed and converged.
+
+```bash
+node "$JV_ROOT/scripts/prepare-for-exit.js"
+```
+
+Runs unconditionally, in both the default (5b committed) and `--no-commit` paths — under `--no-commit` its check 6 (handoff committed + pushed) is expected to WARN, which is informative, not a bug. Capture the full output verbatim; do not re-derive or re-implement its checks here. Exit code is always 0 (report-only, never blocks) — this step never changes the CHECKPOINT-READY verdict.
+
+Step 6 surfaces this output as the PREPARE-FOR-EXIT section of the CHECKPOINT REPORT.
+
 ## Step 6 — Report
 
 Print this structured summary to the user (NOT just the assistant log — actual user-facing report):
@@ -282,10 +294,21 @@ INVENTORY
   active lanes:                       <N>
   uncommitted .jv changes:            <N files>
 
+PREPARE-FOR-EXIT (7, read-only, report-only)
+  [PASS|WARN]  1. Fleet repo checkouts (main checkout) clean
+  [PASS|WARN]  2. No worktree created this session remains
+  [PASS|WARN]  3. No unpushed commits on any branch
+  [PASS|WARN]  4. Registered temp scripts confirmed or surfaced
+  [PASS|WARN]  5. Memory files created this session are indexed in MEMORY.md
+  [PASS|WARN]  6. CURRENT-HANDOFF.md committed and pushed
+  [PASS|WARN]  7. Scratchpad files that look like owner-run helpers are flagged
+  <under each WARN, the verifier's own remediation line>
+
 OUTSTANDING (action by owner or next agent)
   - <enumerate each FAIL item with suggested fix>
   - <enumerate uncommitted/unpushed work>
   - <enumerate owner-gated items>
+  - <enumerate each PREPARE-FOR-EXIT WARN with its remediation line>
 
 CHECKPOINT-READY: <YES | NO — see outstanding>
 ```
@@ -293,6 +316,7 @@ CHECKPOINT-READY: <YES | NO — see outstanding>
 **CHECKPOINT-READY rules:**
 - `YES` only when: all 6 validators PASS (or only `master-handoff-staleness` is STALE which is non-blocking) AND uncommitted .jv changes are zero (or explicitly peer-WIP untracked files only) AND every open PR for the active branches is either GREEN-AND-MERGEABLE or owner-gated.
 - `NO` otherwise. Owner must address outstanding items before letting the session close.
+- PREPARE-FOR-EXIT WARNs do NOT gate CHECKPOINT-READY — the verifier is report-only by design (it can never fail, per `prepare-for-exit.js`'s own contract). List its WARNs under OUTSTANDING for visibility; do not flip YES to NO on their account alone.
 
 ## Step 7 — Optionally notify daemon
 
