@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.6.0"
+  version: "0.6.1"
   website: https://revealui.com
 ---
 
@@ -317,13 +317,7 @@ else
 fi
 ```
 
-Daemon notification is non-blocking. If it fails for any reason, the handoff is still valid: next session's SessionStart hook discovers it via filesystem.
-
-## Step 7.5 — Leave /session-note
-
-Invoke the `session-note` skill (Skill tool) pointing at CURRENT-HANDOFF.md. This note surfaces in the next session's `[beacons]` block automatically and is the lowest-friction way for the next agent to orient before any context is loaded.
-
-Suggested note text: `Handoff merged into $JV_REPO/docs/handoffs/CURRENT-HANDOFF.md — read first. Top action: <first item from §Ordered next actions>.`
+Daemon notification is non-blocking. If it fails for any reason, the handoff is still valid: next session's SessionStart hook discovers it via filesystem — `session-start.js` prints the `[menu] CURRENT-HANDOFF §Ordered next actions` pointer whenever the rolling handoff exists, which is the next-session orientation surface. (The former Step 7.5 invoked a `session-note` skill that was never built; removed in 0.6.1.)
 
 ## Step 8 — Emit copy-pasteable next-agent prompt (LAST output — nothing after this)
 
