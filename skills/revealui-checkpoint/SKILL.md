@@ -272,6 +272,22 @@ Runs unconditionally, in both the default (5b committed) and `--no-commit` paths
 
 Step 6 surfaces this output as the PREPARE-FOR-EXIT section of the CHECKPOINT REPORT.
 
+## Step 5d — Archive the consumed snapshot + GC stale ones (GAP-317 lifecycle)
+
+Now that Step 4 folded this session's snapshot into the rolling handoff, retire it so the active dir only ever holds live sessions' records (acceptance: none older than 7 days active). This is the agent-invoked mover — no hook writes these files, by the hooks read-only invariant.
+
+```bash
+SNAP_DIR="$HOME/.claude/coordination/snapshots"
+ARCH="$SNAP_DIR/archive"; mkdir -p "$ARCH"
+SID="${CLAUDE_CODE_SESSION_ID:-}"
+# GC: sweep any active-dir snapshot older than 7 days into archive/ (bounded active dir)
+find "$SNAP_DIR" -maxdepth 1 -type f -name '*.md' -mtime +7 -exec mv {} "$ARCH/" \; -printf 'GC-archived stale snapshot: %f\n' 2>/dev/null || true
+# Archive THIS session's consumed snapshot (default path only — see note)
+[ -n "$SID" ] && [ -f "$SNAP_DIR/$SID.md" ] && mv "$SNAP_DIR/$SID.md" "$ARCH/" && echo "archived consumed snapshot: $SID.md"
+```
+
+Under `--no-commit`: run the GC line but **skip** the `$SID.md` move (the handoff edit was not committed, so the snapshot must stay active as the fidelity source until a real checkpoint captures it). If Step 1b found no snapshot for this session, the `$SID.md` line is a no-op — nothing to archive.
+
 ## Step 6 — Report
 
 Print this structured summary to the user (NOT just the assistant log — actual user-facing report):
