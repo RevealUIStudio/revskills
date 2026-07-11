@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.7.0"
+  version: "0.8.0"
   website: https://revealui.com
 ---
 
@@ -35,20 +35,23 @@ Rolling handoff target per `~/.claude/rules/model-allocation.md` §Session hando
 
 ## Step 1b — Load the auto-checkpoint snapshot (fidelity source)
 
-The auto-checkpoint hooks capture a session snapshot at the soft-context line, while fidelity is still high. When one exists it is the PRIMARY source for the narrative sections in Step 4 — more trustworthy than reconstructing from now-deep session memory.
+A session snapshot is captured mid-session by the `/snapshot` skill (nudged by the `track-session` context advisory at the soft-context line), while fidelity is still high. When one exists it is the PRIMARY source for the narrative sections in Step 4 — more trustworthy than reconstructing from now-deep session memory.
+
+Resolve it by **this session's id, never by mtime** — a peer's snapshot must be structurally unreachable (GAP-317):
 
 ```bash
 SNAP_DIR="$HOME/.claude/coordination/snapshots"
-# Most-recent snapshot = the current session's (its hooks just wrote it).
-SNAPSHOT="$(ls -t "$SNAP_DIR"/*.md 2>/dev/null | head -1)"
+SID="${CLAUDE_CODE_SESSION_ID:-}"
+SNAPSHOT=""
+[ -n "$SID" ] && [ -f "$SNAP_DIR/$SID.md" ] && SNAPSHOT="$SNAP_DIR/$SID.md"
 if [ -n "$SNAPSHOT" ]; then
-  echo "snapshot found: $SNAPSHOT"
+  echo "snapshot for this session: $SNAPSHOT"
 else
-  echo "no snapshot — Step 4 falls back to session memory"
+  echo "no snapshot for this session (${SID:-no-session-id}) — Step 4 falls back to session memory"
 fi
 ```
 
-If `$SNAPSHOT` is set, READ it and verify it is THIS session's: its `## Resume-From-Here` / `## What-Shipped` must match the work you just did. If concurrent sessions are running, the most-recent file may be a peer's — pick the one whose content is yours, or skip if none match. Use the snapshot's five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 merge; they map onto the rolling file's sections. With no snapshot, Step 4 proceeds from session memory as before.
+If `$SNAPSHOT` is set it is unambiguously THIS session's (the filename equals `$CLAUDE_CODE_SESSION_ID`), so no content-matching guesswork is needed. READ it and use its five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 merge; they map onto the rolling file's sections. With no snapshot — no threshold was crossed, or `/snapshot` was not run — Step 4 proceeds from session memory as before. Do NOT fall back to the most-recent file on disk; an unmatched id means no snapshot for this session.
 
 ## Step 2 — Run coherent-tracking validators
 
@@ -268,6 +271,22 @@ node "$JV_ROOT/scripts/prepare-for-exit.js"
 Runs unconditionally, in both the default (5b committed) and `--no-commit` paths — under `--no-commit` its check 6 (handoff committed + pushed) is expected to WARN, which is informative, not a bug. Capture the full output verbatim; do not re-derive or re-implement its checks here. Exit code is always 0 (report-only, never blocks) — this step never changes the CHECKPOINT-READY verdict.
 
 Step 6 surfaces this output as the PREPARE-FOR-EXIT section of the CHECKPOINT REPORT.
+
+## Step 5d — Archive the consumed snapshot + GC stale ones (GAP-317 lifecycle)
+
+Now that Step 4 folded this session's snapshot into the rolling handoff, retire it so the active dir only ever holds live sessions' records (acceptance: none older than 7 days active). This is the agent-invoked mover — no hook writes these files, by the hooks read-only invariant.
+
+```bash
+SNAP_DIR="$HOME/.claude/coordination/snapshots"
+ARCH="$SNAP_DIR/archive"; mkdir -p "$ARCH"
+SID="${CLAUDE_CODE_SESSION_ID:-}"
+# GC: sweep any active-dir snapshot older than 7 days into archive/ (bounded active dir)
+find "$SNAP_DIR" -maxdepth 1 -type f -name '*.md' -mtime +7 -exec mv {} "$ARCH/" \; -printf 'GC-archived stale snapshot: %f\n' 2>/dev/null || true
+# Archive THIS session's consumed snapshot (default path only — see note)
+[ -n "$SID" ] && [ -f "$SNAP_DIR/$SID.md" ] && mv "$SNAP_DIR/$SID.md" "$ARCH/" && echo "archived consumed snapshot: $SID.md"
+```
+
+Under `--no-commit`: run the GC line but **skip** the `$SID.md` move (the handoff edit was not committed, so the snapshot must stay active as the fidelity source until a real checkpoint captures it). If Step 1b found no snapshot for this session, the `$SID.md` line is a no-op — nothing to archive.
 
 ## Step 6 — Report
 
