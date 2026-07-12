@@ -21,13 +21,13 @@ every fact carries provenance back to the episode that produced it.
 
 **Query-before-grep** for cross-repo or "what depends on this" questions:
 
-- "What consumes `coordination_events` and what breaks if I rename it?" — a
+- "What consumes `coordination_events` and what breaks if I rename it?" A
   traversal question. `grep` finds string matches; the graph finds edges.
-- "Where is licensing enforced across the fleet?" — a cross-repo hybrid
+- "Where is licensing enforced across the fleet?" A cross-repo hybrid
   search question. One query, not thirteen repo greps.
-- "What did the dependency graph of `@revealui/ai` look like on June 1?" — a
+- "What did the dependency graph of `@revealui/ai` look like on June 1?" A
   point-in-time question `grep` cannot answer at all.
-- "What has any agent ever learned about the Electric proxy?" — a
+- "What has any agent ever learned about the Electric proxy?" A
   provenance question over agent-fact episodes.
 
 Plain `grep`/`Read` still wins for single-file, single-repo, "show me this
@@ -42,13 +42,13 @@ search and ingest APIs:
 
 | Tool | Use for |
 |---|---|
-| `kg_context` | **Default entry point.** Budgeted context assembly from an anchor node — see below. |
+| `kg_context` | **Default entry point.** Budgeted context assembly from an anchor node (see below). |
 | `kg_search` | Open-ended hybrid search (vector + FTS + BFS), returns nodes and facts with provenance. |
 | `kg_get_node` | Fetch one node plus its current facts by natural key. |
 | `kg_neighbors` | BFS neighbors of a node, current or point-in-time. |
 | `kg_path` | Shortest path between two nodes. |
 | `kg_at_time` | A node's facts as of a timestamp. |
-| `kg_add_episode` | The only write tool — publish a durable episode (see below). |
+| `kg_add_episode` | The only write tool. Publish a durable episode (see below). |
 
 Natural keys are the graph's stable node identifiers, e.g.
 `revealui/packages/ai/src/llm/client.ts#getClient` for a symbol, or
@@ -69,7 +69,7 @@ Example calls (arguments shown as the tool's JSON input):
 { "tool": "kg_neighbors", "arguments": { "naturalKey": "revealui/packages/db/src/schema/coordination.ts", "depth": 2 } }
 ```
 
-## `kg_context` — the default entry point
+## `kg_context`: the default entry point
 
 Before starting nontrivial work on an unfamiliar file, package, or gap,
 pull its context first instead of grepping around blind:
@@ -86,20 +86,20 @@ pull its context first instead of grepping around blind:
 ```
 
 This runs a BFS from the anchor node, reranks by node-distance and
-episode-mentions, and packs node summaries plus edge facts — each carrying
-its provenance episode ids — into a text block capped at `charBudget`
+episode-mentions, and packs node summaries plus edge facts (each carrying
+its provenance episode ids) into a text block capped at `charBudget`
 characters (default 16000; characters, not tokens). The response also
 reports `truncated`, `charsUsed`, `nodeCount`, and `factCount` so you know
 whether the packed block is the whole neighborhood or a budgeted slice of
 it. Prefer this over `kg_search` when the question is "what do I need to
-know before touching X" — `kg_search` is for open-ended queries where you
+know before touching X." `kg_search` is for open-ended queries where you
 don't yet have an anchor.
 
 ## Point-in-time query recipes
 
 Every read tool except `kg_get_node` accepts an optional `at` (ISO-8601
 timestamp). Omit it for the current graph; pass it to see the graph as it
-was at that moment — edges are never deleted, only invalidated, so history
+was at that moment. Edges are never deleted, only invalidated, so history
 is queryable, not reconstructed.
 
 Recipes:
@@ -113,15 +113,15 @@ Recipes:
   `kg_search` with `at` set to the session start time, then check whether
   the fact appears in `result.facts`.
 
-A timestamp with no matching state simply returns fewer or no results —
-there is no error for "too early," since `validAt`/`invalidAt` windows are
+A timestamp with no matching state simply returns fewer or no results.
+There is no error for "too early," since `validAt`/`invalidAt` windows are
 exact.
 
 ## Publishing agent-fact episodes
 
 `kg_add_episode` is the only write tool. It is always additive (never a
 rescan) and Zod-validates `episodeType`, every node `kind`, and every edge
-`relation` against the graph's ontology enums server-side — invalid values
+`relation` against the graph's ontology enums server-side: invalid values
 are rejected before anything is written, and there is no path to raw SQL or
 table names through this tool.
 
@@ -159,14 +159,14 @@ Layer-3 reconciliation for free once that lands.
 ```
 
 **Explicit invocation only.** Publishing an episode is a deliberate act at
-the point a discovery is worth keeping — there is no hook that
+the point a discovery is worth keeping. There is no hook that
 auto-publishes on session end or on every tool call (this is a ruled-open
 question, OQ2 in the design spec: hooks must stay fast, so automation is
 deferred). Call `kg_add_episode` yourself when you have something durable
 to say, the same way you would decide to write a `shared_facts` row.
 
 If a discovery contradicts an existing edge, still just call
-`kg_add_episode` with the corrected fact — the ingest engine's entity
+`kg_add_episode` with the corrected fact. The ingest engine's entity
 resolution and re-scan diffing are for the deterministic scan path
 (`revkg scan`), not for episode ingestion, so a contradicting agent-fact
 episode lands as new provenance alongside the old one rather than silently
@@ -188,7 +188,7 @@ revkg scan --repo revealui        # single repo, deterministic Tier-1 extractors
 revkg scan --fleet                # every repo under the same parent directory
 ```
 
-There is no CLI write path equivalent to `kg_add_episode` — `revkg scan`
+There is no CLI write path equivalent to `kg_add_episode`: `revkg scan`
 only ever runs the deterministic re-scan path (`applyScan`), never additive
 episode ingestion. Publishing an agent-fact episode is an MCP-tool-only
 (or direct `ingestEpisode` API) action by design, since it is inherently an
@@ -199,5 +199,5 @@ agent (or human) asserting something, not a scan discovering it.
 Read tools work with no pgvector extension and no embedding model running:
 the vector search channel is skipped whenever no query embedding is
 available, falling back to full-text search plus BFS traversal. Don't
-expect a `kg_search` failure just because Ollama is down — expect slightly
+expect a `kg_search` failure just because Ollama is down. Expect slightly
 lower recall on paraphrased queries, not an error.
