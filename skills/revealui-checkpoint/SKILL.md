@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.8.0"
+  version: "0.9.0"
   website: https://revealui.com
 ---
 
@@ -139,6 +139,8 @@ stat -c '%Y' "$JV_ROOT/.claude/DIRECTION.md"
 ## Step 4 — Merge session delta into CURRENT-HANDOFF.md
 
 **Target:** `$CURRENT_HANDOFF` — the rolling file; never create a dated HANDOFF-YYYY-MM-DD-*.md file. Read the current contents first. Compose the delta PRIMARILY from the Step 1b snapshot when present, supplemented by session memory + Step 2-3 results. With no snapshot, fall back to session memory.
+
+**Security content: CITE, don't restate (owner ruling 2026-07-16, MASTER_PLAN §Model allocation routing caveat).** When the session touched security findings, exploits, bypasses, sandbox/confinement mechanics, or crypto weaknesses, the delta references the artifact — "GAP-NNN finding, details in the PR verdict / spec §N" — and never re-describes the technique in the summary text. Two reasons: (1) a condensed rewrite strips the defensive anchoring (file:line, PR, review authorization) and concentrates sensitive terms, which is precisely what trips Fable's dual-use safeguard pauses on `/checkpoint` after security-heavy sessions (evidence: 2026-07-10 vs 2026-07-11 vs 2026-07-13 incidents, reconciled 2026-07-16); (2) the same hygiene is already required for public surfaces by `public-issue-redaction.md`. This applies to the handoff delta, the workboard log entry (Step 5), and the next-agent prompt (Step 8).
 
 Update each section using the Edit tool:
 
