@@ -1,0 +1,1 @@
+../skills/good-skill/SKILL.md
