@@ -19,3 +19,11 @@ claude-plugins-official/plugin-dev/*          predictable /tmp paths          # 
 # patterns it detects (not real commands). Scoped to lint-plugins.sh only.
 revskills* lint-plugins.sh contains unquoted 'rm -rf $VAR'   # self-match: scanner comment embeds the rm-rf pattern it scans for
 revskills* lint-plugins.sh contains 'curl | bash'   # self-match: scanner comment+message embed the curl|bash pattern it scans for
+
+# Test fixtures — intentionally invalid SKILL.md used by test/skills_lint.test.sh
+# and test/plugin_lint.test.sh to prove the validators reject a skill missing a
+# required frontmatter field. Because lint-plugins.sh's SKILL.md scan is
+# recursive from the plugin root, it also finds fixtures under test/fixtures/;
+# this is the one place that recursion needs a documented exception rather than
+# a bug fix.
+revskills* test/fixtures/skills/bad-skill-missing-field/SKILL.md missing 'description:' in frontmatter   # intentional: known-bad fixture, see test/skills_lint.test.sh
