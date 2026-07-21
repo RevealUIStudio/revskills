@@ -5,11 +5,11 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.9.0"
+  version: "0.10.0"
   website: https://revealui.com
 ---
 
-Checkpoint orchestrator. Run before ending a meaningful session to ensure the next agent can pick up cleanly. Wires together the 6 coherent-tracking validators + 4 inventory surfaces + merges the session delta into the rolling `$JV_REPO/docs/handoffs/CURRENT-HANDOFF.md` + reports a structured CHECKPOINT-READY checklist + emits the archive-readiness next-agent prompt.
+Checkpoint orchestrator. Run before ending a meaningful session to ensure the next agent can pick up cleanly. Wires together the 6 coherent-tracking validators + 4 inventory surfaces + writes a **rolling handoff fragment** (`docs/handoffs/rolling/`) then **renders** `$JV_REPO/docs/handoffs/CURRENT-HANDOFF.md` + appends a workboard log fragment + reports CHECKPOINT-READY + emits the archive-readiness next-agent prompt.
 
 Authority on locations + tiers: [`master-handoff.md`]($JV_REPO/.claude/rules/master-handoff.md) (active at `docs/HANDOFF-*.md` root; archive at `docs/handoffs/archive/`). Authority on doc-location enforcement: [`jv-doc-locations.md`]($JV_REPO/.claude/rules/jv-doc-locations.md).
 
@@ -136,52 +136,55 @@ stat -c '%Y' "$JV_ROOT/.claude/DIRECTION.md"
 # MASTER_PLAN.md staleness check is part of M-1 (covered by 2f).
 ```
 
-## Step 4 — Merge session delta into CURRENT-HANDOFF.md
+## Step 4 — Write rolling handoff fragment + render CURRENT-HANDOFF.md
 
-**Target:** `$CURRENT_HANDOFF` — the rolling file; never create a dated HANDOFF-YYYY-MM-DD-*.md file. Read the current contents first. Compose the delta PRIMARILY from the Step 1b snapshot when present, supplemented by session memory + Step 2-3 results. With no snapshot, fall back to session memory.
+**Contention-free path (2026-07-21):** do **not** hand-edit `$CURRENT_HANDOFF` when a peer may be live. Write a **new fragment** under `docs/handoffs/rolling/`, then render. Sibling of workboard fragments (ADR 2026-07-04).
 
-**Security content: CITE, don't restate (owner ruling 2026-07-16, MASTER_PLAN §Model allocation routing caveat).** When the session touched security findings, exploits, bypasses, sandbox/confinement mechanics, or crypto weaknesses, the delta references the artifact — "GAP-NNN finding, details in the PR verdict / spec §N" — and never re-describes the technique in the summary text. Two reasons: (1) a condensed rewrite strips the defensive anchoring (file:line, PR, review authorization) and concentrates sensitive terms, which is precisely what trips Fable's dual-use safeguard pauses on `/checkpoint` after security-heavy sessions (evidence: 2026-07-10 vs 2026-07-11 vs 2026-07-13 incidents, reconciled 2026-07-16); (2) the same hygiene is already required for public surfaces by `public-issue-redaction.md`. This applies to the handoff delta, the workboard log entry (Step 5), and the next-agent prompt (Step 8).
+Compose the delta PRIMARILY from the Step 1b snapshot when present, supplemented by session memory + Step 2-3 results. With no snapshot, fall back to session memory.
 
-Update each section using the Edit tool:
+**Security content: CITE, don't restate (owner ruling 2026-07-16).** When the session touched security findings / exploits / confinement / crypto, the delta references the artifact only — never re-describes the technique. Applies to the fragment, the workboard log (Step 5), and the next-agent prompt (Step 8).
 
-**`## Last merge`** — Replace the existing one-line value with:
-```
-<ISO_DATE> — <IDENTITY> (<brief session description, ≤15 words>)
-```
-
-**`## Done + verified this cycle`** — PREPEND new items from this session above the existing list. Do NOT delete prior items (Step 4b handles pruning). Each item is a one-line bullet citing PR numbers, commits, or artifact paths. Example:
-```
-- **admin /api/media forwarder** — [revealui#1395](url) MERGED to test; POST route + 7 tests; rides next test→main promotion.
-```
-
-**`## In-flight`** — REPLACE entirely with the current in-flight state: branches not yet merged, open PRs awaiting review or CI, uncommitted work with worktree paths, lanes with pending code. If nothing in flight: `- None.`
-
-**`## Ordered next actions`** — REPLACE entirely with ordered mechanical next actions for the next agent. Lead with the highest-priority item. Use exact commands, file paths, branch names, PR numbers. No "investigate X" vagueness — those go in an optional `## Notes` section below. Number each action.
-
-**`## Owner-gated`** — MERGE: keep existing items unless resolved this session, then prepend any new owner-gated items from this session.
-
-**Optional `## Next-agent prompt (<lane>)` section** — Add or update at the end of the file when there is a specific actionable lane the next agent should pick up. Include a fenced next-agent prompt block as a convenience copy (the canonical emission happens in Step 8).
-
-## Step 4b — Prune CURRENT-HANDOFF.md if it exceeds ~150 lines
+### 4a. Write the fragment
 
 ```bash
-LINE_COUNT="$(wc -l < "$CURRENT_HANDOFF")"
-echo "CURRENT-HANDOFF.md: $LINE_COUNT lines"
+# Compose body with at least ## Last merge (renderer extracts it for the top block).
+# Include Live board / In-flight / Ordered next / Owner-gated as needed.
+HANDOFF_BODY="$(cat <<'EOF'
+## Last merge
+
+<ISO_DATE> — <IDENTITY>: <≤15 words what landed>
+
+## Live board
+
+| Surface | State |
+|---------|--------|
+| … | re-verify with gh |
+
+## In-flight
+
+- …
+
+## Ordered next actions
+
+1. …
+
+## Owner-gated
+
+- …
+EOF
+)"
+printf '%s\n' "$HANDOFF_BODY" \
+  | node "$JV_ROOT/scripts/handoff-fragment.js" --id "$IDENTITY"
+node "$JV_ROOT/scripts/handoff-render.js"
+# Optional GC of rolling fragments older than 7d:
+# node "$JV_ROOT/scripts/handoff-render.js" --gc
 ```
 
-If `$LINE_COUNT` exceeds approximately 150: identify items in `## Done + verified this cycle` that are clearly stale history — work that shipped in a prior cycle, whose PRs are merged, and that the next agent does not need for orientation. Move those items (only from `## Done + verified`) to an archive file:
+Never create a dated `docs/HANDOFF-YYYY-MM-DD-*.md` for the rolling train. Hand-authored sections **outside** GENERATED markers (Peer rules, Do NOT re-build shell) may be edited only when no peer is rewriting them — prefer putting session-specific truth in the fragment.
 
-Archive target: `$JV_ROOT/docs/handoffs/archive/CURRENT-HANDOFF-PRUNE-${ISO_DATE}.md`
+### 4b. Size control
 
-Write the archive file with a short header (prune date, source section). Then use the Edit tool to remove the pruned items from `$CURRENT_HANDOFF`. Keep the most recent session's items plus anything still relevant to in-flight work or the ordered next actions. When in doubt, keep it — the goal is to prevent the file from becoming unreadably long, not to scrub history.
-
-```bash
-# Confirm prune file written (if pruning occurred)
-[ -f "$JV_ROOT/docs/handoffs/archive/CURRENT-HANDOFF-PRUNE-${ISO_DATE}.md" ] && \
-  echo "pruned to: docs/handoffs/archive/CURRENT-HANDOFF-PRUNE-${ISO_DATE}.md"
-```
-
-If line count is below ~150, skip this step.
+Rolling history is capped by `handoff-render.js --max` (default 12 fragments). Older fragments age out with `--gc` (7-day mtime → `docs/handoffs/archive/rolling/`). Do not hand-prune GENERATED blocks.
 
 ## Step 5 — Workboard log entry
 
@@ -213,51 +216,56 @@ CMSG="/tmp/cmsg-ckpt-${STAMP}.txt"   # write the commit message here (Step 5b us
 ```
 If `jv-single-writer-check.js` has no `--count` mode yet, the `pgrep` fallback is authoritative.
 
-Throughout: `core.fileMode=false` on every `.jv` commit; **explicit pathspec** `-- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md .claude/workboard.d` (the rolling handoff + the generated workboard + this session's new log fragment; NEVER stage `tmp/` or other peer-WIP untracked); `-F "$CMSG"` messages; `--body-file` PR bodies; `--head`/`--base` explicit; **merge-COMMIT only, never squash**; NO `--admin`/`--no-verify`/`--force-push`. `.jv` `test` is branch-protected, so commits reach it via a `chore/checkpoint-*` PR. The two red checks on a `.jv` docs PR ("Doc currency stale-fact check" + "Local-gate / CI parity" — ~3s, "log not found") are the GitHub-Actions org BILLING BLOCK: non-required `UNSTABLE`, NOT real failures — merge with a plain `gh pr merge <n> --merge --delete-branch`.
+Throughout: `core.fileMode=false` on every `.jv` commit; **explicit pathspec**
+`-- docs/handoffs/CURRENT-HANDOFF.md docs/handoffs/rolling .claude/workboard.md .claude/workboard.d`
+(rendered handoff + rolling fragment + generated workboard + workboard fragments;
+NEVER stage `tmp/` or peer-WIP untracked); `-F "$CMSG"`; `--body-file` PR bodies;
+`--head`/`--base` explicit; **merge-COMMIT only, never squash** on `.jv` protecteds;
+NO `--admin`/`--no-verify`/`--force-push`.
 
-**SOLO (`PEERS` ≤ 1)** — the main checkout is the only writer; commit on the current `.jv` branch directly:
+**SOLO (`PEERS` ≤ 1)** — commit on the current `.jv` branch (pathspec only):
 ```bash
 cd "$JV_ROOT"
 BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
-# Write this session's Log line as a fragment (stdin — the safe literal path), then render:
+# Step 4 already wrote handoff rolling fragment + render. Workboard log:
 printf -- '- [%s] %s: [CHECKPOINT] → CURRENT-HANDOFF.md | tracking: %s | next: %s\n' "$TS" "$IDENTITY" "$TRACK" "$NEXT" \
   | node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY"
 node "$JV_ROOT/scripts/workboard-sweep.js" --render-only
-git add .claude/workboard.d   # MUST stage first: the fragment is a NEW untracked file, and `git commit -- <path>` will NOT add untracked files (it errors / silently omits them)
-git -c core.fileMode=false commit -F "$CMSG" -- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md .claude/workboard.d
-git push origin "HEAD:refs/heads/$BR"
-gh pr create --base test --head "$BR" --body-file "$CMSG"     # body can reuse the message
-gh pr merge <n> --merge --delete-branch
-git fetch origin test && git merge --ff-only origin/test      # converge the main checkout
-```
-
-**PEER LIVE (`PEERS` > 1)** — do NOT commit on the main checkout; use a dedicated worktree so it never moves onto a chore branch:
-```bash
-cd "$JV_ROOT"
-WT="$JV_REPO-wt/ckpt-${ISO_DATE}-$$"; BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
-# Stash the handoff BEFORE converging: a dirty CURRENT-HANDOFF.md makes the ff-only ABORT
-# whenever a peer advanced it (the common multi-session case). Only pop what we actually stash.
-STASHED=0
-if ! git diff --quiet -- docs/handoffs/CURRENT-HANDOFF.md; then
-  git -c core.fileMode=false stash push -- docs/handoffs/CURRENT-HANDOFF.md && STASHED=1
-fi
-git fetch origin test && git merge --ff-only origin/test      # pure divergence check on a clean tree; if not a clean ff, ABORT to --no-commit (restore: [ "$STASHED" = 1 ] && git stash pop)
-git worktree add "$WT" -b "$BR" origin/test
-cd "$WT"
-[ "$STASHED" = 1 ] && git -c core.fileMode=false stash pop    # reconcile CURRENT-HANDOFF.md vs origin/test; on conflict resolve, else fall back to --no-commit
-# Write the Log fragment into THIS worktree + render its workboard from fragments. No
-# workboard.md 3-way merge: peer ## Coordination Notes / Active Sessions (outside the
-# fragment blocks) carry forward from origin/test verbatim; log fragments fold in.
-printf -- '- [%s] %s: [CHECKPOINT] → CURRENT-HANDOFF.md | tracking: %s | next: %s\n' "$TS" "$IDENTITY" "$TRACK" "$NEXT" \
-  | node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY" --base "$WT/.claude/workboard.d"
-node "$JV_ROOT/scripts/workboard-sweep.js" --render-only --workboard "$WT/.claude/workboard.md" --base "$WT/.claude/workboard.d"
-git add .claude/workboard.d   # cwd is $WT; MUST stage the new (untracked) fragment before the pathspec commit
-git -c core.fileMode=false commit -F "$CMSG" -- docs/handoffs/CURRENT-HANDOFF.md .claude/workboard.md .claude/workboard.d
+git add docs/handoffs/rolling .claude/workboard.d
+git -c core.fileMode=false commit -F "$CMSG" -- \
+  docs/handoffs/CURRENT-HANDOFF.md docs/handoffs/rolling \
+  .claude/workboard.md .claude/workboard.d
 git push origin "HEAD:refs/heads/$BR"
 gh pr create --base test --head "$BR" --body-file "$CMSG"
 gh pr merge <n> --merge --delete-branch
-cd "$JV_ROOT" && git worktree remove "$WT"                    # cleanup
-git fetch origin test && git merge --ff-only origin/test      # converge main
+git fetch origin test && git merge --ff-only origin/test
+```
+
+**PEER LIVE (`PEERS` > 1)** — do NOT commit on the main checkout; use a dedicated worktree:
+```bash
+cd "$JV_ROOT"
+WT="$JV_REPO-wt/ckpt-${ISO_DATE}-$$"; BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
+# Prefer fragment-only dirty state (rolling/ + workboard.d). If CURRENT-HANDOFF.md
+# is dirty from a hand-edit, stash it — but prefer not hand-editing it at all.
+git fetch origin test && git merge --ff-only origin/test
+git worktree add "$WT" -b "$BR" origin/test
+cd "$WT"
+# Re-write this session's handoff + workboard fragments INTO the worktree:
+printf '%s\n' "$HANDOFF_BODY" \
+  | node "$JV_ROOT/scripts/handoff-fragment.js" --id "$IDENTITY" --base "$WT/docs/handoffs/rolling"
+node "$JV_ROOT/scripts/handoff-render.js" --base "$WT/docs/handoffs/rolling" --out "$WT/docs/handoffs/CURRENT-HANDOFF.md"
+printf -- '- [%s] %s: [CHECKPOINT] → CURRENT-HANDOFF.md | tracking: %s | next: %s\n' "$TS" "$IDENTITY" "$TRACK" "$NEXT" \
+  | node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY" --base "$WT/.claude/workboard.d"
+node "$JV_ROOT/scripts/workboard-sweep.js" --render-only --workboard "$WT/.claude/workboard.md" --base "$WT/.claude/workboard.d"
+git add docs/handoffs/rolling .claude/workboard.d
+git -c core.fileMode=false commit -F "$CMSG" -- \
+  docs/handoffs/CURRENT-HANDOFF.md docs/handoffs/rolling \
+  .claude/workboard.md .claude/workboard.d
+git push origin "HEAD:refs/heads/$BR"
+gh pr create --base test --head "$BR" --body-file "$CMSG"
+gh pr merge <n> --merge --delete-branch
+cd "$JV_ROOT" && git worktree remove "$WT"
+git fetch origin test && git merge --ff-only origin/test
 ```
 
 **Cleanup + failure handling.** On success the temp worktree is removed and the chore branch deleted (`--delete-branch`). On ANY failure — the initial converge is not a clean fast-forward, an unresolved `stash pop` conflict, or a push/merge error — DO NOT silently drop the delta: surface the stash ref (`git stash list`) or the worktree path, fall back to the `--no-commit` end state (writes left for the owner), and leave the main checkout on its original branch. Never leave the main checkout on a `chore/checkpoint-*` branch.
