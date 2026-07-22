@@ -3,6 +3,7 @@
  * claim-shard.js — claim or release a shard under an audit run directory.
  *
  * Writes claims/<shard-id>.yml and updates shards.json status fields.
+ * File ops are race-safe (no existsSync-then-mutate TOCTOU).
  *
  * Usage:
  *   node claim-shard.js --run <run-root> --shard shard-003 --agent grok-1
@@ -26,6 +27,56 @@ function parseArgs(argv) {
   return out;
 }
 
+/** Unlink if present; ignore ENOENT (no existsSync race). */
+function unlinkIfPresent(filePath) {
+  try {
+    fs.unlinkSync(filePath);
+  } catch (err) {
+    if (err && err.code !== "ENOENT") throw err;
+  }
+}
+
+/**
+ * Write claim file exclusively (wx). If it already exists, refuse unless the
+ * same agent is re-claiming (overwrite with r+ after verifying content).
+ */
+function writeClaimExclusive(filePath, body, agent) {
+  try {
+    const fd = fs.openSync(filePath, "wx");
+    try {
+      fs.writeSync(fd, body);
+    } finally {
+      fs.closeSync(fd);
+    }
+    return;
+  } catch (err) {
+    if (!err || err.code !== "EEXIST") throw err;
+  }
+  // Existing claim: allow same-agent refresh only.
+  let existing = "";
+  try {
+    existing = fs.readFileSync(filePath, "utf8");
+  } catch (readErr) {
+    if (readErr && readErr.code === "ENOENT") {
+      // Lost race with release; retry exclusive create once.
+      const fd = fs.openSync(filePath, "wx");
+      try {
+        fs.writeSync(fd, body);
+      } finally {
+        fs.closeSync(fd);
+      }
+      return;
+    }
+    throw readErr;
+  }
+  if (!existing.includes(`agent: ${agent}`)) {
+    const err = new Error(`claim file already held by another agent: ${filePath}`);
+    err.code = "EEXIST";
+    throw err;
+  }
+  fs.writeFileSync(filePath, body);
+}
+
 function main() {
   const args = parseArgs(process.argv);
   if (args.help || !args.run || !args.shard) {
@@ -41,11 +92,14 @@ function main() {
 
   const run = path.resolve(args.run);
   const shardsPath = path.join(run, "shards.json");
-  if (!fs.existsSync(shardsPath)) {
+  let planRaw;
+  try {
+    planRaw = fs.readFileSync(shardsPath, "utf8");
+  } catch (err) {
     process.stderr.write(`claim-shard: missing ${shardsPath}\n`);
     process.exit(1);
   }
-  const plan = JSON.parse(fs.readFileSync(shardsPath, "utf8"));
+  const plan = JSON.parse(planRaw);
   const shard = (plan.shards || []).find((s) => s.id === args.shard);
   if (!shard) {
     process.stderr.write(`claim-shard: unknown shard ${args.shard}\n`);
@@ -57,7 +111,7 @@ function main() {
   const claimFile = path.join(claimsDir, `${args.shard}.yml`);
 
   if (args.release) {
-    if (fs.existsSync(claimFile)) fs.unlinkSync(claimFile);
+    unlinkIfPresent(claimFile);
     shard.status = "open";
     delete shard.claimedBy;
     delete shard.claimedAt;
@@ -88,7 +142,17 @@ function main() {
     ...shard.paths.map((p) => `  - ${JSON.stringify(p)}`),
     "",
   ].join("\n");
-  fs.writeFileSync(claimFile, yml);
+
+  try {
+    writeClaimExclusive(claimFile, yml, args.agent);
+  } catch (err) {
+    if (err && err.code === "EEXIST") {
+      process.stderr.write(`claim-shard: ${args.shard} claim file held by another agent\n`);
+      process.exit(2);
+    }
+    throw err;
+  }
+
   fs.writeFileSync(shardsPath, JSON.stringify(plan, null, 2) + "\n");
   process.stdout.write(`claimed ${args.shard} by ${args.agent} (${shard.files} files)\n`);
 }
