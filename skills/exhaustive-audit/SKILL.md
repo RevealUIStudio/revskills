@@ -63,10 +63,11 @@ Pick one run root (prefer private `.jv` for fleet audits):
     final.md                 # closeout report
 ```
 
-Default fleet run root:
+Default run root (private operator planning tree, or any writable audit dir):
 
 ```bash
-RUN_ROOT="${JV_REPO:-$HOME/revfleet/.jv}/docs/audits/runs/$(date -u +%Y-%m-%d)-<slug>"
+# Prefer an operator-private audits directory (env override), not a hard-coded private repo path.
+RUN_ROOT="${AUDIT_RUN_ROOT:-$HOME/audits/runs}/$(date -u +%Y-%m-%d)-<slug>"
 ```
 
 ## Scripts (this skill)
@@ -184,7 +185,7 @@ Append to `ledger/findings.jsonl`:
 }
 ```
 
-Promotion: `blocker`/`high` → file `docs/gaps/GAP-NNN.yml` same or next session.
+Promotion: `blocker`/`high` → file a tracked work unit in the operator planning system (gap/lane) same or next session.
 
 ### 4. Knowledge graph (optional but preferred for system view)
 
@@ -283,8 +284,8 @@ Exhaustive audit requires **L2 for every path**. L3 is the default for code/conf
 - `references/methodology.md` — full phases, concurrency rules, anti-patterns  
 - `templates/AUDIT-RUN.yml` — run metadata  
 - `templates/coverage-line.json` — coverage record schema  
-- Hardline: audit-first SDLC (`.jv` / claude rules)  
-- Work units: gaps/lanes only for remediation work  
+- Hardline: audit-first SDLC (studio rules)  
+- Work units: tracked gaps/lanes only for remediation work  
 
 ## Anti-patterns
 
