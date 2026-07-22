@@ -63,11 +63,13 @@ Pick one run root (prefer an operator-private audits directory):
     final.md                 # closeout report
 ```
 
-Default run root (private operator planning tree, or any writable audit dir):
+Default run root (writable operator dir; prefer fleet shared archive):
 
 ```bash
-# Prefer an operator-private audits directory (env override), not a hard-coded private repo path.
-RUN_ROOT="${AUDIT_RUN_ROOT:-$HOME/audits/runs}/$(date -u +%Y-%m-%d)-<slug>"
+# Fleet shared cold store (not inside product git). See ~/revfleet/archive/README.md
+export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$HOME/revfleet/archive}"
+export AUDIT_RUN_ROOT="${AUDIT_RUN_ROOT:-$REVFLEET_ARCHIVE/audits}"
+RUN_ROOT="$AUDIT_RUN_ROOT/$(date -u +%Y-%m-%d)-<slug>"
 ```
 
 ## Scripts (this skill)
