@@ -11,6 +11,14 @@ metadata:
 
 # Fleet Knowledge Graph
 
+## Relation to exhaustive audits
+
+For multi-session **line-level** codebase audits, use the `exhaustive-audit`
+skill first (path inventory + coverage ledger). The graph maps relationships
+and history; it does **not** prove every file body was read. After inventory,
+`revkg scan` / `kg_context` / `kg_neighbors` are the right tools for system
+maps and blast-radius views.
+
 ## When to query the graph
 
 The fleet knowledge graph is a bi-temporal, content-addressed graph of every

@@ -1,0 +1,44 @@
+# Copy to <run-root>/AUDIT-RUN.yml and fill.
+id: audit-YYYY-MM-DD-slug
+status: open # open | in-progress | closed | aborted
+opened: YYYY-MM-DDTHH:MM:SSZ
+closed: null
+opened_by: agent-or-human-id
+
+scope:
+  # Absolute or fleet-relative roots inventoried
+  roots:
+    - ~/revfleet/revealui
+  # git pins at open (code-over-docs)
+  pins:
+    - repo: revealui
+      head: REPLACE_WITH_git_rev_parse_HEAD
+  exclude_defaults: true
+  extra_excludes: []
+
+depth:
+  # L2 required for all paths; L3 default for code/config; L4 for critical surfaces
+  minimum: L2
+  default_code: L3
+
+coordination:
+  mode: concurrent # concurrent | serial
+  workboard_note: null
+  claim_unit: shard
+
+artifacts:
+  manifest: manifest.jsonl
+  shards: shards.json
+  coverage: ledger/coverage.jsonl
+  findings: ledger/findings.jsonl
+  progress: reports/progress.md
+  final: reports/final.md
+  system_map: reports/system-map.md
+
+knowledge_graph:
+  used: false
+  revkg_scan: false
+  notes: null
+
+notes: |
+  Exhaustive audit run. Completeness = coverage-status.js exit 0.
