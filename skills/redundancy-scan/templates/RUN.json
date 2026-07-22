@@ -1,0 +1,16 @@
+{
+  "id": "redundancy-YYYY-MM-DD-scope",
+  "root": "/absolute/path/scanned",
+  "fleet": false,
+  "started": null,
+  "finished": null,
+  "tools": {
+    "hash-dups": true,
+    "marker-scan": true,
+    "name-collision": true,
+    "jscpd": false,
+    "knip": false,
+    "syncpack": false
+  },
+  "notes": ""
+}
