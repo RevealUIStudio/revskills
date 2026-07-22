@@ -46,7 +46,7 @@ Knowledge graph (`revkg` / `kg_*`) **maps and relates**; it does **not** replace
 
 ## Artifacts (canonical locations)
 
-Pick one run root (prefer private `.jv` for fleet audits):
+Pick one run root (prefer an operator-private audits directory):
 
 ```text
 <run-root>/
