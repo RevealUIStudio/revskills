@@ -47,6 +47,14 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 |-------|-------------|
 | [vitest-testing](skills/vitest-testing/) | Vitest patterns — mocking, coverage, PGlite, monorepo testing |
 
+### Audit & architecture
+
+| Skill | Description |
+|-------|-------------|
+| [exhaustive-audit](skills/exhaustive-audit/) | Multi-session full-tree audit — inventory, shards, coverage ledger, optional knowledge-graph map |
+| [redundancy-scan](skills/redundancy-scan/) | Find duplication, deprecation markers, and accidental dual implementations across the fleet |
+| [knowledge-graph](skills/knowledge-graph/) | Query the fleet knowledge graph (MCP `kg_*` / `revkg`) before broad greps for dependency and history questions |
+
 ## Design
 
 | Skill | Description |
@@ -55,14 +63,16 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 
 ## RevealUI Workflow (Studio-internal)
 
-These skills assume RevFleet layout (`~/revfleet/`, `$JV_REPO`, RevVault, RevDev RPC daemon). Not generically installable — the canonical copies live here and are symlinked into `~/.claude/commands/` on Studio machines.
+These skills assume RevFleet layout (`~/revfleet/`, private planning hub, RevVault, RevDev RPC daemon). Not generically installable — the canonical copies live here and are symlinked into `~/.claude/commands/` on Studio machines.
 
 | Skill | Description |
 |-------|-------------|
 | [revealui-recover](skills/revealui-recover/) | Diagnose and recover from crashed/interrupted Claude sessions — identity, git integrity, hook state, daemon, workboard |
-| [revealui-checkpoint](skills/revealui-checkpoint/) | Checkpoint checklist — validates 6 coherent-tracking surfaces, writes canonical `docs/HANDOFF-*.md`, appends workboard log entry |
+| [revealui-checkpoint](skills/revealui-checkpoint/) | Checkpoint checklist — validates coherent-tracking surfaces, writes handoff fragments, appends workboard log entry |
+| [revealui-snapshot](skills/revealui-snapshot/) | Mid-session fidelity snapshot for checkpoint composition |
+| [revealui-ops](skills/revealui-ops/) | Thin `/ops` shim onto the operational-workflow-layer runner (list/run named workflows) |
 | [revealui-doctor](skills/revealui-doctor/) | Health check for RevFleet Claude setup — hook syntax, rules dirs, git-fsck, workboard freshness, daemon, MCP servers, env leaks, toolchain |
-| [revealui-design-status](skills/revealui-design-status/) | Check whether the claude.ai/design project changed since the codebase last pushed to it, and which files — design-to-code sync awareness (GAP-322) |
+| [revealui-design-status](skills/revealui-design-status/) | Check whether the claude.ai/design project changed since the codebase last pushed to it, and which files |
 | [revealui-sync-lts](skills/revealui-sync-lts/) | **Deprecated (2026-07-02) — DR moved to weekly WSL snapshots (revkit).** Legacy per-repo LTS sync; retained for reference |
 | [revealui-sync-rules](skills/revealui-sync-rules/) | Check whether `.claude/rules/` files are in sync across RevealUI repos — asks before copying |
 | [revealui-skills-test](skills/revealui-skills-test/) | Static validator for Claude Code skills — flags stale paths, rule violations, missing scripts |

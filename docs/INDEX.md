@@ -1,7 +1,7 @@
 ---
 type: repo-doc-index
 repo: revskills
-updated: 2026-05-15
+updated: 2026-07-23
 ---
 
 # RevSkills — Documentation Index
