@@ -299,3 +299,19 @@ Exhaustive audit requires **L2 for every path**. L3 is the default for code/conf
 | Fix while auditing without tracking | Split audit vs implement PRs; file gaps |
 | Write a second free-floating "audit backlog" at docs root | Use findings.jsonl + gaps |
 | Mark minified vendor bundles `verified` without allowlist | Use `skipped-generated` or waive |
+
+## MD-truth program (GAP-407)
+
+| Script | Wave |
+|--------|------|
+| `scripts/w1-auto-class-md.js` | W1 historical/generated |
+| `scripts/w4-jv-present-md.js` | W4 .jv residual |
+| `scripts/w5-homes-md.js` | W5 claude/grok homes |
+| `scripts/md-truth-check.js` | W6 gate (`--self-test` CI-safe; `--coverage` needs archive) |
+| `scripts/coverage-status.js` | complete bar (exit 0) |
+
+```bash
+node skills/exhaustive-audit/scripts/md-truth-check.js --self-test
+# operator:
+# REVFLEET_ARCHIVE=~/revfleet/archive node …/md-truth-check.js --coverage
+```
