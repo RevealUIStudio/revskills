@@ -20,6 +20,14 @@ const TERMINAL = new Set([
   "waived",
   "blocked",
   "skipped-generated",
+  // GAP-407 C3 statuses (W1 auto-class)
+  "historical-ok",
+  "generated-ok",
+  "non-claim",
+  "policy-enforced",
+  "fact-match",
+  "fact-doc-drift",
+  "fact-code-drift",
 ]);
 
 function parseArgs(argv) {
