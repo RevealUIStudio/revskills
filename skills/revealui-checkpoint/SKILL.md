@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.11.0"
+  version: "0.12.0"
   website: https://revealui.com
 ---
 
@@ -136,6 +136,23 @@ stat -c '%Y' "$JV_ROOT/.claude/DIRECTION.md"
 # MASTER_PLAN.md staleness check is part of M-1 (covered by 2f).
 ```
 
+### 3f. Pending hotfixes → durable (GAP-405; read-only)
+
+Surface registered hotfix debt so wrap-up cannot clear without naming the durable follow-up. Sibling of temp-scripts lifecycle (`tmpscript.js`); hardline: `~/.claude/rules/durable-solutions.md`.
+
+```bash
+HOTFIX_CLI="$HOME/.claude/scripts/hotfix.js"
+if [ -f "$HOTFIX_CLI" ]; then
+  # check: prints only when pending > 0 (silent when empty). list: full registry.
+  node "$HOTFIX_CLI" check 2>/dev/null || true
+  node "$HOTFIX_CLI" list 2>/dev/null || true
+else
+  echo "hotfix CLI missing at $HOTFIX_CLI — install claude-config durable-solutions hardline"
+fi
+```
+
+Read-only. Capture output for Step 6 **HOTFIXES** and Step 4 fragment **Owner-gated** / **Outstanding** when any entry is `pending`. Do **not** call `resolve` here (disposition of debt is separate). Pending hotfixes never block CHECKPOINT-READY alone (same class as PREPARE-FOR-EXIT WARNs), but they **must** appear under OUTSTANDING so the next agent cannot pretend the debt vanished.
+
 ## Step 4 — Write rolling handoff fragment + local render
 
 **Contention-free path (2026-07-21, amended 2026-07-23):** do **not** hand-edit `$CURRENT_HANDOFF` when a peer may be live. Write a **new fragment** under `docs/handoffs/rolling/`, then render **locally** for the report/prompt. Sibling of workboard fragments (ADR 2026-07-04). **Do not commit the render** (ADR 2026-07-23-jv-coordination-merge-model; CI `Coord paths guard` fails PRs that edit `CURRENT-HANDOFF.md` / `workboard.md`).
@@ -171,6 +188,10 @@ HANDOFF_BODY="$(cat <<'EOF'
 ## Owner-gated
 
 - …
+
+## Pending hotfixes (if any from Step 3f)
+
+- none | list id — title — durable target
 EOF
 )"
 printf '%s\n' "$HANDOFF_BODY" \
@@ -340,6 +361,10 @@ INVENTORY
   active lanes:                       <N>
   uncommitted .jv changes:            <N files>
 
+HOTFIXES → DURABLE (GAP-405, read-only)
+  [NONE|N pending]  node ~/.claude/scripts/hotfix.js check
+  <for each pending: id — title — durable one-liner — resolve command>
+
 PREPARE-FOR-EXIT (7, read-only, report-only)
   [PASS|WARN]  1. Fleet repo checkouts (main checkout) clean
   [PASS|WARN]  2. No worktree created this session remains
@@ -355,6 +380,7 @@ OUTSTANDING (action by owner or next agent)
   - <enumerate uncommitted/unpushed work>
   - <enumerate owner-gated items>
   - <enumerate each PREPARE-FOR-EXIT WARN with its remediation line>
+  - <enumerate each pending hotfix id + durable target (from Step 3f); never omit>
 
 CHECKPOINT-READY: <YES | NO — see outstanding>
 ```
