@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.12.0"
+  version: "0.12.1"
   website: https://revealui.com
 ---
 
@@ -138,20 +138,22 @@ stat -c '%Y' "$JV_ROOT/.claude/DIRECTION.md"
 
 ### 3f. Pending hotfixes → durable (GAP-405; read-only)
 
-Surface registered hotfix debt so wrap-up cannot clear without naming the durable follow-up. Sibling of temp-scripts lifecycle (`tmpscript.js`); hardline: `~/.claude/rules/durable-solutions.md`.
+Surface registered debt so wrap-up cannot clear without naming the durable follow-up. **Prefer durable root-cause fixes; registry is admitted debt only.** Control layer: `revealui-harnesses hotfix` (store `~/.local/share/revealui/hotfixes`). Adapter thin entry still works.
 
 ```bash
-HOTFIX_CLI="$HOME/.claude/scripts/hotfix.js"
-if [ -f "$HOTFIX_CLI" ]; then
-  # check: prints only when pending > 0 (silent when empty). list: full registry.
-  node "$HOTFIX_CLI" check 2>/dev/null || true
-  node "$HOTFIX_CLI" list 2>/dev/null || true
+# Prefer control-layer CLI; fall back to Studio adapter (forwards to control layer).
+if command -v revealui-harnesses >/dev/null 2>&1 && revealui-harnesses hotfix store >/dev/null 2>&1; then
+  revealui-harnesses hotfix check 2>/dev/null || true
+  revealui-harnesses hotfix list 2>/dev/null || true
+elif [ -f "$HOME/.claude/scripts/hotfix.js" ]; then
+  node "$HOME/.claude/scripts/hotfix.js" check 2>/dev/null || true
+  node "$HOME/.claude/scripts/hotfix.js" list 2>/dev/null || true
 else
-  echo "hotfix CLI missing at $HOTFIX_CLI — install claude-config durable-solutions hardline"
+  echo "hotfix control CLI missing — build @revealui/harnesses (GAP-405)"
 fi
 ```
 
-Read-only. Capture output for Step 6 **HOTFIXES** and Step 4 fragment **Owner-gated** / **Outstanding** when any entry is `pending`. Do **not** call `resolve` here (disposition of debt is separate). Pending hotfixes never block CHECKPOINT-READY alone (same class as PREPARE-FOR-EXIT WARNs), but they **must** appear under OUTSTANDING so the next agent cannot pretend the debt vanished.
+Read-only. Capture output for Step 6 **HOTFIXES** and Step 4 fragment **Owner-gated** / **Outstanding** when any entry is `pending`. Do **not** call `resolve` here. Pending entries never block CHECKPOINT-READY alone, but they **must** appear under OUTSTANDING.
 
 ## Step 4 — Write rolling handoff fragment + local render
 
@@ -361,8 +363,8 @@ INVENTORY
   active lanes:                       <N>
   uncommitted .jv changes:            <N files>
 
-HOTFIXES → DURABLE (GAP-405, read-only)
-  [NONE|N pending]  node ~/.claude/scripts/hotfix.js check
+HOTFIXES → DURABLE (GAP-405, read-only; prefer durable fixes)
+  [NONE|N pending]  revealui-harnesses hotfix check
   <for each pending: id — title — durable one-liner — resolve command>
 
 PREPARE-FOR-EXIT (7, read-only, report-only)
