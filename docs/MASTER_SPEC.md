@@ -1,14 +1,14 @@
 ---
 type: master-spec
 repo: revskills
-last-updated: 2026-05-10
+last-updated: 2026-07-23
 owner: RevealUI Studio
 staleness-status: FRESH
 ---
 
 # RevSkills — Master Spec
 
-**Last Updated:** 2026-05-10
+**Last Updated:** 2026-07-23
 **Status:** Pre-1.0 per skill — surface stable, format proven across 17 skills
 **Repo:** [RevealUIStudio/revskills](https://github.com/RevealUIStudio/revskills)
 
