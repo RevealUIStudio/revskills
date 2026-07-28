@@ -68,7 +68,7 @@ function selfTest() {
 }
 
 function coverageCheck(runId) {
-  const archive = process.env.REVFLEET_ARCHIVE || path.join(process.env.HOME || "", "revfleet/archive");
+  const archive = process.env.REVFLEET_ARCHIVE || path.join(process.env.HOME || "", "revfleet/archive/cold");
   const runDir = path.join(archive, "audits", runId);
   if (!fs.existsSync(runDir)) {
     throw new Error(
