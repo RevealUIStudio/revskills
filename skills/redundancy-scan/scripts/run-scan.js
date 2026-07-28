@@ -3,7 +3,7 @@
  * run-scan.js — one-shot: hash dups + markers + name collisions → report.
  *
  * Usage:
- *   node run-scan.js --root ~/revfleet/revealui --out-dir ~/revfleet/archive/audits/2026-07-22-redundancy-revealui
+ *   node run-scan.js --root ~/revfleet/revealui --out-dir ~/revfleet/archive/cold/audits/2026-07-22-redundancy-revealui
  *   node run-scan.js --root ~/revfleet --fleet --out-dir $REVFLEET_ARCHIVE/audits/redundancy-fleet
  */
 "use strict";

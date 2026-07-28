@@ -66,8 +66,8 @@ Pick one run root (prefer an operator-private audits directory):
 Default run root (writable operator dir; prefer fleet shared archive):
 
 ```bash
-# Fleet shared cold store (not inside product git). See ~/revfleet/archive/README.md
-export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$HOME/revfleet/archive}"
+# Fleet shared cold store (not inside product git). See ~/revfleet/archive/cold/README.md
+export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$HOME/revfleet/archive/cold}"
 export AUDIT_RUN_ROOT="${AUDIT_RUN_ROOT:-$REVFLEET_ARCHIVE/audits}"
 RUN_ROOT="$AUDIT_RUN_ROOT/$(date -u +%Y-%m-%d)-<slug>"
 ```
@@ -313,5 +313,5 @@ Exhaustive audit requires **L2 for every path**. L3 is the default for code/conf
 ```bash
 node skills/exhaustive-audit/scripts/md-truth-check.js --self-test
 # operator:
-# REVFLEET_ARCHIVE=~/revfleet/archive node …/md-truth-check.js --coverage
+# REVFLEET_ARCHIVE=~/revfleet/archive/cold node …/md-truth-check.js --coverage
 ```
