@@ -62,7 +62,7 @@ Do not put private planning-repo paths in config committed to this package.
 Prefer the fleet shared archive (not product git):
 
 ```bash
-export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$HOME/revfleet/archive}"
+export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$HOME/revfleet/archive/cold}"
 OUT="$REVFLEET_ARCHIVE/audits/$(date -u +%Y-%m-%d)-redundancy-<scope>"
 ```
 
@@ -80,7 +80,7 @@ $OUT/
 
 ```bash
 SKILL="$HOME/revfleet/revskills/skills/redundancy-scan"
-export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$HOME/revfleet/archive}"
+export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$HOME/revfleet/archive/cold}"
 OUT="$REVFLEET_ARCHIVE/audits/$(date -u +%Y-%m-%d)-redundancy-revealui"
 mkdir -p "$OUT"
 
