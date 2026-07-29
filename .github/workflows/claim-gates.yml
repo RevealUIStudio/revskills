@@ -1,0 +1,68 @@
+name: Claim gates
+
+# product-readme claim honesty against this tree (warn).
+# Builds @revealui/claim-gates from RevealUIStudio/revealui@test
+# (same engines as monorepo validate:claims; no full-copy scanner here).
+
+on:
+  pull_request:
+    branches: [main, test]
+  push:
+    branches: [test]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: claim-gates-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  NODE_VERSION: "24"
+  PNPM_VERSION: "10.28.2"
+
+jobs:
+  claim-gates:
+    name: product-readme claim honesty (warn)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout product
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          path: product
+          persist-credentials: false
+
+      - name: Checkout revealui (claim-gates source)
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: RevealUIStudio/revealui
+          ref: test
+          path: revealui
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: revealui/pnpm-lock.yaml
+
+      - name: Install revealui workspace
+        working-directory: revealui
+        run: pnpm install --frozen-lockfile
+
+      - name: Build claim-gates and workspace deps
+        working-directory: revealui
+        run: pnpm --filter @revealui/claim-gates... build
+
+      - name: Run product-readme profile (warn)
+        working-directory: revealui
+        run: >
+          node packages/claim-gates/dist/cli.js
+          --root "$GITHUB_WORKSPACE/product"
+          --profile product-readme
+          --warn
