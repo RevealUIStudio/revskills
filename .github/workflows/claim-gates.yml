@@ -1,6 +1,6 @@
 name: Claim gates
 
-# product-readme claim honesty against this tree (warn).
+# product-readme claim honesty against this tree (hard-fail).
 # Builds @revealui/claim-gates from RevealUIStudio/revealui@test
 # (same engines as monorepo validate:claims; no full-copy scanner here).
 
@@ -23,7 +23,7 @@ env:
 
 jobs:
   claim-gates:
-    name: product-readme claim honesty (warn)
+    name: product-readme claim honesty (hard-fail)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -37,7 +37,8 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: RevealUIStudio/revealui
-          ref: test
+          # Pin until revealui#2300 (product-readme fleet-attrib off) is on test.
+          ref: a11ad3356ac6234f1ee68e08feb53054914e8546
           path: revealui
           persist-credentials: false
 
@@ -59,10 +60,9 @@ jobs:
         working-directory: revealui
         run: pnpm --filter @revealui/claim-gates... build
 
-      - name: Run product-readme profile (warn)
+      - name: Run product-readme profile (hard-fail)
         working-directory: revealui
         run: >
           node packages/claim-gates/dist/cli.js
           --root "$GITHUB_WORKSPACE/product"
           --profile product-readme
-          --warn
