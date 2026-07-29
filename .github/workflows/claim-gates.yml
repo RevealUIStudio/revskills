@@ -37,7 +37,8 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: RevealUIStudio/revealui
-          ref: test
+          # Pin until revealui#2300 (product-readme fleet-attrib off) is on test.
+          ref: a11ad3356ac6234f1ee68e08feb53054914e8546
           path: revealui
           persist-credentials: false
 
