@@ -6,5 +6,9 @@ node_modules/
 .env
 .env.*
 
-# editor-configs (symlinked)
-.claude/
+# Materialized rules tracked (GAP-372 copy-mode); local Claude state stays ignored.
+.claude/*
+!.claude/rules/
+!.claude/agents/
+!.claude/skills/
+!.claude/.revcon-manifest.json
