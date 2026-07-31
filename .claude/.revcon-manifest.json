@@ -1,0 +1,59 @@
+{
+  "mode": "copy",
+  "editor": "claude",
+  "profiles": ["revfleet"],
+  "files": {
+    "rules/code-over-docs.md": {
+      "source": "profiles/revfleet/claude/rules/code-over-docs.md",
+      "sha256": "fcc9af90a0fc31a1c04202891099a5e6e0f13502649011fd7a9cfe59bf6b5500"
+    },
+    "rules/control-layer.md": {
+      "source": "profiles/revfleet/claude/rules/control-layer.md",
+      "sha256": "289388f1038de4f372f5eeea5a61ee583fbea93042d01801b6c90b01d878c9f9"
+    },
+    "rules/disposition-actions.md": {
+      "source": "profiles/revfleet/claude/rules/disposition-actions.md",
+      "sha256": "cf3f1aa1f927dfac43494127590f6334239c3bc0619956e78a1b26e05b9e07b8"
+    },
+    "rules/durable-solutions.md": {
+      "source": "profiles/revfleet/claude/rules/durable-solutions.md",
+      "sha256": "1d9ab978b70bf67f68b65c4b9e06f1065730d1b212fb51d71c42bffc26de1e63"
+    },
+    "rules/extend-before-create.md": {
+      "source": "profiles/revfleet/claude/rules/extend-before-create.md",
+      "sha256": "eda319933321d2d69db659dfd6d441640d25d69b8c51b2ae026ca0974e0f430c"
+    },
+    "rules/git.md": {
+      "source": "profiles/revfleet/claude/rules/git.md",
+      "sha256": "a8c582428a148f5c3d8f07a96256b157606a5244d2e9d8e3d2ae81aef230dbd3"
+    },
+    "rules/model-allocation.md": {
+      "source": "profiles/revfleet/claude/rules/model-allocation.md",
+      "sha256": "d71bb65d9315523e29b927ae47c7a3e9e35e763c7c30602d04c3043f92413c9b"
+    },
+    "rules/no-em-dashes.md": {
+      "source": "profiles/revfleet/claude/rules/no-em-dashes.md",
+      "sha256": "18b1cfe5218fd816837c13a2e6cd08786befad19a292f1fa85874a3ad0b5f22e"
+    },
+    "rules/opensrc.md": {
+      "source": "profiles/revfleet/claude/rules/opensrc.md",
+      "sha256": "c8d0eef53fda278bf2f077e4c7dbf843c8e0b07023b546429a2d209a1620ac55"
+    },
+    "rules/planning.md": {
+      "source": "profiles/revfleet/claude/rules/planning.md",
+      "sha256": "b489fbf16bb2513d37a540474653ab70fe45f7fe704d69d7306dfde3128fd7fd"
+    },
+    "rules/secrets.md": {
+      "source": "profiles/revfleet/claude/rules/secrets.md",
+      "sha256": "79d09010deb767f582cbd0a28f12d6bf3a36cc44e2f4260a7fbaddd709318d68"
+    },
+    "rules/temp-scripts.md": {
+      "source": "profiles/revfleet/claude/rules/temp-scripts.md",
+      "sha256": "66a574826b46352275606d88a9854a0e63c39433a97a55c75f50ccc0f4862a15"
+    },
+    "rules/token-economy.md": {
+      "source": "profiles/revfleet/claude/rules/token-economy.md",
+      "sha256": "b30a830e9dd333b05085bc5ce3994c477ac66390aabe4cf41741a64ccd12ef57"
+    }
+  }
+}
