@@ -205,6 +205,8 @@ ss_branches_json() {
 # Resolve snapshot file for this session (id-match, never mtime).
 # Search order: neutral SSOT, then legacy Claude adapter path.
 # Prints path and returns 0 if found; returns 1 if no session id or no file.
+# Optional $1 session id; callers usually omit and resolve via ss_session_id.
+# shellcheck disable=SC2120
 ss_snapshot_path() {
   local sid="${1:-}"
   if [ -z "$sid" ]; then

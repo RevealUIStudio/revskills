@@ -1,4 +1,5 @@
-# GAP-342 — best-effort dual-write to RevDev session.snapshot.* RPC
+# shellcheck shell=bash
+# GAP-342: best-effort dual-write to RevDev session.snapshot.* RPC
 # Sourced from session-state.sh. Filesystem under REVEALUI_COORD_ROOT remains
 # SSOT for skills. Daemon store is additive when the socket is up, Pro-licensed,
 # and an agent is bound. Never hard-fails the skill: prints "ok|skipped|error:…"
@@ -71,10 +72,10 @@ PY
 # Maps ## Resume-From-Here → resumeFromHere (and siblings). Prints JSON object.
 ss_snapshot_sections_json() {
   local path="${1:-}"
-  [ -n "$path" ] && [ -f "$path" ] || {
+  if [ -z "$path" ] || [ ! -f "$path" ]; then
     printf 'ss_snapshot_sections_json: file required\n' >&2
     return 1
-  }
+  fi
   command -v python3 >/dev/null 2>&1 || {
     printf 'ss_snapshot_sections_json: python3 required\n' >&2
     return 1
