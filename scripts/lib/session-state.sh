@@ -149,8 +149,9 @@ ss_live_harness_peers() {
   local line
   # Interactive-ish agent CLIs. Exclude pipes, greps, and headless -p style.
   while IFS= read -r line; do
+    # Skip the scanner itself and any grep/pgrep wrapper line (*grep* also matches pgrep).
     case "$line" in
-      *'grep'*|*'pgrep'*) continue ;;
+      *grep*) continue ;;
     esac
     # Skip headless one-shots commonly flagged with " -p " (Claude print mode).
     case "$line" in
