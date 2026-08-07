@@ -53,6 +53,16 @@ $haystack"
   fi
 }
 
+# assert_eq <expected> <actual> <description>
+assert_eq() {
+  local expected="$1" actual="$2" desc="$3"
+  if [[ "$expected" == "$actual" ]]; then
+    pass "$desc"
+  else
+    fail "$desc" "expected '$expected', got '$actual'"
+  fi
+}
+
 # make_sandbox — create a tracked temp dir, auto-removed by cleanup_sandboxes.
 make_sandbox() {
   local dir
