@@ -44,13 +44,98 @@ ss_identity() {
 }
 
 # ---------------------------------------------------------------------------
-# Session id (GAP-469) — first non-empty wins
-#   1. AGENT_SESSION_ID (preferred, harness-neutral)
-#   2. REVEALUI_SESSION_ID
-#   3. CLAUDE_CODE_SESSION_ID (Claude adapter alias)
-# Do not invent undocumented vendor env vars. Snapshot write requires a value;
-# checkpoint consume may be empty (falls back to session memory).
+# Session id (GAP-469) — automatic; operator never exports by hand
+#
+# Order (first non-empty wins):
+#   1. AGENT_SESSION_ID / REVEALUI_SESSION_ID (explicit override)
+#   2. Vendor env aliases: CLAUDE_CODE_SESSION_ID, GROK_SESSION_ID
+#   3. PPID stamp files written by SessionStart (scripts/stamp-session-id.sh)
+#   4. Grok ~/.grok/active_sessions.json matched by ancestor PID (or sole cwd)
+#
+# Snapshot write requires a value. Checkpoint consume may be empty (memory).
 # ---------------------------------------------------------------------------
+
+# Collect ancestor PIDs of a process (inclusive), space-separated. Arg: start pid.
+ss_ancestor_pids() {
+  local pid="$1" pids="" n=0
+  [ -n "$pid" ] || return 1
+  while [ "$pid" -gt 1 ] && [ "$n" -lt 40 ]; do
+    pids="${pids}${pids:+ }${pid}"
+    pid="$(awk '/^PPid:/{print $2}' "/proc/${pid}/status" 2>/dev/null)" || break
+    n=$((n + 1))
+  done
+  printf '%s\n' "$pids"
+}
+
+# Stamp files: $REVEALUI_COORD_ROOT/harness-sessions/by-pid/<pid> → session id
+ss_session_id_from_pid_stamps() {
+  local root="$REVEALUI_COORD_ROOT/harness-sessions/by-pid"
+  [ -d "$root" ] || return 1
+  local pid sid
+  # shellcheck disable=SC2046
+  for pid in $(ss_ancestor_pids "$$"); do
+    if [ -f "$root/$pid" ] && [ -s "$root/$pid" ]; then
+      sid="$(head -1 "$root/$pid" | tr -d '[:space:]')"
+      if [ -n "$sid" ]; then
+        printf '%s\n' "$sid"
+        return 0
+      fi
+    fi
+  done
+  return 1
+}
+
+# Grok active_sessions.json: match ancestor PID, else sole open session for $PWD.
+ss_session_id_from_grok_active() {
+  local active="${GROK_ACTIVE_SESSIONS:-$HOME/.grok/active_sessions.json}"
+  [ -f "$active" ] || return 1
+  command -v python3 >/dev/null 2>&1 || return 1
+  # shellcheck disable=SC2086
+  python3 - "$active" "$$" "${PWD:-}" <<'PY'
+import json, sys
+
+path, start_s, cwd = sys.argv[1], sys.argv[2], sys.argv[3]
+start = int(start_s)
+pids = set()
+pid = start
+for _ in range(40):
+    pids.add(pid)
+    try:
+        with open(f"/proc/{pid}/status", encoding="utf-8") as fh:
+            ppid = None
+            for line in fh:
+                if line.startswith("PPid:"):
+                    ppid = int(line.split()[1])
+                    break
+        if ppid is None or ppid <= 1:
+            break
+        pid = ppid
+    except OSError:
+        break
+
+try:
+    sessions = json.loads(open(path, encoding="utf-8").read())
+except (OSError, json.JSONDecodeError):
+    sys.exit(1)
+if not isinstance(sessions, list):
+    sys.exit(1)
+
+for s in sessions:
+    try:
+        if int(s.get("pid", -1)) in pids and s.get("session_id"):
+            print(s["session_id"])
+            sys.exit(0)
+    except (TypeError, ValueError):
+        continue
+
+# Sole open session for this cwd (safe when only one Grok in the workspace)
+cands = [s for s in sessions if s.get("cwd") == cwd and s.get("session_id")]
+if len(cands) == 1:
+    print(cands[0]["session_id"])
+    sys.exit(0)
+sys.exit(1)
+PY
+}
 
 ss_session_id() {
   if [ -n "${AGENT_SESSION_ID:-}" ]; then
@@ -65,6 +150,19 @@ ss_session_id() {
     printf '%s\n' "$CLAUDE_CODE_SESSION_ID"
     return 0
   fi
+  if [ -n "${GROK_SESSION_ID:-}" ]; then
+    printf '%s\n' "$GROK_SESSION_ID"
+    return 0
+  fi
+  local sid
+  sid="$(ss_session_id_from_pid_stamps 2>/dev/null)" && {
+    printf '%s\n' "$sid"
+    return 0
+  }
+  sid="$(ss_session_id_from_grok_active 2>/dev/null)" && {
+    printf '%s\n' "$sid"
+    return 0
+  }
   return 1
 }
 
@@ -85,7 +183,8 @@ ss_snap_archive_dir() {
 }
 
 ss_ensure_coord_dirs() {
-  mkdir -p "$REVEALUI_COORD_ROOT/snapshots/archive"
+  mkdir -p "$REVEALUI_COORD_ROOT/snapshots/archive" \
+    "$REVEALUI_COORD_ROOT/harness-sessions/by-pid"
 }
 
 # branches.json: prefer neutral SSOT; fall back to legacy Claude path if present.
