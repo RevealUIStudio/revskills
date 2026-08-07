@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.2.1"
+  version: "0.2.2"
   website: https://revealui.com
 ---
 
@@ -97,6 +97,18 @@ Durable lessons must reach the memory directory **at snapshot time**, not only a
 - In the snapshot, under `## Active-Constraints`, add a line `memory-promoted: [[slug-1]] [[slug-2]]` naming any memory files this snapshot spawned, so `/checkpoint` can verify the promotion happened.
 
 Follow the memory conventions in the global instructions (one fact per file, check for an existing file to update before creating, do not duplicate what the repo/code already records).
+
+
+## Step 5 — Best-effort daemon dual-write (GAP-342)
+
+After the filesystem write succeeds, dual-write the five sections into the RevDev daemon when it is running (Pro license). The file under `$WRITE_PATH` remains the skill SSOT; the daemon store is additive for Studio resume-by-id.
+
+```bash
+# Soft-fail: prints ok:… or skipped:… — never aborts the skill
+ss_daemon_snapshot_write "$WRITE_PATH" "$SID"
+```
+
+Requires `~/.local/share/revealui/harness.sock` (or `REVEALUI_SOCKET` / `DAEMON_SOCKET`). Optional bind: `REVDEV_ACTOR_AGENT_ID`. Free-tier or missing socket → `skipped:…` (ok).
 
 ## Do not
 

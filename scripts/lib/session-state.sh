@@ -205,6 +205,8 @@ ss_branches_json() {
 # Resolve snapshot file for this session (id-match, never mtime).
 # Search order: neutral SSOT, then legacy Claude adapter path.
 # Prints path and returns 0 if found; returns 1 if no session id or no file.
+# Optional $1 session id; callers usually omit and resolve via ss_session_id.
+# shellcheck disable=SC2120
 ss_snapshot_path() {
   local sid="${1:-}"
   if [ -z "$sid" ]; then
@@ -289,6 +291,13 @@ ss_active_repo() {
 ss_daemon_alive() {
   [ -S "$DAEMON_SOCKET" ] && return 0 || return 1
 }
+
+# GAP-342 dual-write helpers (session.snapshot.*). Soft-fail when daemon down.
+_ss_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/session-snapshot-daemon.sh
+. "$_ss_dir/session-snapshot-daemon.sh"
+unset _ss_dir
+
 
 ss_revvault_alive() {
   command -v revvault >/dev/null 2>&1 || return 1
