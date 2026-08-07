@@ -1,36 +1,44 @@
 ---
 name: revealui-sync-rules
-description: Verify the .claude/rules distribution topology across the RevealUI repos (symlinks into revcon profiles, or materialized copies gated in-repo). Read-only; never mutates, always asks before any fix.
+description: Verify agent rules distribution topology across RevealUI repos (revcon profiles, materialized copies). Prefer control-layer / revcon entrypoints; Claude hook path is one adapter. Read-only; never mutates without asking.
 license: MIT
 allowed-tools: Bash
 metadata:
   author: RevealUI Studio
-  version: "0.2.0"
+  version: "0.3.0"
   website: https://revealui.com
 ---
 
 Run the topology check and report results.
 
-Execute: `bash ~/.claude/hooks/sync-rules.sh`
+## Entry points (first match wins)
 
-How to interpret the output (the check models the two sanctioned
-distribution modes; there are no independent per-repo copies to diff):
+```bash
+# 1) Control-layer / revcon when available
+if [ -x "$HOME/revfleet/revcon/link.sh" ]; then
+  # report-only: do not run link.sh without owner ask; prefer check scripts
+  echo "revcon present: $HOME/revfleet/revcon"
+fi
+if [ -f "$HOME/revfleet/revskills/scripts/verify-copy-lockstep.sh" ]; then
+  bash "$HOME/revfleet/revskills/scripts/verify-copy-lockstep.sh" 2>/dev/null || true
+fi
 
-- `<repo>: materialized` means the repo carries git-tracked copies with a
-  `.claude/.revcon-manifest.json`; content verification belongs to that
-  repo's own rules-lockstep CI gate, and this check deliberately defers.
-- `BROKEN SYMLINK` or `FOREIGN TARGET` (exit 1) means a repo rule symlink
-  no longer resolves into `~/revfleet/revcon/profiles/`. The fix is on the
-  revcon side (re-run its link script, or repair the moved/renamed profile
-  rule). Report it and ask before touching anything.
-- `VENDORED COPY` (warn-only) means a regular file shadows a same-named
-  revcon profile rule in a repo without a manifest. Present the three
-  options and ask: symlink it, materialize the repo, or record why it is
-  intentionally repo-local.
+# 2) Claude adapter hook (legacy Studio path)
+if [ -f "$HOME/.claude/hooks/sync-rules.sh" ]; then
+  bash "$HOME/.claude/hooks/sync-rules.sh"
+elif [ -f "$HOME/.claude/hooks/sync-rules.js" ]; then
+  node "$HOME/.claude/hooks/sync-rules.js" 2>/dev/null || true
+else
+  echo "SKIP: no sync-rules entry on this machine — inspect revcon profiles + .claude/.revcon-manifest.json manually"
+fi
+```
 
-Do NOT auto-fix anything. Report, then ask for direction.
+How to interpret output (two sanctioned distribution modes):
 
-Historical note: this skill previously diffed repo rules against the
-internal coordination repo's copies as two independent files. That model
-was retired 2026-07-16; those copies diverge by design, and the old check
-reported permanent false drift.
+- `<repo>: materialized` — git-tracked copies + `.claude/.revcon-manifest.json`; content verification is that repo's rules-lockstep CI.
+- `BROKEN SYMLINK` / `FOREIGN TARGET` (exit 1) — fix on revcon side; report and ask before touching.
+- `VENDORED COPY` (warn) — regular file shadows profile rule without manifest; present options and ask.
+
+Do **not** auto-fix. Report, then ask for direction.
+
+Historical note: independent dual-copy diffs against the coordination hub were retired 2026-07-16.

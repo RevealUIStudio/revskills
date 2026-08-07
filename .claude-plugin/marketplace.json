@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "revskills",
-  "description": "RevealUI fleet developer skills for Claude Code — product development, testing, deployment, and framework integration.",
+  "description": "RevealUI fleet Agent Skills (Claude Code marketplace adapter). Canonical install: npx skills add RevealUIStudio/revskills.",
   "owner": {
     "name": "RevealUI Studio",
     "email": "founder@revealui.com"

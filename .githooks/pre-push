@@ -6,7 +6,7 @@
 #
 # Runs scanners in order, fails fast:
 #   1. lint-all-skills.sh        — frontmatter, awk rules, broken symlinks
-#   2. lint-plugins.sh           — installed Claude Code plugin validation
+#   2. lint-plugins.sh .         — in-repo plugin metadata (Claude plugin = adapter)
 #   3. check-no-private-leaks.sh — private-path leak scan (repo-wide)
 #   4. md-truth-check --self-test — GAP-407 W6 MD-truth program health
 #
@@ -20,7 +20,7 @@ if [[ -n "${SKIP_PREPUSH:-}" ]]; then
 fi
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-cd "$REPO_ROOT"
+cd "$REPO_ROOT" || exit 1
 
 fail=0
 run_check() {
@@ -34,7 +34,7 @@ run_check() {
 }
 
 run_check "skills-lint"          bash "$REPO_ROOT/scripts/lint-all-skills.sh"
-run_check "plugin-lint"          bash "$REPO_ROOT/scripts/lint-plugins.sh"
+run_check "plugin-lint"          bash "$REPO_ROOT/scripts/lint-plugins.sh" .
 run_check "private-leak-scan"    bash "$REPO_ROOT/scripts/check-no-private-leaks.sh"
 run_check "md-truth-self-test"   node "$REPO_ROOT/skills/exhaustive-audit/scripts/md-truth-check.js" --self-test
 

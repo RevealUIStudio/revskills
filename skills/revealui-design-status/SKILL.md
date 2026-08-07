@@ -1,15 +1,18 @@
 ---
 name: revealui-design-status
-description: Check whether the claude.ai/design project changed since the codebase last pushed to it, and which files. Design-to-code awareness half of the design-code sync loop (GAP-322). Compares the committed sync-state file against DesignSync list_projects / list_files / get_file, diffs against the design project's own _sync_manifest.json, and reports new/deleted/modified files as a proposal-shaped next step (never writes code or pushes to design from this skill).
+description: "Claude-adapter skill: check whether the claude.ai/design project changed since the codebase last pushed to it (DesignSync). Design-to-code awareness half of the design-code sync loop (GAP-322). Proposal-shaped only; never writes code or pushes to design."
 license: MIT
 allowed-tools: Bash, Read
 metadata:
   author: RevealUI Studio
-  version: "0.1.0"
+  version: "0.1.1"
   website: https://revealui.com
+  adapter: claude
 ---
 
-Answer "did the claude.ai/design project change since the codebase last pushed to it, and which files?" This is Loop B awareness (design-code-sync lane, GAP-322) — the reverse direction of Loop A's push (`_sync_manifest.json` stamp written by the pushing session). This skill never pushes to the design project; that is the separate Loop A flow.
+**Adapter label:** Claude Code / claude.ai DesignSync only. Grok/Cursor/OpenCode sessions without DesignSync should report SKIP (not FAIL) and stop after local sync-state age if useful.
+
+Answer "did the claude.ai/design project change since the codebase last pushed to it, and which files?" This is Loop B awareness (design-code-sync lane, GAP-322). This skill never pushes to the design project.
 
 Load helpers:
 ```bash
