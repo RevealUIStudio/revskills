@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.12.1"
+  version: "0.13.0"
   website: https://revealui.com
 ---
 
@@ -37,21 +37,22 @@ Rolling handoff **read surface** per `~/.claude/rules/model-allocation.md` §Ses
 
 A session snapshot is captured mid-session by the `/snapshot` skill (nudged by the `track-session` context advisory at the soft-context line), while fidelity is still high. When one exists it is the PRIMARY source for the narrative sections in Step 4 — more trustworthy than reconstructing from now-deep session memory.
 
-Resolve it by **this session's id, never by mtime** — a peer's snapshot must be structurally unreachable (GAP-317):
+Resolve it by **this session's id, never by mtime** — a peer's snapshot must be structurally unreachable (GAP-317 + GAP-469). Session id and paths come from `session-state.sh` (neutral SSOT under `~/.local/share/revealui/coordination/`, with read-through of the legacy Claude adapter path):
 
 ```bash
-SNAP_DIR="$HOME/.claude/coordination/snapshots"
-SID="${CLAUDE_CODE_SESSION_ID:-}"
+SID="$(ss_session_id 2>/dev/null || true)"
 SNAPSHOT=""
-[ -n "$SID" ] && [ -f "$SNAP_DIR/$SID.md" ] && SNAPSHOT="$SNAP_DIR/$SID.md"
+if [ -n "$SID" ]; then
+  SNAPSHOT="$(ss_snapshot_path "$SID" 2>/dev/null || true)"
+fi
 if [ -n "$SNAPSHOT" ]; then
-  echo "snapshot for this session: $SNAPSHOT"
+  echo "snapshot for this session: $SNAPSHOT (sid=$SID)"
 else
   echo "no snapshot for this session (${SID:-no-session-id}) — Step 4 falls back to session memory"
 fi
 ```
 
-If `$SNAPSHOT` is set it is unambiguously THIS session's (the filename equals `$CLAUDE_CODE_SESSION_ID`), so no content-matching guesswork is needed. READ it and use its five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 merge; they map onto the rolling file's sections. With no snapshot — no threshold was crossed, or `/snapshot` was not run — Step 4 proceeds from session memory as before. Do NOT fall back to the most-recent file on disk; an unmatched id means no snapshot for this session.
+If `$SNAPSHOT` is set it is unambiguously THIS session's (the filename equals the resolved session id), so no content-matching guesswork is needed. READ it and use its five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 merge; they map onto the rolling file's sections. With no snapshot — no threshold was crossed, or `/snapshot` was not run, or no session id is set — Step 4 proceeds from session memory as before. Do **not** abort solely because `CLAUDE_CODE_SESSION_ID` is unset when another alias is present. Do NOT fall back to the most-recent file on disk; an unmatched id means no snapshot for this session.
 
 ## Step 2 — Run coherent-tracking validators
 
@@ -99,10 +100,10 @@ Surface what's currently tracked. Read-only.
 
 ### 3a. branches.json — active branches
 ```bash
-BRANCHES_JSON="$HOME/.claude/coordination/branches.json"
+BRANCHES_JSON="$(ss_branches_json)"
 if [ -f "$BRANCHES_JSON" ] && command -v jq >/dev/null 2>&1; then
   ACTIVE_COUNT="$(jq '.branches | map(select(.status == "active")) | length' "$BRANCHES_JSON")"
-  echo "active branches: $ACTIVE_COUNT"
+  echo "active branches: $ACTIVE_COUNT (from $BRANCHES_JSON)"
   jq -r '.branches | map(select(.status == "active")) | .[] | "  - \(.project):\(.branch) (\(.pr // "no PR"))"' "$BRANCHES_JSON"
 fi
 ```
@@ -240,14 +241,14 @@ Pass `--no-commit` to skip Step 5b and leave fragment writes UNSTAGED for owner 
 
 **CRITICAL — never strand the main checkout.** A naive commit on the MAIN `.jv` checkout was the root cause of the 8-session checkpoint-merge divergence: it left the main checkout on a `chore/checkpoint-*` branch that later merged+deleted, so every subsequent checkpoint merged onto the dead branch and never converged. The fix is the `.jv` Single-Writer Discipline — when a peer is live, do the commit from a throwaway `$JV_REPO-wt/` worktree so the main checkout never moves.
 
-Determine the writer mode (count live interactive, non-headless `claude` sessions):
+Determine the writer mode (count live interactive equal-harness sessions — Claude, Grok, Cursor agent, OpenCode — GAP-469):
 ```bash
 PEERS="$(node "$JV_ROOT/scripts/jv-single-writer-check.js" --count 2>/dev/null \
-  || (pgrep -af claude | grep -ivE ' -p |grep|pgrep' | grep -c claude))"
+  || ss_live_harness_peers)"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 CMSG="/tmp/cmsg-ckpt-${STAMP}.txt"   # write the commit message here (Step 5b uses -F)
 ```
-If `jv-single-writer-check.js` has no `--count` mode yet, the `pgrep` fallback is authoritative.
+If `jv-single-writer-check.js` has no `--count` mode yet, `ss_live_harness_peers` is authoritative (not `pgrep claude` alone).
 
 Throughout: `core.fileMode=false` on every `.jv` commit; **explicit pathspec (fragments only)**
 `-- docs/handoffs/rolling .claude/workboard.d`
@@ -272,9 +273,10 @@ git -c core.fileMode=false commit -F "$CMSG" -- \
 git push origin "HEAD:refs/heads/$BR"
 gh pr create --base test --head "$BR" --body-file "$CMSG"
 gh pr edit <n> --repo RevealUIStudio/revealui-jv --add-label "merge:merge-commit"
-# Owner disposes merge unless authorized; always --merge (never --squash):
-gh pr merge <n> --repo RevealUIStudio/revealui-jv --merge --delete-branch
-git fetch origin test && git merge --ff-only origin/test
+# Stop here unless the owner named an in-session merge disposition.
+# Owner merge (merge-commit only; never squash):
+#   gh pr merge <n> --repo RevealUIStudio/revealui-jv --merge --delete-branch
+git fetch origin test && git merge --ff-only origin/test 2>/dev/null || true
 node "$JV_ROOT/scripts/handoff-render.js"   # refresh local derived view after land
 ```
 
@@ -301,13 +303,14 @@ git -c core.fileMode=false commit -F "$CMSG" -- \
 git push origin "HEAD:refs/heads/$BR"
 gh pr create --base test --head "$BR" --body-file "$CMSG"
 gh pr edit <n> --repo RevealUIStudio/revealui-jv --add-label "merge:merge-commit"
-gh pr merge <n> --repo RevealUIStudio/revealui-jv --merge --delete-branch
-cd "$JV_ROOT" && git worktree remove "$WT"
-git fetch origin test && git merge --ff-only origin/test
+# Owner disposes merge (do not self-merge without named in-session auth):
+#   gh pr merge <n> --repo RevealUIStudio/revealui-jv --merge --delete-branch
+cd "$JV_ROOT" && git worktree remove "$WT" 2>/dev/null || true
+git fetch origin test && git merge --ff-only origin/test 2>/dev/null || true
 node "$JV_ROOT/scripts/handoff-render.js"
 ```
 
-**Cleanup + failure handling.** On success the temp worktree is removed and the chore branch deleted (`--delete-branch`). On ANY failure — the initial converge is not a clean fast-forward, an unresolved `stash pop` conflict, or a push/merge error — DO NOT silently drop the delta: surface the stash ref (`git stash list`) or the worktree path, fall back to the `--no-commit` end state (writes left for the owner), and leave the main checkout on its original branch. Never leave the main checkout on a `chore/checkpoint-*` branch.
+**Cleanup + failure handling.** On success the temp worktree is removed. Branch delete rides the owner merge (`--delete-branch`). On ANY failure — the initial converge is not a clean fast-forward, an unresolved `stash pop` conflict, or a push/merge error — DO NOT silently drop the delta: surface the stash ref (`git stash list`) or the worktree path, fall back to the `--no-commit` end state (writes left for the owner), and leave the main checkout on its original branch. Never leave the main checkout on a `chore/checkpoint-*` branch.
 
 ## Step 5c — Prepare-for-exit verifier (read-only, runs after 5b converges)
 
@@ -326,16 +329,33 @@ Step 6 surfaces this output as the PREPARE-FOR-EXIT section of the CHECKPOINT RE
 Now that Step 4 folded this session's snapshot into the rolling handoff, retire it so the active dir only ever holds live sessions' records (acceptance: none older than 7 days active). This is the agent-invoked mover — no hook writes these files, by the hooks read-only invariant.
 
 ```bash
-SNAP_DIR="$HOME/.claude/coordination/snapshots"
-ARCH="$SNAP_DIR/archive"; mkdir -p "$ARCH"
-SID="${CLAUDE_CODE_SESSION_ID:-}"
+ss_ensure_coord_dirs
+SNAP_DIR="$(ss_snap_dir)"
+ARCH="$(ss_snap_archive_dir)"
+SID="$(ss_session_id 2>/dev/null || true)"
 # GC: sweep any active-dir snapshot older than 7 days into archive/ (bounded active dir)
 find "$SNAP_DIR" -maxdepth 1 -type f -name '*.md' -mtime +7 -exec mv {} "$ARCH/" \; -printf 'GC-archived stale snapshot: %f\n' 2>/dev/null || true
-# Archive THIS session's consumed snapshot (default path only — see note)
-[ -n "$SID" ] && [ -f "$SNAP_DIR/$SID.md" ] && mv "$SNAP_DIR/$SID.md" "$ARCH/" && echo "archived consumed snapshot: $SID.md"
+# Also GC legacy Claude adapter active dir (read-through path; do not leave orphans)
+LEGACY_SNAP="$HOME/.claude/coordination/snapshots"
+if [ -d "$LEGACY_SNAP" ]; then
+  mkdir -p "$LEGACY_SNAP/archive"
+  find "$LEGACY_SNAP" -maxdepth 1 -type f -name '*.md' -mtime +7 -exec mv {} "$LEGACY_SNAP/archive/" \; -printf 'GC-archived legacy snapshot: %f\n' 2>/dev/null || true
+fi
+# Archive THIS session's consumed snapshot wherever it lived (neutral first)
+if [ -n "$SID" ]; then
+  for p in "$SNAP_DIR/$SID.md" "$LEGACY_SNAP/$SID.md"; do
+    if [ -f "$p" ]; then
+      dest_arch="$ARCH"
+      case "$p" in
+        "$LEGACY_SNAP"/*) dest_arch="$LEGACY_SNAP/archive"; mkdir -p "$dest_arch" ;;
+      esac
+      mv "$p" "$dest_arch/" && echo "archived consumed snapshot: $p → $dest_arch/"
+    fi
+  done
+fi
 ```
 
-Under `--no-commit`: run the GC line but **skip** the `$SID.md` move (the handoff edit was not committed, so the snapshot must stay active as the fidelity source until a real checkpoint captures it). If Step 1b found no snapshot for this session, the `$SID.md` line is a no-op — nothing to archive.
+Under `--no-commit`: run the GC lines but **skip** the `$SID.md` move (the handoff edit was not committed, so the snapshot must stay active as the fidelity source until a real checkpoint captures it). If Step 1b found no snapshot for this session, the `$SID.md` lines are a no-op — nothing to archive.
 
 ## Step 6 — Report
 
@@ -419,7 +439,7 @@ Daemon notification is non-blocking. If it fails for any reason, the handoff is 
 
 ## Step 8 — Emit copy-pasteable next-agent prompt (LAST output — nothing after this)
 
-Per `~/.claude/rules/coordination.md` §"Archive-Readiness Convention" (2026-05-11): the final output of any checkpoint flow MUST be a copy-pasteable "next-agent prompt" the owner can drop straight into a new Claude Code session — no synthesis required, no jumping between docs. **The prompt is non-negotiable.** Without it, the owner has to do friction work (read CURRENT-HANDOFF.md + workboard + memories + figure out the first action) every multi-session handoff. That friction compounds across the fleet.
+Per fleet coordination rules (Archive-Readiness Convention): the final output of any checkpoint flow MUST be a copy-pasteable "next-agent prompt" the owner can drop straight into a **new equal-adapter session** (Claude, Grok, Cursor, …) — no synthesis required, no jumping between docs. **The prompt is non-negotiable.** Without it, the owner has to do friction work (read CURRENT-HANDOFF.md + workboard + memories + figure out the first action) every multi-session handoff. That friction compounds across the fleet.
 
 Compose the prompt with these 5 sections (in order):
 
@@ -463,9 +483,11 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 
 `/handoff` is the predecessor — writes a basic handoff doc to the (now non-canonical) `.claude/handoffs/` location with no tracking-surface validation. `/checkpoint` supersedes it: rolling **fragments** + local CURRENT-HANDOFF render + 6 validators + inventory + structured report. Recommend the slash command symlink at `~/.claude/commands/handoff.md` be retargeted to this skill in a follow-up (separate revskills PR).
 
-## Related ADRs (.jv)
+## Related ADRs / gaps (.jv)
 
 - `docs/decisions/2026-07-23-jv-coordination-merge-model.md` — fragments-only PRs; concurrent land-as-ready
 - `docs/decisions/2026-07-23-jv-merge-commit-only.md` — merge-commit policy + label
 - `docs/decisions/2026-07-21-current-handoff-rolling-fragments.md` — rolling fragments (amended)
 - `docs/decisions/2026-07-04-workboard-fragment-store.md` — workboard.d fragments
+- `docs/gap-specs/GAP-469-revskills-vendor-agnostic-design.md` — neutral session + coordination root
+- `docs/gaps/GAP-469.yml` — session contract execution unit

@@ -1,17 +1,17 @@
 ---
 name: revealui-snapshot
-description: Capture a mid-session fidelity snapshot for RevFleet sessions, keyed to this session's id. Assembles mechanical state (branch, dirty, ahead, open PRs) and has the agent author the five sections the checkpoint skill consumes (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends), writing ~/.claude/coordination/snapshots/$CLAUDE_CODE_SESSION_ID.md. Also promotes durable feedback/rule-class lessons to the memory directory. Exposed as /snapshot. Nudged by the track-session context advisory at the soft-context line; the producer half of GAP-317.
+description: Capture a mid-session fidelity snapshot for RevFleet sessions, keyed to a harness-neutral session id (AGENT_SESSION_ID, then REVEALUI_SESSION_ID, then CLAUDE_CODE_SESSION_ID). Assembles mechanical state and authors the five sections checkpoint consumes, writing under ~/.local/share/revealui/coordination/snapshots/$SID.md (GAP-469). Also promotes durable feedback/rule-class lessons to the memory directory. Exposed as /snapshot. Nudged by the track-session context advisory at the soft-context line; the producer half of GAP-317.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.1.0"
+  version: "0.2.0"
   website: https://revealui.com
 ---
 
 Capture a session snapshot **while fidelity is high** — mid-session, at the soft-context line — so the eventual `/checkpoint` composes its handoff from a fresh record, not from now-deep session memory. The producer half of GAP-317; `revealui-checkpoint` Step 1b is the consumer.
 
-The snapshot is a hook-can't-author artifact: a hook (`track-session.js`) only nudges you here; **you** assemble the mechanical state and author the narrative. The file is keyed to `$CLAUDE_CODE_SESSION_ID`, so a peer's snapshot is structurally unreachable at consume time.
+The snapshot is a hook-can't-author artifact: a hook (`track-session.js`) only nudges you here; **you** assemble the mechanical state and author the narrative. The file is keyed to the resolved session id (`ss_session_id`), so a peer's snapshot is structurally unreachable at consume time. Vendor env vars (e.g. `CLAUDE_CODE_SESSION_ID`) are **aliases**, not the only key (GAP-469).
 
 Load helpers:
 ```bash
@@ -21,19 +21,24 @@ Load helpers:
 ## Step 1 — Pre-flight: resolve the session id + target path
 
 ```bash
-SID="${CLAUDE_CODE_SESSION_ID:-}"
+SID="$(ss_session_id 2>/dev/null || true)"
 if [ -z "$SID" ]; then
-  echo "ABORT: no \$CLAUDE_CODE_SESSION_ID — cannot key a snapshot to this session"
+  echo "ABORT: no session id — set AGENT_SESSION_ID (preferred), REVEALUI_SESSION_ID, or a vendor alias such as CLAUDE_CODE_SESSION_ID"
 else
-  SNAP_DIR="$HOME/.claude/coordination/snapshots"
-  mkdir -p "$SNAP_DIR"
-  echo "snapshot target: $SNAP_DIR/$SID.md"
-  [ -f "$SNAP_DIR/$SID.md" ] && echo "(exists — this run REFRESHES it)" || echo "(new)"
+  WRITE_PATH="$(ss_snapshot_write_path "$SID")"
+  SNAP_DIR="$(ss_snap_dir)"
+  echo "session id: $SID"
+  echo "snapshot target (neutral SSOT): $WRITE_PATH"
+  [ -f "$WRITE_PATH" ] && echo "(exists — this run REFRESHES it)" || echo "(new)"
+  # Optional: note legacy path if a prior Claude-only snapshot exists
+  LEGACY="$(ss_snapshot_path "$SID" 2>/dev/null || true)"
+  if [ -n "$LEGACY" ] && [ "$LEGACY" != "$WRITE_PATH" ]; then
+    echo "note: legacy snapshot also present at $LEGACY (will not be written; prefer neutral write)"
+  fi
 fi
 ```
 
-If it aborts, stop — do not fall back to any other filename. A snapshot that is not keyed to this session id is worse than none (it is the exact GAP-317 bug).
-
+If it aborts, stop — do not fall back to any other filename. A snapshot that is not keyed to this session id is worse than none (it is the exact GAP-317 bug). Do **not** invent a session id or export a Claude-only env as a workaround.
 ## Step 2 — Assemble mechanical state (cheap, factual)
 
 Reuse the existing fleet verifier for the objective scaffold — do NOT re-derive per-repo git state by hand (a bare git loop trips the `cd`-first bash guard anyway). `prepare-for-exit.js` already reports fleet clean-checkouts, lingering worktrees, and unpushed commits:
@@ -56,7 +61,7 @@ cd ~/revfleet/revealui && gh pr list --author "@me" --state open --json number,t
 
 ## Step 3 — Author the five sections + Write the file
 
-Using the mechanical state above plus what you actually did this session, Write `$SNAP_DIR/$SID.md` with **exactly** this shape (frontmatter + the five sections the checkpoint consumer maps onto the rolling handoff). Fill `<>` placeholders; never leave a section empty — write "none" if truly empty.
+Using the mechanical state above plus what you actually did this session, Write `$WRITE_PATH` (from Step 1; always the neutral SSOT under `ss_snap_dir`) with **exactly** this shape (frontmatter + the five sections the checkpoint consumer maps onto the rolling handoff). Fill `<>` placeholders; never leave a section empty — write "none" if truly empty.
 
 ```markdown
 ---
@@ -97,7 +102,8 @@ Follow the memory conventions in the global instructions (one fact per file, che
 
 ## Do not
 
-- Do NOT write to any path other than `$SNAP_DIR/$CLAUDE_CODE_SESSION_ID.md`. The filename IS the id-match contract the consumer depends on.
+- Do NOT write to any path other than `$WRITE_PATH` from `ss_snapshot_write_path` (neutral coordination root). The filename IS the id-match contract the consumer depends on.
+- Do NOT require `CLAUDE_CODE_SESSION_ID` when `AGENT_SESSION_ID` or `REVEALUI_SESSION_ID` is set (GAP-469).
 - Do NOT invent mechanical state — if `gh`/`git` could not answer, say so in the section rather than guessing PR numbers or branch names.
 - Do NOT promote session-scoped facts to memory; only durable feedback/rule-class lessons. Over-promotion is drift.
-- Do NOT run this as a hook or on a timer — it is agent-authored by design (the hook only nudges). See GAP-317 design (`$JV_REPO/docs/gap-specs/GAP-317-session-snapshot-lifecycle-design.md`).
+- Do NOT run this as a hook or on a timer — it is agent-authored by design (the hook only nudges). See GAP-317 design (`$JV_REPO/docs/gap-specs/GAP-317-session-snapshot-lifecycle-design.md`) and GAP-469 design (`$JV_REPO/docs/gap-specs/GAP-469-revskills-vendor-agnostic-design.md`).
