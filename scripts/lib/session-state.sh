@@ -290,6 +290,13 @@ ss_daemon_alive() {
   [ -S "$DAEMON_SOCKET" ] && return 0 || return 1
 }
 
+# GAP-342 dual-write helpers (session.snapshot.*). Soft-fail when daemon down.
+_ss_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/session-snapshot-daemon.sh
+. "$_ss_dir/session-snapshot-daemon.sh"
+unset _ss_dir
+
+
 ss_revvault_alive() {
   command -v revvault >/dev/null 2>&1 || return 1
   revvault list >/dev/null 2>&1

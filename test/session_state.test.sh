@@ -171,3 +171,86 @@ test_ss_session_id_auto_on_live_grok() {
   fi
   _ss_clear_session_env
 }
+
+test_ss_snapshot_sections_json_parses_five() {
+  _ss_load
+  local tmp md json
+  tmp="$(make_sandbox)"
+  md="$tmp/snap.md"
+  cat >"$md" <<'MD'
+---
+session_id: parse-sid
+created: 2026-08-07T00:00:00Z
+---
+
+# Snapshot — parse test
+
+## Resume-From-Here
+next step is open the PR
+
+## What-Shipped
+revdev#363 session.snapshot
+
+## Active-Constraints
+stay off handlers
+
+## Do-Not-Repeat
+do not invent session ids
+
+## Open-Loose-Ends
+owner merge remaining
+MD
+  json="$(ss_snapshot_sections_json "$md")"
+  assert_eq "1" "$(printf '%s' "$json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(1 if d.get("resumeFromHere")=="next step is open the PR" and "363" in d.get("whatShipped","") and d.get("doNotRepeat") else 0)')" \
+    "five-section parse maps headings to camelCase keys"
+}
+
+test_ss_daemon_snapshot_write_skips_without_socket() {
+  _ss_load
+  local tmp md status
+  tmp="$(make_sandbox)"
+  export DAEMON_SOCKET="$tmp/no-such.sock"
+  export REVEALUI_SOCKET="$tmp/no-such.sock"
+  md="$tmp/snap.md"
+  cat >"$md" <<'MD'
+## Resume-From-Here
+hello
+
+## What-Shipped
+none
+
+## Active-Constraints
+none
+
+## Do-Not-Repeat
+none
+
+## Open-Loose-Ends
+none
+MD
+  export AGENT_SESSION_ID="dual-write-skip"
+  status="$(ss_daemon_snapshot_write "$md" "dual-write-skip")"
+  case "$status" in
+    skipped:*) pass "dual-write soft-skips when socket missing: $status" ;;
+    *) fail "expected skipped status, got: $status" ;;
+  esac
+  unset DAEMON_SOCKET REVEALUI_SOCKET AGENT_SESSION_ID
+  _ss_clear_session_env
+}
+
+test_ss_daemon_snapshot_write_skips_without_file() {
+  _ss_load
+  local status tmp
+  tmp="$(make_sandbox)"
+  export DAEMON_SOCKET="$tmp/no-such.sock"
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  export GROK_ACTIVE_SESSIONS="$tmp/no-active.json"
+  unset AGENT_SESSION_ID REVEALUI_SESSION_ID CLAUDE_CODE_SESSION_ID GROK_SESSION_ID
+  status="$(ss_daemon_snapshot_write)"
+  case "$status" in
+    skipped:*) pass "dual-write soft-skips without file: $status" ;;
+    *) fail "expected skipped, got: $status" ;;
+  esac
+  unset DAEMON_SOCKET REVEALUI_COORD_ROOT GROK_ACTIVE_SESSIONS
+  _ss_clear_session_env
+}
