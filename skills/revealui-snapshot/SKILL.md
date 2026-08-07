@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.2.0"
+  version: "0.2.1"
   website: https://revealui.com
 ---
 
@@ -23,14 +23,13 @@ Load helpers:
 ```bash
 SID="$(ss_session_id 2>/dev/null || true)"
 if [ -z "$SID" ]; then
-  echo "ABORT: no session id — set AGENT_SESSION_ID (preferred), REVEALUI_SESSION_ID, or a vendor alias such as CLAUDE_CODE_SESSION_ID"
+  echo "ABORT: could not auto-resolve session id (ss_session_id). Expected Grok active_sessions / SessionStart stamp / CLAUDE_CODE_SESSION_ID. Do not invent an id."
 else
   WRITE_PATH="$(ss_snapshot_write_path "$SID")"
   SNAP_DIR="$(ss_snap_dir)"
-  echo "session id: $SID"
+  echo "session id (auto): $SID"
   echo "snapshot target (neutral SSOT): $WRITE_PATH"
   [ -f "$WRITE_PATH" ] && echo "(exists — this run REFRESHES it)" || echo "(new)"
-  # Optional: note legacy path if a prior Claude-only snapshot exists
   LEGACY="$(ss_snapshot_path "$SID" 2>/dev/null || true)"
   if [ -n "$LEGACY" ] && [ "$LEGACY" != "$WRITE_PATH" ]; then
     echo "note: legacy snapshot also present at $LEGACY (will not be written; prefer neutral write)"
@@ -38,8 +37,7 @@ else
 fi
 ```
 
-If it aborts, stop — do not fall back to any other filename. A snapshot that is not keyed to this session id is worse than none (it is the exact GAP-317 bug). Do **not** invent a session id or export a Claude-only env as a workaround.
-## Step 2 — Assemble mechanical state (cheap, factual)
+`ss_session_id` is **automatic** (GAP-469): vendor env aliases, SessionStart PID stamps, and Grok `~/.grok/active_sessions.json` (ancestor PID match). The operator does **not** export anything. If it aborts, stop — do not invent a filename (GAP-317 id-match contract).## Step 2 — Assemble mechanical state (cheap, factual)
 
 Reuse the existing fleet verifier for the objective scaffold — do NOT re-derive per-repo git state by hand (a bare git loop trips the `cd`-first bash guard anyway). `prepare-for-exit.js` already reports fleet clean-checkouts, lingering worktrees, and unpushed commits:
 
@@ -103,7 +101,7 @@ Follow the memory conventions in the global instructions (one fact per file, che
 ## Do not
 
 - Do NOT write to any path other than `$WRITE_PATH` from `ss_snapshot_write_path` (neutral coordination root). The filename IS the id-match contract the consumer depends on.
-- Do NOT require `CLAUDE_CODE_SESSION_ID` when `AGENT_SESSION_ID` or `REVEALUI_SESSION_ID` is set (GAP-469).
+- Do NOT ask the operator to export `AGENT_SESSION_ID` / `CLAUDE_CODE_SESSION_ID` — resolution is automatic via `ss_session_id` (GAP-469).
 - Do NOT invent mechanical state — if `gh`/`git` could not answer, say so in the section rather than guessing PR numbers or branch names.
 - Do NOT promote session-scoped facts to memory; only durable feedback/rule-class lessons. Over-promotion is drift.
 - Do NOT run this as a hook or on a timer — it is agent-authored by design (the hook only nudges). See GAP-317 design (`$JV_REPO/docs/gap-specs/GAP-317-session-snapshot-lifecycle-design.md`) and GAP-469 design (`$JV_REPO/docs/gap-specs/GAP-469-revskills-vendor-agnostic-design.md`).

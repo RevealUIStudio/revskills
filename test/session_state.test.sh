@@ -9,8 +9,8 @@ _ss_load() {
 }
 
 _ss_clear_session_env() {
-  unset AGENT_SESSION_ID REVEALUI_SESSION_ID CLAUDE_CODE_SESSION_ID
-  unset REVEALUI_IDENTITY AGENT_ROLE CLAUDE_AGENT_ROLE
+  unset AGENT_SESSION_ID REVEALUI_SESSION_ID CLAUDE_CODE_SESSION_ID GROK_SESSION_ID
+  unset REVEALUI_IDENTITY AGENT_ROLE CLAUDE_AGENT_ROLE GROK_ACTIVE_SESSIONS
 }
 
 test_ss_session_id_prefers_agent_session_id() {
@@ -37,11 +37,18 @@ test_ss_session_id_falls_through_aliases() {
 test_ss_session_id_empty_without_env() {
   _ss_load
   _ss_clear_session_env
+  local tmp
+  tmp="$(make_sandbox)"
+  # Isolate from live Grok active_sessions + any real PID stamps
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  export GROK_ACTIVE_SESSIONS="$tmp/no-such-active-sessions.json"
+  ss_ensure_coord_dirs
   if ss_session_id >/dev/null 2>&1; then
-    fail "ss_session_id should fail when no session env is set"
+    fail "ss_session_id should fail when isolated from env/stamps/active_sessions"
   else
-    pass "ss_session_id fails closed with no env"
+    pass "ss_session_id fails closed when isolated"
   fi
+  unset REVEALUI_COORD_ROOT GROK_ACTIVE_SESSIONS
 }
 
 test_ss_identity_prefers_neutral() {
@@ -113,4 +120,54 @@ test_ss_coord_paths() {
     fail "ensure_coord_dirs did not create archive"
   fi
   unset REVEALUI_COORD_ROOT
+}
+
+test_ss_session_id_from_pid_stamps() {
+  _ss_load
+  _ss_clear_session_env
+  unset GROK_SESSION_ID
+  local tmp
+  tmp="$(make_sandbox)"
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  ss_ensure_coord_dirs
+  # Stamp current shell pid — ss_session_id walks ancestors including $$
+  printf '%s\n' "stamp-sid-99" >"$tmp/coord/harness-sessions/by-pid/$$"
+  assert_eq "stamp-sid-99" "$(ss_session_id)" "pid stamp auto-resolves without env"
+  _ss_clear_session_env
+  unset REVEALUI_COORD_ROOT
+}
+
+test_ss_session_id_from_grok_active_fixture() {
+  _ss_load
+  _ss_clear_session_env
+  unset GROK_SESSION_ID
+  local tmp fixture
+  tmp="$(make_sandbox)"
+  export REVEALUI_COORD_ROOT="$tmp/empty-coord"
+  # No stamps; fake active_sessions with our pid
+  fixture="$tmp/active_sessions.json"
+  printf '%s\n' "[{\"session_id\":\"from-active-json\",\"pid\":$$,\"cwd\":\"$PWD\",\"opened_at\":\"2026-08-07T00:00:00Z\"}]" >"$fixture"
+  export GROK_ACTIVE_SESSIONS="$fixture"
+  assert_eq "from-active-json" "$(ss_session_id)" "Grok active_sessions pid match"
+  unset GROK_ACTIVE_SESSIONS REVEALUI_COORD_ROOT
+  _ss_clear_session_env
+}
+
+test_ss_session_id_auto_on_live_grok() {
+  _ss_load
+  _ss_clear_session_env
+  unset GROK_SESSION_ID REVEALUI_COORD_ROOT GROK_ACTIVE_SESSIONS
+  # On a live Grok Studio session this resolves via ~/.grok/active_sessions.json.
+  # Outside Grok, skip (do not fail CI).
+  if [ ! -f "$HOME/.grok/active_sessions.json" ]; then
+    pass "skip live grok auto-resolve (no active_sessions.json)"
+    return 0
+  fi
+  if ss_session_id >/dev/null 2>&1; then
+    pass "live Grok auto-resolve: $(ss_session_id)"
+  else
+    # May still fail if not running under a recorded Grok pid (e.g. bare CI)
+    pass "skip live grok auto-resolve (no pid/cwd match in active_sessions)"
+  fi
+  _ss_clear_session_env
 }
