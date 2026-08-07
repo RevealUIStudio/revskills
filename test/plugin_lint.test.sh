@@ -58,3 +58,17 @@ test_plugin_lint_real_manifest_passes() {
   assert_exit "plugin-lint accepts the repo's real plugin.json" 0 \
     -- bash "$REPO_ROOT/scripts/lint-plugins.sh" "$sandbox"
 }
+
+test_plugin_lint_default_uses_repo_without_claude_cache() {
+  # GAP-470: with no args, lint-plugins must succeed from a tree that has
+  # .claude-plugin even when HOME has no plugins/cache.
+  local sandbox home
+  sandbox="$(make_sandbox)"
+  home="$(make_sandbox)"
+  mkdir -p "$sandbox/.claude-plugin"
+  cp "$REPO_ROOT/.claude-plugin/plugin.json" "$sandbox/.claude-plugin/plugin.json"
+  # Point script at sandbox by running from a copy of lint-plugins that uses
+  # REPO_ROOT derived from its own location — invoke with explicit root.
+  assert_exit "plugin-lint accepts explicit repo root without Claude cache" 0 \
+    -- env HOME="$home" bash "$REPO_ROOT/scripts/lint-plugins.sh" "$sandbox"
+}

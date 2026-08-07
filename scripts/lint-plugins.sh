@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # lint-plugins.sh
 #
-# Validates installed Claude Code plugins under ~/.claude/plugins/cache.
+# Validates plugin trees (Agent Skills packaging). Prefers the repo under
+# test; Claude Code's ~/.claude/plugins/cache is one optional adapter cache.
+#
 # Catches structural and security issues before they reach a session:
 #   - missing or malformed plugin.json
 #   - unpinned versions (should be semver or commit hash)
@@ -12,15 +14,29 @@
 # Exit 0 on clean, 1 on any FAIL. Designed for pre-push hooks and CI.
 #
 # Usage:
-#   bash scripts/lint-plugins.sh                 # lint ~/.claude/plugins/cache
+#   bash scripts/lint-plugins.sh                 # repo root if .claude-plugin exists, else Claude cache
+#   bash scripts/lint-plugins.sh .               # lint this checkout (CI)
 #   bash scripts/lint-plugins.sh <plugin-dir>    # lint explicit dir
 #   PLUGIN_LINT_JSON=1 bash scripts/lint-plugins.sh
 
 set -uo pipefail
 
-CACHE_ROOT="${1:-$HOME/.claude/plugins/cache}"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# GAP-470: default to repo root when it carries plugin metadata so pre-push
+# does not require a Claude plugin cache. Explicit arg still wins.
+if [[ -n "${1:-}" ]]; then
+  CACHE_ROOT="$1"
+elif [[ -d "$REPO_ROOT/.claude-plugin" ]]; then
+  CACHE_ROOT="$REPO_ROOT"
+elif [[ -d "$HOME/.claude/plugins/cache" ]]; then
+  CACHE_ROOT="$HOME/.claude/plugins/cache"
+else
+  echo "[plugin-lint] error: no plugin root (pass a path, or keep .claude-plugin/ in-repo)" >&2
+  exit 2
+fi
 if [[ ! -d "$CACHE_ROOT" ]]; then
-  echo "[plugin-lint] error: no plugin cache at $CACHE_ROOT" >&2
+  echo "[plugin-lint] error: no plugin root at $CACHE_ROOT" >&2
   exit 2
 fi
 
@@ -34,7 +50,6 @@ PLUGIN_COUNT=0
 # Suppresses failures whose plugin_id matches the glob AND whose message
 # contains the issue-substring. Used to park known upstream bugs in
 # third-party plugins without making them invisible.
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IGNORE_FILE="$REPO_ROOT/.pluginlintignore"
 declare -a P_IGN_GLOBS=()
 declare -a P_IGN_SUBSTRS=()
@@ -158,12 +173,11 @@ validate_skill_md() {
 # --- Iterate every cached plugin version ---
 while IFS= read -r manifest; do
   plugin_dir="$(dirname "$(dirname "$manifest")")"
-  plugin_id="${plugin_dir#$CACHE_ROOT/}"
-  # When linting a single plugin rooted at the repo (CACHE_ROOT="."), plugin_id
-  # collapses to "." — which no .pluginlintignore glob can target. Fall back to
-  # the manifest's own "name" so suppression rules (and report labels) stay
-  # stable no matter where the plugin is checked out.
-  if [[ "$plugin_id" == "." || -z "$plugin_id" ]]; then
+  plugin_id="${plugin_dir#"$CACHE_ROOT"/}"
+  # When linting a plugin whose root *is* CACHE_ROOT (repo checkout, or `.`),
+  # prefix strip leaves the full path or `.` / empty — .pluginlintignore globs
+  # need the manifest "name". Fall back so suppressions stay stable (GAP-470).
+  if [[ "$plugin_id" == "." || -z "$plugin_id" || "$plugin_id" == "$plugin_dir" ]]; then
     manifest_name="$(grep -E '"name"\s*:' "$manifest" | head -1 | sed -E 's/.*"name"\s*:\s*"([^"]+)".*/\1/')"
     [[ -n "$manifest_name" ]] && plugin_id="$manifest_name"
   fi

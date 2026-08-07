@@ -1,14 +1,14 @@
 ---
 type: master-plan
 repo: revskills
-last-updated: 2026-07-23
+last-updated: 2026-08-07
 owner: RevealUI Studio
 staleness-status: FRESH
 ---
 
 # RevSkills — Master Plan
 
-**Last Updated:** 2026-07-23  
+**Last Updated:** 2026-08-07  
 **Status:** Active — **22** skills shipped under `skills/` (pre-1.0 per skill)  
 **Owner:** RevealUI Studio  
 **Repo:** [RevealUIStudio/revskills](https://github.com/RevealUIStudio/revskills)
@@ -18,11 +18,11 @@ staleness-status: FRESH
 
 ---
 
-## Current reality (2026-07-23)
+## Current reality (2026-08-07)
 
 ### What exists
 
-22 Agent Skills compatible with Claude Code, Cursor, and the Agent Skills standard. Public install: `npx skills add RevealUIStudio/revskills`.
+22 Agent Skills (vendor-agnostic SSOT under `skills/`). Equal adapters: Claude Code, Grok, Cursor, OpenCode, VS Code. Public install: `npx skills add RevealUIStudio/revskills`. Claude `.claude-plugin/` is one marketplace adapter.
 
 Categories (see root `README.md` for the live table):
 
@@ -38,8 +38,9 @@ Categories (see root `README.md` for the live table):
 
 | Item | Notes |
 |---|---|
-| Public vs Studio-internal split | Workflow skills assume RevFleet layout; generic skills stay installable |
-| Continuous skill lint | Pre-push hooks in `.githooks` (skills-lint, plugin-lint, private-leak-scan) |
+| Public vs Studio layout pack | Documented in README + MASTER_SPEC; Studio ≠ Claude-only |
+| Continuous skill lint | Pre-push: skills-lint multi-home, plugin-lint in-repo `.`, leak-scan |
+| Vendor program follow-ups | GAP-470/471/472 train (packaging, workflow matrix, tool map) |
 
 ---
 

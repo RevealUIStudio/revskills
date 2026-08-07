@@ -1,38 +1,64 @@
 ---
 name: revealui-doctor
-description: Health check for RevFleet Claude Code setup + Studio-native workflow. Verifies hook syntax, rules directories, skill preconditions, git integrity across RevFleet repos, workboard freshness, daemon status, MCP servers, env file leaks, settings JSON validity, toolchain, and disaster-recovery snapshot state.
+description: Health check for RevFleet Studio workflow across equal adapters (Claude + Grok at minimum). Verifies hook/rules homes, skill preconditions, git integrity, workboard freshness, daemon status, MCP configs, env leaks, toolchain, and disaster-recovery snapshot state.
 license: MIT
 allowed-tools: Bash, Read, Glob, Grep
 metadata:
   author: RevealUI Studio
-  version: "0.3.0"
+  version: "0.4.0"
   website: https://revealui.com
 ---
 
-Run a health check on the Claude Code setup and the Studio-native RevealUI workflow. Report pass/fail per item.
+Run a health check on **Studio-native** workflow surfaces for equal adapters. Report pass/fail (or SKIP with reason) per section. Claude is one adapter; Grok is first-class.
 
 Load helpers:
 ```bash
 . "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
 ```
 
+## 0. Adapter homes present
+
+Report which homes exist:
+
+| Adapter | Paths to note |
+|---------|----------------|
+| Claude | `~/.claude/{hooks,rules,commands,settings.json}` |
+| Grok | `~/.grok/{hooks,rules,skills,config.toml,active_sessions.json}` |
+| Cursor | `~/.cursor` or project `.cursor/` (SKIP if absent) |
+| OpenCode | tool-specific (SKIP if absent) |
+
+If Claude home is missing: do **not** fail the whole doctor — continue with Grok/other and mark Claude sections SKIP.
+
 ## 1. Hook syntax
-Run `node --check` on every `~/.claude/hooks/*.js`. List failures.
+
+**Claude:** `node --check` on every `~/.claude/hooks/*.js` when the dir exists. List failures.  
+**Grok:** list `~/.grok/hooks/*.json` when present; confirm JSON parses (`python3 -m json.tool` or `jq`). FAIL on invalid JSON.
 
 ## 2. Rules directories
-Verify these exist and contain `.md` files:
+
+Verify these exist and contain `.md` files when the home is present:
+
 - `~/revfleet/revealui/.claude/rules/`
 - `$JV_REPO/.claude/rules/`
-- `~/.claude/rules/`
+- `~/.claude/rules/` (Claude adapter)
+- `~/.grok/rules/` (Grok adapter; pointer files OK)
 
 ## 3. Skills self-test
-For each `~/.claude/commands/*.md`:
-- Parse frontmatter if present.
-- Extract referenced script paths (`$HOME/.claude/...`, `~/.claude/...`, `~/revfleet/revskills/...`, `node "..."`, `bash "..."`).
-- Assert each referenced script exists. Report missing.
-- Extract referenced repo paths (`~/revfleet/...`, `~/projects/...`, `~/suite/...`). Assert existence; flag any `~/suite/` references as stale (path retired 2026-05-07 — should be `~/revfleet/`).
 
-## 4. Git integrity (both RevFleet repos)
+Prefer SoT + multi-home:
+
+```bash
+bash "$HOME/revfleet/revskills/scripts/lint-all-skills.sh"
+```
+
+Additionally, for each present command/skill root (`~/.claude/commands`, `~/.grok` skill paths from config if readable):
+
+- Extract referenced script paths under `~/.claude`, `~/revfleet/revskills`, `node`/`bash` invocations.
+- Assert each referenced script exists. Report missing.
+- Flag any `~/suite/` references as stale (retired 2026-05-07 → `~/revfleet/`).
+
+## 4. Git integrity (RevFleet repos)
+
 For each repo in `~/revfleet/revealui` and `$JV_REPO`:
 ```bash
 cd "$repo" && git fsck --full 2>&1 | grep -E '^(error|fatal|missing)'
@@ -41,47 +67,37 @@ ss_empty_objects "$repo"
 Empty objects = WSL crash damage. Report loudly.
 
 ## 5. Workboard freshness
-Parse `$WORKBOARD` (`$JV_REPO/.claude/workboard.md`). In the `## Log` section, flag `[CRASHED]` entries older than 24h — these should have been triaged by `/recover`.
+
+Parse `$WORKBOARD` (`$JV_REPO/.claude/workboard.md`). In `## Log`, flag `[CRASHED]` entries older than 24h.
 
 ## 6. Events log size
+
 `~/revfleet/revealui/.claude/events.jsonl` and `$JV_REPO/.claude/events.jsonl`. Warn if over 100KB.
 
 ## 7. Daemon + Studio surface health
+
 ```bash
 ss_daemon_alive && echo "daemon: up" || echo "daemon: down"
 ss_revvault_alive && echo "revvault: up" || echo "revvault: down"
 ```
-Flag daemon down (primary coordination layer per hooks-architecture.md).
 
 ## 8. MCP servers
-Read `~/.claude/config.json`, extract `mcpServers`. For each server verify BOTH:
-- `command` resolves — an absolute path is executable, a bare name is on PATH.
-- `cwd` exists as a directory, and any absolute path in `args` exists.
 
-A `pnpm`-launched server still fails silently if its `cwd` points at a missing tree, so
-checking `command` alone undercounts. Flag any stale `~/projects/RevealUI` path (retired
-tree — should be `~/revfleet/revealui`).
+**Claude:** if `~/.claude/config.json` exists, extract `mcpServers` and verify `command` / `cwd` / absolute `args` paths.  
+**Grok:** if `~/.grok/config.toml` has MCP / server entries (or document SKIP when config shape is opaque), note presence; do not invent a second MCP schema.  
+Flag any stale `~/projects/RevealUI` path.
 
 ## 9. Git-tracked env files
-In both RevFleet repos: `git ls-files '*.env*'`.
 
-A tracked match is only a leak risk if it carries real secrets. Classify before flagging:
-- **SAFE (PASS):** filenames matching `*.example`, `*.template`, `.envrc`, plus the repo's
-  ratified committed-fixture allowlist. Source the allowlist from the repo itself, not a
-  hardcoded copy — `scripts/gates/security-gate.ts` defines `AllowedEnvFiles`
-  (currently `.env.template`, `.env.test`, `.env.production.example`). `.env.test` holds
-  fake fixtures (`sk_test_*`, `whsec_test*`) and is loaded by `packages/config/src/loader.ts`
-  as the CI fallback — it is committed by design, NOT a smell. Do not propose renaming it.
-- **REVIEW (FAIL):** any tracked `*.env*` that is NOT in the allowlist or pattern set.
-  Scan its contents for real-looking secrets (`sk_live`, long base64/hex) before reporting.
-
-Only REVIEW-class hits count as a leak risk. Mirror the gate's allowlist so this check and
-the security gate never disagree.
+In both RevFleet repos: `git ls-files '*.env*'`. SAFE vs REVIEW classification as before (allowlist from repo security gate; do not hardcode).
 
 ## 10. Settings JSON validity
-Validate `~/.claude/settings.json` and `~/.claude/settings.local.json` if present.
+
+**Claude:** validate `~/.claude/settings.json` and `settings.local.json` if present.  
+**Grok:** validate `~/.grok/config.toml` parses if present (toml via python or skip with note).
 
 ## 11. Toolchain
+
 ```bash
 pnpm -v; node -v; biome --version 2>/dev/null || echo "biome via pnpm exec"
 cd ~/revfleet/revealui && test -f flake.lock && nix flake metadata --json >/dev/null 2>&1 && echo "flake: ok" || echo "flake: check"
@@ -89,7 +105,15 @@ cd ~/revfleet/revealui && direnv status 2>&1 | tail -3
 ```
 
 ## 12. Disaster recovery (WSL snapshot)
-The per-repo LTS sync model (`.claude/lts-mode` = bundle/mirror) is retired — DR is the weekly whole-distro WSL export run by the Windows scheduled task `RevealUI-WSL-Weekly-Backup` (revkit `scripts/weekly-wsl-backup.ps1`, staleness alerting via `scripts/check-backup-staleness.ps1`). From WSL: flag any leftover `.claude/lts-mode` files under `~/revfleet/*/` as stale residue (PASS when none). Snapshot freshness itself is Windows-side — report SKIP with a pointer to `check-backup-staleness.ps1` when the LTS drive isn't reachable.
+
+Per-repo LTS sync is retired. Flag leftover `.claude/lts-mode` under `~/revfleet/*/`. Snapshot freshness is Windows-side — SKIP with pointer to revkit `check-backup-staleness.ps1` when LTS drive unreachable.
+
+## 13. Session id auto-resolve (GAP-469)
+
+```bash
+ss_session_id && echo "session-id: ok" || echo "session-id: unresolved (non-fatal outside a harness session)"
+```
 
 ## Output
-Traffic-light summary (PASS/WARN/FAIL) per section. JSON sidecar at `/tmp/claude-doctor-last.json` so the daemon can consume results.
+
+Traffic-light summary (PASS/WARN/FAIL/SKIP) per section **and per adapter**. JSON sidecar at `/tmp/revealui-doctor-last.json` (prefer this over Claude-only path names).

@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Install revskills bin/ scripts as symlinks in ~/.local/bin.
 #
+# Ships adapter launchers that happen to live under bin/ (e.g. claude-safe is
+# the Claude Code recovery adapter — see docs/AUTO_RECOVERY.md). This is not
+# the only install surface for skills; prefer:
+#   npx skills add RevealUIStudio/revskills
+#
 # Idempotent: re-running updates symlinks to point at the repo copies.
 # Refuses to overwrite a regular file — back it up first.
 #
