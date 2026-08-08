@@ -42,8 +42,10 @@ node "$JV_REPO/scripts/tracker.js" sync
 1. Refresh derived TRACKER / graph / snapshot if missing  
 2. Soft-project snapshot → daemon goals when the licensed daemon is up  
 3. Print free surfaces for claiming  
+4. **Where-are-we** — goal `%` + nextActions for free-surface gaps (Phase 3; soft if offline)
 
-Soft-project never fails the session (`TRACKER_SKIP_PROJECT=1` to disable).
+Soft-project / goals overlay never fail the session  
+(`TRACKER_SKIP_PROJECT=1`, `TRACKER_SKIP_GOALS_OVERLAY=1` to disable).
 
 | Trigger | Agent duty |
 |---------|------------|
