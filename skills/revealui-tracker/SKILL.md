@@ -9,7 +9,7 @@ license: MIT
 allowed-tools: Bash, Read
 metadata:
   author: RevealUI Studio
-  version: "0.2.0"
+  version: "0.3.0"
   website: https://revealui.com
   related:
     - revealui-checkpoint
@@ -41,8 +41,9 @@ node "$JV_REPO/scripts/tracker.js" sync
 
 1. Refresh derived TRACKER / graph / snapshot if missing  
 2. Soft-project snapshot → daemon goals when the licensed daemon is up  
+   (also soft-activates unblocked open free gaps so propose-task works)  
 3. Print free surfaces for claiming  
-4. **Where-are-we** — goal `%` + nextActions for free-surface gaps (Phase 3; soft if offline)
+4. **Where-are-we** — goal `%` + nextActions + suggested gap (soft if offline)
 
 Soft-project / goals overlay never fail the session  
 (`TRACKER_SKIP_PROJECT=1`, `TRACKER_SKIP_GOALS_OVERLAY=1` to disable).
@@ -58,10 +59,13 @@ Soft-project / goals overlay never fail the session
 
 | Command | Use |
 |---------|-----|
-| `sync` / `ensure` | Default auto path |
+| `sync` / `ensure` | Default auto path (all four steps above) |
 | `status` | Read-only free surfaces (no project) |
 | `next` | Free-surface menu (`--json`, `--owner-gates`) |
+| `where` / `goals` | Goal progress overlay only |
+| `query …` | Deterministic roadmap query (`list`, `progress`, `events`, `where`) |
 | `project` | Force goal project (when diagnosing) |
+| `state` | Regenerate `docs/.generated/STATE.json` |
 | `snapshot` / `graph` | Machine views |
 
 Slash: **`/tracker`**, **`/next`**.
