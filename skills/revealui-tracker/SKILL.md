@@ -1,106 +1,84 @@
 ---
 name: revealui-tracker
 description: >
-  Fleet TRACKER unified surface (GAP-318 + renderer v2). Use when /tracker, /next,
-  free surfaces, initiatives, roadmap graph, tracker-snapshot, re-render TRACKER,
-  or after gap/lane/init membership edits. Agents must not hand-run
-  initiatives-render or invent parallel queues — always use scripts/tracker.js
-  under $JV_REPO.
+  Fleet TRACKER auto-sync (GAP-318 + goal spine). Use when /tracker, /next,
+  free surfaces, roadmap, goals, or after gap/lane/init membership edits.
+  Owner never runs shell commands — agents and SessionStart call tracker.js
+  sync. Do not invent parallel queues or paste CLI recipes for the owner.
 license: MIT
 allowed-tools: Bash, Read
 metadata:
   author: RevealUI Studio
-  version: "0.1.1"
+  version: "0.2.0"
   website: https://revealui.com
   related:
     - revealui-checkpoint
     - next
 ---
 
-# Fleet TRACKER (`/tracker`)
+# Fleet TRACKER (`/tracker`) — owner-zero shell
 
-**Public-repo hygiene (hardline):** this skill ships in **revskills** (public).
-Never write private repo names, private clone paths, developer usernames, or
-machine homes into this file. Resolve the planning checkout only via
-`$JV_REPO` from `session-state.sh`. Do **not** add this skill to `.leakignore`.
+**Public-repo hygiene:** never hardcode private clone paths or private repo
+names. Resolve planning checkout via `$JV_REPO` from `session-state.sh` only.
+Do **not** add this skill to `.leakignore`.
 
-**One CLI.** Never tell the owner (or yourself) to paste raw multi-step
-render recipes. Load session helpers, then call:
+## Owner experience (non-negotiable)
 
-```bash
-. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
-# $JV_REPO = planning checkout from session-state (never hardcode a path)
-node "$JV_REPO/scripts/tracker.js" <command>
-```
-| Command | What it does |
-|---------|----------------|
-| `ensure` (preferred entry) | Render if graph/snapshot/TRACKER missing, then status + free surfaces |
-| `status` | Membership check + free surfaces + graph tip |
-| `render` | Force re-write all derived views **locally** |
-| `next [args]` | Free-surface menu (`--json`, `--owner-gates`, `--limit N`) |
-| `snapshot` | `tracker-snapshot-v1` JSON on stdout |
-| `graph` | Path + head of `docs/TRACKER.graph.md` |
-| `check` | Membership validation only |
+The owner talks in **chat** (“what’s next”, “roadmap”, “sync the board”).  
+Agents **never** tell the owner to run `node scripts/…` or systemd recipes.  
+If something is deferred (daemon down, license FREE), report that in one line
+and keep going with the file TRACKER board — do not invent workarounds that
+require owner shell steps.
 
-Slash aliases: **`/tracker`**, **`/next`** (→ `tracker.js next`).
-
-## When agents MUST run this
-
-1. **Session orientation** — SessionStart runs `tracker-session-check.js` → `tracker.js ensure`.
-2. **After any edit** to `docs/gaps/*.yml`, `docs/lanes/*/plan.md`, or `docs/initiatives/*.yml`.
-3. **User asks** for free surfaces, roadmap, INIT map, graph, snapshot, or “what’s next”.
-4. **Before claiming work** from TRACKER (re-ensure so free surfaces match disk).
-
-## Agent procedure (default)
+## What agents run (silently)
 
 ```bash
 . "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
-node "$JV_REPO/scripts/tracker.js" ensure
+node "$JV_REPO/scripts/tracker.js" sync
 ```
 
-Then:
+`sync` (default entry):
 
-1. Pick an **open gap** or **active lane** from free surfaces (not an INIT id alone).
-2. Open the gap/lane file; claim on the workboard.
-3. Cut worktree from `origin/test` (product repo).
+1. Refresh derived TRACKER / graph / snapshot if missing  
+2. Soft-project snapshot → daemon goals when the licensed daemon is up  
+3. Print free surfaces for claiming  
 
-For machine consumers:
+Soft-project never fails the session (`TRACKER_SKIP_PROJECT=1` to disable).
 
-```bash
-node "$JV_REPO/scripts/tracker.js" snapshot
-```
+| Trigger | Agent duty |
+|---------|------------|
+| SessionStart | Already calls `tracker-session-check` → `sync` |
+| After editing gap / lane / initiative YAML | Run `sync` before wrap-up |
+| Owner asks free surfaces / roadmap / goals | Run `sync`, answer from output |
+| Daemon/license deferred | Note once; use TRACKER.md free surfaces |
 
-## Derived views — local vs git
+## Commands (agents only — not owner paste)
 
-`render` / `ensure` write:
+| Command | Use |
+|---------|-----|
+| `sync` / `ensure` | Default auto path |
+| `status` | Read-only free surfaces (no project) |
+| `next` | Free-surface menu (`--json`, `--owner-gates`) |
+| `project` | Force goal project (when diagnosing) |
+| `snapshot` / `graph` | Machine views |
 
-- `docs/TRACKER.md`
-- `docs/TRACKER.graph.md`
-- `docs/tracker-snapshot.json`
-- `docs/initiatives/<slug>.md` dashboards
+Slash: **`/tracker`**, **`/next`**.
 
-These are **derived** (coord-paths). Session PRs must **not** commit them unless
-labeled `coord:allow-render-commit`. YAML remains SSOT.
+## Claim flow after sync
 
-### Publish derived (optional; proposal-shaped)
-
-When the owner wants graph/snapshot on the remote integration branch: worktree from
-`origin/test`, run `tracker.js render`, open a PR with labels
-`coord:allow-render-commit` and `merge:merge-commit`. Owner merges with
-**Create a merge commit** only. Do not self-merge without named in-session auth.
+1. Pick an **open gap** or **active lane** (not INIT id alone).  
+2. Claim on the workboard.  
+3. Worktree from `origin/test` in the product repo.
 
 ## Do not
 
-- Do not invent parallel boards under harness homes or root TODOs.
-- Do not hand-edit TRACKER / dashboards / graph / snapshot (re-render instead).
-- Do not paste multi-line “run these three node scripts” into owner chat — run
-  `tracker.js` yourself via this skill.
-- Do not put security gap **names** into public surfaces (ids only).
+- Do not invent parallel boards under harness homes.  
+- Do not hand-edit TRACKER / dashboards / graph / snapshot.  
+- Do not paste multi-line shell recipes into owner chat.  
+- Do not put security gap **names** on public surfaces.
 
 ## Related
 
-- CLI: `$JV_REPO/scripts/tracker.js`
-- Session: `$JV_REPO/scripts/tracker-session-check.js`
-- Spec: `$JV_REPO/docs/gap-specs/GAP-318-renderer-v2.md`
-- Slash docs: `$JV_REPO/docs/commands/tracker.md`
-- Sibling: `revealui-checkpoint` (handoff; does not replace tracker)
+- `$JV_REPO/scripts/tracker.js`  
+- `$JV_REPO/scripts/tracker-session-check.js`  
+- Sibling: `revealui-checkpoint`
