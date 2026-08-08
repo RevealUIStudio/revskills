@@ -19,15 +19,19 @@ metadata:
 
 # Fleet TRACKER (`/tracker`)
 
+**Public-repo hygiene (hardline):** this skill ships in **revskills** (public).
+Never write private repo names, private clone paths, developer usernames, or
+machine homes into this file. Resolve the planning checkout only via
+`$JV_REPO` from `session-state.sh`. Do **not** add this skill to `.leakignore`.
+
 **One CLI.** Never tell the owner (or yourself) to paste raw multi-step
 render recipes. Load session helpers, then call:
 
 ```bash
 . "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
-# $JV_REPO is set by session-state (private planning checkout)
+# $JV_REPO = planning checkout from session-state (never hardcode a path)
 node "$JV_REPO/scripts/tracker.js" <command>
 ```
-
 | Command | What it does |
 |---------|----------------|
 | `ensure` (preferred entry) | Render if graph/snapshot/TRACKER missing, then status + free surfaces |
