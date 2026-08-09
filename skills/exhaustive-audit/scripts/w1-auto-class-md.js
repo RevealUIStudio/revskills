@@ -21,7 +21,6 @@
 "use strict";
 
 const fs = require("fs");
-const path = require("path");
 const crypto = require("crypto");
 
 function parseArgs(argv) {
@@ -202,10 +201,8 @@ function main() {
     }
 
     const lines = text.length === 0 ? 0 : text.split(/\n/).length;
-    // Prefer manifest line count when close; re-count is source of truth for span
-    const lineCount = typeof m.lines === "number" ? Math.max(m.lines, lines) : lines;
     // Actual span uses re-count so coverage-status line-gap uses re-read
-    const actualLines = lines === 0 ? 0 : lines;
+    const actualLines = lines;
     // If file ends with newline, split length counts last empty; manifest may differ by 1
     const endLine = Math.max(actualLines, typeof m.lines === "number" ? m.lines : actualLines);
     const startLine = endLine === 0 ? 0 : 1;
@@ -224,10 +221,31 @@ function main() {
       });
     }
 
+    // coverage-status: prefer manifest span when present; if disk is shorter,
+    // record actual lines and emit a drift finding.
+    let linesRead = endLine === 0 ? [0, 0] : [startLine, endLine];
+    if (typeof m.lines === "number" && m.lines > 0) {
+      if (actualLines > 0 && actualLines < m.lines) {
+        linesRead = [1, actualLines];
+        findings.push({
+          id: `W1-LINES-${written.length + 1}`,
+          path: p,
+          severity: "low",
+          class: "drift",
+          title: "disk shorter than manifest line count",
+          body: `manifest.lines=${m.lines} disk_lines=${actualLines}`,
+          agent,
+          ts,
+        });
+      } else {
+        linesRead = [1, m.lines];
+      }
+    }
+
     const row = {
       path: p,
       status,
-      lines_read: endLine === 0 ? [0, 0] : [startLine, endLine],
+      lines_read: linesRead,
       manifest_lines: typeof m.lines === "number" ? m.lines : endLine,
       sha256: hash,
       agent,
@@ -242,29 +260,6 @@ function main() {
         finding_ids: [],
       },
     };
-
-    // Ensure line span covers manifest lines for coverage-status
-    if (typeof m.lines === "number" && m.lines > 0) {
-      row.lines_read = [1, m.lines];
-      // If disk shorter, still record actual but mark finding
-      if (actualLines > 0 && actualLines < m.lines) {
-        row.lines_read = [1, actualLines];
-        findings.push({
-          id: `W1-LINES-${written.length + 1}`,
-          path: p,
-          severity: "low",
-          class: "drift",
-          title: "disk shorter than manifest line count",
-          body: `manifest.lines=${m.lines} disk_lines=${actualLines}`,
-          agent,
-          ts,
-        });
-      } else if (actualLines >= m.lines) {
-        row.lines_read = [1, Math.max(m.lines, actualLines)];
-        // coverage-status: span >= m.lines
-        row.lines_read = [1, m.lines];
-      }
-    }
 
     written.push(row);
     byPath.set(p, row);
