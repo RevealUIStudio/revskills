@@ -1,15 +1,15 @@
 ---
 name: revealui-recover
-description: Diagnose and recover from a crashed or interrupted Claude/Studio session in RevFleet. Surfaces git corruption, stale hook state, orphaned handoffs, daemon status, and workboard CRASHED markers. Diagnostic-first — never executes destructive repairs without explicit approval.
+description: Diagnose and recover from a crashed or interrupted Studio session in RevFleet (Claude + Grok equal adapters). Surfaces git corruption, stale hook state, orphaned handoffs, daemon status, and workboard CRASHED markers. Diagnostic-first — never executes destructive repairs without explicit approval.
 license: MIT
 allowed-tools: Bash, Read, Grep, Glob
 metadata:
   author: RevealUI Studio
-  version: "0.2.1"
+  version: "0.3.0"
   website: https://revealui.com
 ---
 
-Recover from a crashed or interrupted Claude/Studio session. Diagnostic-first: surface state, then propose concrete next actions. Never execute destructive repairs without explicit approval.
+Recover from a crashed or interrupted **Studio** session (any equal adapter). Diagnostic-first: surface state, then propose concrete next actions. Never execute destructive repairs without explicit approval.
 
 Load shared helpers:
 ```bash
@@ -20,17 +20,33 @@ Load shared helpers:
 
 ```bash
 IDENTITY="$(ss_identity)"
+SID="$(ss_session_id 2>/dev/null || true)"
+echo "identity=$IDENTITY session_id=${SID:-unresolved}"
 ```
 
 Known identities: `conductor`, `agent-extension[-N]`, `agent-edit[-N]`, `agent-system[-N]`, `revealui-studio`, `revealui-console`, `stagehand` (fallback). If `stagehand`, perform full (unscoped) recovery and flag that multi-agent state cannot be identity-filtered.
 
-## Step 1 — Crash cache
+## Step 1 — Crash / session residue (multi-adapter)
 
+**Claude adapter:**
 ```bash
 ls /tmp/claude-crash-*.json 2>/dev/null
+ls /tmp/claude-last-state-*.json 2>/dev/null
 ```
 
-If a file matching `claude-crash-<IDENTITY>.json` exists, cat it, note `task`/`files`/`updated`, then delete. If crash caches exist for *other* identities, list them but do not delete — they belong to other agents.
+If a file matching `claude-crash-<IDENTITY>.json` exists, cat it, note `task`/`files`/`updated`, then delete only that identity's file after reading. Other identities: list only.
+
+**Grok / neutral:**
+```bash
+# Live Grok sessions table (read-only)
+[ -f "$HOME/.grok/active_sessions.json" ] && cat "$HOME/.grok/active_sessions.json"
+# SessionStart stamps (GAP-469)
+ls "$HOME/.local/share/revealui/coordination/harness-sessions/by-pid" 2>/dev/null | head
+# Neutral crash markers if any future harness writes them
+ls /tmp/revealui-crash-*.json 2>/dev/null
+```
+
+Report Grok sessions whose `pid` is not alive (stale active_sessions rows) as WARN residue — do not delete the JSON file without owner auth.
 
 ## Step 2 — Active repo + git integrity
 
@@ -52,9 +68,10 @@ ss_hook_state "$PPID"
 ```
 
 For each present file, read it and surface:
-- `claude-agent-edits-*.json`: list of files the prior session edited (protects against re-edit).
+- `claude-agent-edits-*.json`: files the prior Claude session edited.
 - `claude-autocommit-*.json`: pending auto-commit counter.
 - `claude-context-*.json` / `claude-session-*.json`: turn count, tool usage.
+- `revealui-session-*.id` / `revealui-daemon-session-*.id`: neutral/session caches.
 
 Mismatch or stale counters (ppid no longer alive) indicate an unclean shutdown — note but do not modify.
 
@@ -104,11 +121,14 @@ Look for `[CRASHED]` entries. If the most recent entry for this identity is CRAS
 
 ## Step 8 — Relevant memory
 
+**Claude adapter memory:**
 ```bash
 grep -l -r "$(basename "$REPO")" "$HOME"/.claude/projects/*revfleet*/memory/ 2>/dev/null
 ```
 
-Surface memory files relevant to the active repo (especially `feedback_*` that might modify recovery behavior).
+**Grok:** if project memory lives under session dirs or `~/.grok`, surface paths only when present; SKIP when memory is disabled in config.
+
+Surface feedback/rule-class files relevant to the active repo.
 
 ## Step 9 — Synthesize
 
@@ -137,16 +157,16 @@ If all checks green and no crash markers: say "No recovery needed." in one line.
 
 ## Step 10 — Auto-proceed classification (crash-triggered only)
 
-Only runs when `$CLAUDE_CRASH_MARKER` is set in the environment. If unset, stop after Step 9 and wait for the user.
+Only runs when `$CLAUDE_CRASH_MARKER` or `$REVEALUI_CRASH_MARKER` is set (crash-triggered launcher). If unset, stop after Step 9 and wait for the user.
 
 Classify every finding from Steps 1–8 into two buckets using this **closed allowlist**:
 
 **Auto-healable (safe to execute without asking):**
-- Dead-ppid `/tmp/claude-*-<N>.json` files (the owning process is not alive).
+- Dead-ppid `/tmp/claude-*-<N>.json` or `/tmp/revealui-*-<N>.json` files (owning process not alive).
 - Orphaned handoff older than 60 min — read into the response, do not auto-apply its recommendations.
 - `run-task [crashed]` entries that are *read-only* by type (list/status/diagnostic).
 - Workboard `[CRASHED]` → `[RECOVERED]` marker flip for THIS identity only.
-- Re-registering with the RPC daemon via `session-start.js`-equivalent RPC call.
+- Re-registering with the RPC daemon via session-start-equivalent RPC call.
 - Re-probing revvault / flake / direnv / pnpm reachability.
 
 **Requires authorization (always stop and ask):**

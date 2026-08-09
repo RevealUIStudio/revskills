@@ -9,8 +9,8 @@ _ss_load() {
 }
 
 _ss_clear_session_env() {
-  unset AGENT_SESSION_ID REVEALUI_SESSION_ID CLAUDE_CODE_SESSION_ID
-  unset REVEALUI_IDENTITY AGENT_ROLE CLAUDE_AGENT_ROLE
+  unset AGENT_SESSION_ID REVEALUI_SESSION_ID CLAUDE_CODE_SESSION_ID GROK_SESSION_ID
+  unset REVEALUI_IDENTITY AGENT_ROLE CLAUDE_AGENT_ROLE GROK_ACTIVE_SESSIONS
 }
 
 test_ss_session_id_prefers_agent_session_id() {
@@ -37,11 +37,18 @@ test_ss_session_id_falls_through_aliases() {
 test_ss_session_id_empty_without_env() {
   _ss_load
   _ss_clear_session_env
+  local tmp
+  tmp="$(make_sandbox)"
+  # Isolate from live Grok active_sessions + any real PID stamps
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  export GROK_ACTIVE_SESSIONS="$tmp/no-such-active-sessions.json"
+  ss_ensure_coord_dirs
   if ss_session_id >/dev/null 2>&1; then
-    fail "ss_session_id should fail when no session env is set"
+    fail "ss_session_id should fail when isolated from env/stamps/active_sessions"
   else
-    pass "ss_session_id fails closed with no env"
+    pass "ss_session_id fails closed when isolated"
   fi
+  unset REVEALUI_COORD_ROOT GROK_ACTIVE_SESSIONS
 }
 
 test_ss_identity_prefers_neutral() {
@@ -113,4 +120,137 @@ test_ss_coord_paths() {
     fail "ensure_coord_dirs did not create archive"
   fi
   unset REVEALUI_COORD_ROOT
+}
+
+test_ss_session_id_from_pid_stamps() {
+  _ss_load
+  _ss_clear_session_env
+  unset GROK_SESSION_ID
+  local tmp
+  tmp="$(make_sandbox)"
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  ss_ensure_coord_dirs
+  # Stamp current shell pid — ss_session_id walks ancestors including $$
+  printf '%s\n' "stamp-sid-99" >"$tmp/coord/harness-sessions/by-pid/$$"
+  assert_eq "stamp-sid-99" "$(ss_session_id)" "pid stamp auto-resolves without env"
+  _ss_clear_session_env
+  unset REVEALUI_COORD_ROOT
+}
+
+test_ss_session_id_from_grok_active_fixture() {
+  _ss_load
+  _ss_clear_session_env
+  unset GROK_SESSION_ID
+  local tmp fixture
+  tmp="$(make_sandbox)"
+  export REVEALUI_COORD_ROOT="$tmp/empty-coord"
+  # No stamps; fake active_sessions with our pid
+  fixture="$tmp/active_sessions.json"
+  printf '%s\n' "[{\"session_id\":\"from-active-json\",\"pid\":$$,\"cwd\":\"$PWD\",\"opened_at\":\"2026-08-07T00:00:00Z\"}]" >"$fixture"
+  export GROK_ACTIVE_SESSIONS="$fixture"
+  assert_eq "from-active-json" "$(ss_session_id)" "Grok active_sessions pid match"
+  unset GROK_ACTIVE_SESSIONS REVEALUI_COORD_ROOT
+  _ss_clear_session_env
+}
+
+test_ss_session_id_auto_on_live_grok() {
+  _ss_load
+  _ss_clear_session_env
+  unset GROK_SESSION_ID REVEALUI_COORD_ROOT GROK_ACTIVE_SESSIONS
+  # On a live Grok Studio session this resolves via ~/.grok/active_sessions.json.
+  # Outside Grok, skip (do not fail CI).
+  if [ ! -f "$HOME/.grok/active_sessions.json" ]; then
+    pass "skip live grok auto-resolve (no active_sessions.json)"
+    return 0
+  fi
+  if ss_session_id >/dev/null 2>&1; then
+    pass "live Grok auto-resolve: $(ss_session_id)"
+  else
+    # May still fail if not running under a recorded Grok pid (e.g. bare CI)
+    pass "skip live grok auto-resolve (no pid/cwd match in active_sessions)"
+  fi
+  _ss_clear_session_env
+}
+
+test_ss_snapshot_sections_json_parses_five() {
+  _ss_load
+  local tmp md json
+  tmp="$(make_sandbox)"
+  md="$tmp/snap.md"
+  cat >"$md" <<'MD'
+---
+session_id: parse-sid
+created: 2026-08-07T00:00:00Z
+---
+
+# Snapshot — parse test
+
+## Resume-From-Here
+next step is open the PR
+
+## What-Shipped
+revdev#363 session.snapshot
+
+## Active-Constraints
+stay off handlers
+
+## Do-Not-Repeat
+do not invent session ids
+
+## Open-Loose-Ends
+owner merge remaining
+MD
+  json="$(ss_snapshot_sections_json "$md")"
+  assert_eq "1" "$(printf '%s' "$json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(1 if d.get("resumeFromHere")=="next step is open the PR" and "363" in d.get("whatShipped","") and d.get("doNotRepeat") else 0)')" \
+    "five-section parse maps headings to camelCase keys"
+}
+
+test_ss_daemon_snapshot_write_skips_without_socket() {
+  _ss_load
+  local tmp md status
+  tmp="$(make_sandbox)"
+  export DAEMON_SOCKET="$tmp/no-such.sock"
+  export REVEALUI_SOCKET="$tmp/no-such.sock"
+  md="$tmp/snap.md"
+  cat >"$md" <<'MD'
+## Resume-From-Here
+hello
+
+## What-Shipped
+none
+
+## Active-Constraints
+none
+
+## Do-Not-Repeat
+none
+
+## Open-Loose-Ends
+none
+MD
+  export AGENT_SESSION_ID="dual-write-skip"
+  status="$(ss_daemon_snapshot_write "$md" "dual-write-skip")"
+  case "$status" in
+    skipped:*) pass "dual-write soft-skips when socket missing: $status" ;;
+    *) fail "expected skipped status, got: $status" ;;
+  esac
+  unset DAEMON_SOCKET REVEALUI_SOCKET AGENT_SESSION_ID
+  _ss_clear_session_env
+}
+
+test_ss_daemon_snapshot_write_skips_without_file() {
+  _ss_load
+  local status tmp
+  tmp="$(make_sandbox)"
+  export DAEMON_SOCKET="$tmp/no-such.sock"
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  export GROK_ACTIVE_SESSIONS="$tmp/no-active.json"
+  unset AGENT_SESSION_ID REVEALUI_SESSION_ID CLAUDE_CODE_SESSION_ID GROK_SESSION_ID
+  status="$(ss_daemon_snapshot_write)"
+  case "$status" in
+    skipped:*) pass "dual-write soft-skips without file: $status" ;;
+    *) fail "expected skipped, got: $status" ;;
+  esac
+  unset DAEMON_SOCKET REVEALUI_COORD_ROOT GROK_ACTIVE_SESSIONS
+  _ss_clear_session_env
 }

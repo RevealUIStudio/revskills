@@ -1,6 +1,14 @@
-# Auto-Recovery Launcher
+# Auto-Recovery Launchers
 
-When a Claude Code session dies (crash, OOM, WSL hang), a fresh session should open automatically, run a recovery diagnostic, and — if nothing needs human authorization — resume work without the user touching the keyboard. This directory ships the wrapper and the supporting skill that make that happen.
+When a **Studio agent session** dies (crash, OOM, WSL hang), recovery should re-open with a diagnostic — and auto-heal only the closed allowlist in `/recover`.
+
+| Path | Role |
+|------|------|
+| `bin/claude-safe` | **Claude Code adapter** launcher (parent watches `claude` exit, spawns recovery tab) |
+| `/recover` skill (`revealui-recover`) | **Equal-adapter** recovery engine (Claude + Grok residue, git, daemon, workboard) |
+| Grok / other harnesses | Use harness-native restart + `/recover`; no requirement to run `claude-safe` |
+
+This doc describes the Claude adapter wrapper in detail. Multi-harness recovery truth lives in the skill.
 
 ## Goal
 

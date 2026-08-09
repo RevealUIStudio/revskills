@@ -1,74 +1,90 @@
 ---
 name: revealui-skills-test
-description: Static validator for Claude Code skills. Dry-runs every skill in ~/.claude/commands/*.md, validates referenced scripts exist, flags stale ~/suite/ paths, rule violations (git -C, pnpm --dir, inline node -e), tmux references. Read-only — catches broken skills before users hit them at run time.
+description: Static validator for Studio Agent Skills. Dry-runs skill roots (revskills SoT + equal-adapter command/skill homes), validates referenced scripts exist, flags stale ~/suite/ paths and rule violations. Read-only.
 license: MIT
 allowed-tools: Bash, Read, Glob, Grep
 metadata:
   author: RevealUI Studio
-  version: "0.1.0"
+  version: "0.2.0"
   website: https://revealui.com
 ---
 
-Validate each skill in `~/.claude/commands/*.md` without executing its side effects. Goal: catch broken skills (stale paths, missing scripts, rule-violating commands) before a user invokes them and discovers the failure at run-time.
+Validate skill installs **without** requiring a Claude-only command dir. Goal: catch broken skills (stale paths, missing scripts, rule-violating commands) before invoke.
 
 Load helpers:
 ```bash
 . "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
 ```
 
-## For each `~/.claude/commands/*.md`
+## Roots to scan (in order)
+
+1. **SoT (always):** `$HOME/revfleet/revskills/skills/*/SKILL.md`
+2. **Adapter homes (when present):**
+   - `~/.claude/commands/*.md` (Claude slash / command links)
+   - `~/.grok` skill pointers if listed in config, or paths under `[skills].paths`
+   - Optional: `REVSKILLS_COMMAND_DIRS` colon list (same as lint-all-skills)
+
+Never FAIL solely because `~/.claude/commands` is missing.
+
+## For each skill file
 
 ### 1. Frontmatter
-- If frontmatter present, confirm it's valid YAML.
-- Confirm `description` is non-empty.
+
+- If frontmatter present, confirm valid YAML-ish (`---` open/close).
+- Confirm `description` is non-empty when frontmatter exists.
 
 ### 2. Referenced scripts
-Extract every path matching:
-- `$HOME/.claude/...` or `~/.claude/...`
-- `$HOME/revfleet/revskills/...` or `~/revfleet/revskills/...`
-- `bash "<path>"` or `node "<path>"` or `tsx "<path>"`
 
-For each, assert the target file exists. Missing = FAIL.
+Extract paths matching:
+
+- `$HOME/.claude/...` or `~/.claude/...`
+- `$HOME/.grok/...` or `~/.grok/...`
+- `$HOME/revfleet/revskills/...` or `~/revfleet/revskills/...`
+- `bash "<path>"` / `node "<path>"` / `tsx "<path>"`
+
+Assert each target exists. Missing = FAIL.
 
 ### 3. Referenced repos
-Extract every path matching `~/revfleet/...`, `~/projects/...`, or `~/suite/...`. Assert existence.
-- `~/suite/*` in real path usage = FAIL (path retired 2026-05-07 — migrated to `~/revfleet/`).
-- `~/revfleet/*` non-existent = FAIL.
-- `~/projects/*` is the R&D sandbox per `~/projects/CLAUDE.md` — assert existence; do not flag as stale.
 
-### 4. Rule compliance (via awk linter)
-Run `awk -f "$HOME/revfleet/revskills/scripts/lib/lint-skill.awk" <skill>`. Emits `ISSUE: <tag>:<line>:<text>` per violation. The linter scopes checks to fenced code blocks and skips deny-listed prose ("Do not", "never", "avoid", "DISABLED") to avoid false positives. Tags:
-- `stale-suite-path` — `~/suite/` in real path usage (path retired 2026-05-07 — migrated to `~/revfleet/`)
-- `git-C-violates-bash.md` — `git -C <path>` in executable code
-- `pnpm-dir-violates-bash.md` — `pnpm --dir` / `pnpm -C` in executable code
-- `inline-node-e-violates-hooks.md` — `node -e "…"` in executable code
-- `tmux-legacy` — tmux references in executable code (Studio-native migration)
+Extract `~/revfleet/...`, `~/projects/...`, `~/suite/...`.  
+`~/suite/*` = FAIL (retired). Missing `~/revfleet/*` = FAIL.
+
+### 4. Rule compliance (awk linter)
+
+```bash
+awk -f "$HOME/revfleet/revskills/scripts/lib/lint-skill.awk" <skill>
+```
+
+Tags: `stale-suite-path`, `git-C-violates-bash.md`, `pnpm-dir-violates-bash.md`, `inline-node-e-violates-hooks.md`, `tmux-legacy`.
 
 ### 5. CLI soundness
-For each `<cli> <subcommand>` invocation, confirm the CLI exists on PATH and the subcommand appears in its `--help` output. Known CLIs to verify: `revvault`, `run-task`, `direnv`, `pnpm`, `nix`, `gh`, `git`.
+
+For known CLIs (`revvault`, `pnpm`, `nix`, `gh`, `git`, …): presence on PATH when invoked in skill code blocks.
 
 ### 6. Status marker
-If the skill's first H1/frontmatter contains `DISABLED`, record as SKIP (not FAIL).
+
+`DISABLED` in first H1/frontmatter → SKIP.
+
+## Batch / CI (no interactive harness required)
+
+```bash
+bash "$HOME/revfleet/revskills/scripts/lint-all-skills.sh"
+bash "$HOME/revfleet/revskills/scripts/lint-all-skills.sh" --json
+```
+
+Exits 0 on clean, 1 on violation. Preferred pre-push path.
 
 ## Output
 
-Table:
 ```
 skill              status   issues
 revealui-recover   PASS     -
-revealui-doctor    PASS     -
-...
+…
 ```
 
-Plus a `FAIL summary` section listing every failure with file:line and a remediation hint. Exit non-zero if any FAIL (for CI). JSON sidecar at `/tmp/claude-skills-test-last.json`.
-
-For CI / pre-commit enforcement (no Claude required) run the batch validator directly:
-```bash
-bash "$HOME/revfleet/revskills/scripts/lint-all-skills.sh"         # human output
-bash "$HOME/revfleet/revskills/scripts/lint-all-skills.sh" --json  # machine output
-```
-Exits 0 on clean, 1 on any lint / frontmatter / broken-symlink violation. Use this in a pre-push hook to prevent regressions.
+JSON sidecar: `/tmp/revealui-skills-test-last.json`.
 
 ## Do not
-- Do not execute the skill bodies — parse statically only.
+
+- Do not execute skill bodies — parse statically only.
 - Do not modify any file — read-only validator.
