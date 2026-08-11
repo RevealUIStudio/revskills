@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.13.0"
+  version: "0.13.1"
   website: https://revealui.com
 ---
 
@@ -37,13 +37,20 @@ Rolling handoff **read surface** per `~/.claude/rules/model-allocation.md` §Ses
 
 A session snapshot is captured mid-session by the `/snapshot` skill (nudged by the `track-session` context advisory at the soft-context line), while fidelity is still high. When one exists it is the PRIMARY source for the narrative sections in Step 4 — more trustworthy than reconstructing from now-deep session memory.
 
-Resolve it by **this session's id, never by mtime** — a peer's snapshot must be structurally unreachable (GAP-317 + GAP-469). Session id and paths come from `session-state.sh` (neutral SSOT under `~/.local/share/revealui/coordination/`, with read-through of the legacy Claude adapter path):
+Resolve it by **this session's id, never by mtime** — a peer's snapshot must be structurally unreachable (GAP-317 + GAP-469). Session id and paths come from `session-state.sh` (neutral SSOT under `~/.local/share/revealui/coordination/`, with read-through of the legacy Claude adapter path).
+
+**Load order (GAP-342 residual):** prefer the filesystem SSOT when present; if the file is missing, best-effort hydrate from daemon `session.snapshot.get` by the same id into the neutral write path (`ss_snapshot_load_path`). Never mtime, never another session's file.
 
 ```bash
 SID="$(ss_session_id 2>/dev/null || true)"
 SNAPSHOT=""
 if [ -n "$SID" ]; then
-  SNAPSHOT="$(ss_snapshot_path "$SID" 2>/dev/null || true)"
+  # Prefers file SSOT; hydrates from daemon by id when file missing (soft-fail).
+  SNAPSHOT="$(ss_snapshot_load_path "$SID" 2>/dev/null || true)"
+  # Fallback for older session-state without load helper:
+  if [ -z "$SNAPSHOT" ]; then
+    SNAPSHOT="$(ss_snapshot_path "$SID" 2>/dev/null || true)"
+  fi
 fi
 if [ -n "$SNAPSHOT" ]; then
   echo "snapshot for this session: $SNAPSHOT (sid=$SID)"
