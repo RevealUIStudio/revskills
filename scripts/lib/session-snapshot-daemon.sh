@@ -224,3 +224,127 @@ ss_daemon_snapshot_get() {
   params="$(python3 -c 'import json,sys; print(json.dumps({"sessionId":sys.argv[1],"actorAgentId":sys.argv[2]},separators=(",",":")))' "$sid" "$agent")"
   ss_daemon_rpc "session.snapshot.get" "$params"
 }
+
+# Reverse of ss_snapshot_sections_json: sections JSON → GAP-317 markdown body.
+# Args: session-id sections-json-object (bare sections or full get result).
+# Prints markdown with frontmatter + five ## sections.
+ss_snapshot_sections_to_markdown() {
+  local sid="${1:-}"
+  local sections_json="${2:-}"
+  [ -n "$sid" ] || {
+    printf 'ss_snapshot_sections_to_markdown: session id required\n' >&2
+    return 1
+  }
+  [ -n "$sections_json" ] || {
+    printf 'ss_snapshot_sections_to_markdown: sections json required\n' >&2
+    return 1
+  }
+  command -v python3 >/dev/null 2>&1 || {
+    printf 'ss_snapshot_sections_to_markdown: python3 required\n' >&2
+    return 1
+  }
+  python3 - "$sid" "$sections_json" <<'PYMD'
+import json, sys
+from datetime import datetime, timezone
+
+sid = sys.argv[1]
+raw = json.loads(sys.argv[2])
+if isinstance(raw, dict) and "snapshot" in raw and isinstance(raw["snapshot"], dict):
+    sections = raw["snapshot"].get("sections") or {}
+elif isinstance(raw, dict) and "sections" in raw:
+    sections = raw["sections"] or {}
+else:
+    sections = raw if isinstance(raw, dict) else {}
+
+keys = [
+    ("resumeFromHere", "Resume-From-Here"),
+    ("whatShipped", "What-Shipped"),
+    ("activeConstraints", "Active-Constraints"),
+    ("doNotRepeat", "Do-Not-Repeat"),
+    ("openLooseEnds", "Open-Loose-Ends"),
+]
+if not any(str(sections.get(k, "")).strip() for k, _ in keys):
+    print("no fidelity sections in daemon payload", file=sys.stderr)
+    sys.exit(1)
+
+created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+lines = [
+    "---",
+    f"session_id: {sid}",
+    f"created: {created}",
+    "source: daemon-session.snapshot.get",
+    "---",
+    "",
+    f"# Snapshot — {sid}",
+    "",
+]
+for key, heading in keys:
+    body = str(sections.get(key, "") or "").strip() or "none"
+    lines.append(f"## {heading}")
+    lines.append(body)
+    lines.append("")
+print("\n".join(lines).rstrip() + "\n")
+PYMD
+}
+
+# Resolve fidelity snapshot path for THIS session only (id-match, never mtime).
+# Prefer filesystem SSOT when present. If missing, best-effort hydrate from
+# daemon session.snapshot.get into the neutral write path (GAP-342 residual:
+# checkpoint get-by-id prefer when the file was lost but the daemon still has it).
+# Prints path on stdout when a file is available; prints nothing and exits 0
+# when neither filesystem nor daemon has this session's snapshot.
+ss_snapshot_load_path() {
+  local sid="${1:-}"
+  if [ -z "$sid" ]; then
+    sid="$(ss_session_id 2>/dev/null)" || true
+  fi
+  [ -n "$sid" ] || return 0
+
+  local existing
+  existing="$(ss_snapshot_path "$sid" 2>/dev/null)" || true
+  if [ -n "$existing" ] && [ -f "$existing" ]; then
+    printf '%s\n' "$existing"
+    return 0
+  fi
+
+  if ! ss_daemon_alive; then
+    return 0
+  fi
+
+  local result sections write_path md
+  if ! result="$(ss_daemon_snapshot_get "$sid" 2>/dev/null)"; then
+    return 0
+  fi
+
+  sections="$(
+    python3 -c '
+import json, sys
+raw = json.loads(sys.argv[1])
+snap = raw.get("snapshot") if isinstance(raw, dict) else None
+if snap is None:
+    sys.exit(2)
+sec = snap.get("sections") if isinstance(snap, dict) else None
+if not isinstance(sec, dict):
+    sys.exit(2)
+if not any(str(v).strip() for v in sec.values()):
+    sys.exit(2)
+print(json.dumps(sec, separators=(",", ":")))
+' "$result" 2>/dev/null
+  )" || return 0
+
+  write_path="$(ss_snapshot_write_path "$sid" 2>/dev/null)" || true
+  [ -n "$write_path" ] || return 0
+  if command -v ss_ensure_coord_dirs >/dev/null 2>&1; then
+    ss_ensure_coord_dirs 2>/dev/null || true
+  else
+    mkdir -p "$(dirname "$write_path")" 2>/dev/null || true
+  fi
+
+  if ! md="$(ss_snapshot_sections_to_markdown "$sid" "$sections" 2>/dev/null)"; then
+    return 0
+  fi
+  printf '%s' "$md" >"$write_path" || return 0
+  printf '%s\n' "$write_path"
+  return 0
+}
+
