@@ -7,7 +7,7 @@
 
 ## What is RevealUI?
 
-**RevealUI** is the **agentic business runtime** by **REVEALUI STUDIO L.L.C.** (Tennessee). The product positions itself as a pre-wired stack of five primitives — **Users, Content, Products, Payments, AI** — that an indie founder or AI product team can run with one command (`npx create-revealui@latest my-app`) and have agents drive via MCP.
+**RevealUI** is the **agentic business runtime** by **REVEALUI STUDIO L.L.C.** (Tennessee). The product positions itself as a pre-wired stack of five primitives — **People, Content, Offers, Payments, Agents** — that an operator or engineering team can run with one command (`npx create-revealui@latest my-app`) and have agents drive under the same sign-in and plan rules.
 
 The repo is a Turborepo with **four apps and 27 packages** (21 published on npm under `@revealui/*` plus `create-revealui`; 5 private workspace packages under Fair Source; 1 internal build-tooling package outside the OSS/Pro split). License posture is split: OSS subset under MIT, Pro packages (`@revealui/ai`, `@revealui/engines`, `@revealui/harnesses`, `@revealui/mcp`, `@revealui/services`) under **FSL-1.1-MIT** (Fair Source — source-visible, JWT-gated, auto-converts to MIT after 2 years).
 
@@ -30,7 +30,7 @@ This design system was distilled from the RevealUI monorepo. Canonical tokens ar
 | Source | What was extracted |
 |---|---|
 | `packages/tokens/src/tokens.css` (revealui repo) | Canonical OKLCH token source — read via `@revealui/tokens/design-context/` |
-| Marketing site `apps/marketing/app/` | NavBar, Footer, GetStarted, ContactForm, NewsletterSignup, ProductMockup; landing sections: Hero, Problem, Demo, Primitives, WhatsShipped, Persona, Proof, PricingTeaser, Faq |
+| Marketing site `apps/marketing/app/` | NavBar, Footer, GetStarted; landing spine: Hero (receipt motif), Problem (capability stack), Demo (`ProductFrame`), Primitives, Proof, PricingTeaser |
 | Admin app `apps/admin/src/` | shadcn-style Button/Card/Input components, `scrap*` Tailwind palette |
 | llms.txt | Product positioning, tier names, suite ("RevFleet") |
 | GitHub repo | https://github.com/RevealUIStudio/revealui — public OSS source |
@@ -52,9 +52,11 @@ revealui-design/  (this skill)
     │   ├── README.md
     │   ├── index.html                open directly in browser — no external deps
     │   ├── NavBar.jsx
-    │   ├── Hero.jsx
+    │   ├── Hero.jsx              — receipt motif hero
+    │   ├── Problem.jsx           — capability stack (no table)
+    │   ├── Demo.jsx              — product mat + admin frame
     │   ├── Primitives.jsx
-    │   ├── Pricing.jsx
+    │   ├── Pricing.jsx           — calm Free/Pro teaser
     │   ├── Faq.jsx
     │   └── Footer.jsx
     └── admin/                      — cobalt dark Studio dashboard (self-contained)
@@ -82,9 +84,10 @@ RevealUI sounds like a **technical co-founder writing to another technical co-fo
 
 - **Honest about status.** The llms.txt literally has a section titled "Status (honest, pre-launch)" that lists what's stub, what's working, and what's gated. Marketing copy never overpromises.
   > *"Stripe billing currently runs in TEST mode in production. Live mode is gated on an internal billing-readiness audit. No customer cards are charged today."*
-- **Outcome-led headlines, mechanism in the subhead.** Hero h1 is "Build a business your agents can run." Subhead names what's actually shipped: "Auth, billing, content, and AI primitives wired into one runtime."
-- **Concrete over abstract.** Numbers, timeboxes, primitive names. "Local stack in 60 seconds." "10,000 agent tasks / month." "5 primitives, 5 apps, 22 packages."
+- **Outcome-led headlines, mechanism in the subhead.** Default technical H1: "Build it once. Every product after starts ahead." Subtitle is the locked positioning form (self-hosted runtime + governed agents + any AI provider). See `copy-voice.md` + `06-copy-corpus.md`.
+- **Concrete over abstract.** Numbers, timeboxes, primitive names. "Local stack in about a minute." "10,000 agent tasks / month." Metrics pinned by claim-drift CI.
 - **No marketing hype.** No "revolutionize," "supercharge," "unleash." Verbs are operational: build, run, ship, deploy, wire.
+- **No em dashes** in customer-facing copy (hardline).
 
 ### Pronoun + casing
 
@@ -102,19 +105,19 @@ RevealUI sounds like a **technical co-founder writing to another technical co-fo
 ### Emoji + symbols
 
 - **No emoji** in marketing or product copy. Anywhere. The whole site is emoji-free.
-- Unicode marks that *do* appear: `→` (right arrow in CTA links), `&mdash;` (em-dash in subheads), `✓` (checkmarks in feature lists, always rendered as `<svg>`, not the unicode glyph), `&times;` (close icons, also drawn as SVG).
+- Unicode marks that *do* appear: `→` (right arrow in CTA links), checkmarks in feature lists (always **SVG**, never `✓`), `&times;` for close icons. **Do not** ship em dashes in customer copy.
 
 ### Specific examples worth lifting
 
-- **Hero eyebrow (Cobalt pulse-dot in amber for accent):** `Open-source. Self-hostable. Audit-grade.`
-- **Hero headline (single line):** *"The open runtime for AI-native businesses."*
-- **Hero subhead lead:** *"Yours to install. Ours to build for you."* — bridges DIY (`npx create-revealui`) and done-for-you (RevealUI Studio agency).
-- **Hero terminal pill:** `$ npx create-revealui@latest my-app` — brand `npx`, paper-white package name, amber argument, muted `$` prompt. (Cobalt + amber palette.)
-- **Section eyebrows:** `THE PROBLEM`, `THE STACK SO FAR`, `CAPABILITIES, FILE BY FILE`, `WATCH IT WORK`, `FIVE PRIMITIVES. ONE AUDIT LOG. ONE POLICY PLANE.`, `WHO IT'S FOR`, `TRUST`, `PRICING`. 12px, `0.20em` tracking, brand color on light surface / `--rvui-text-2` on muted bands. Marketing app's `tracking-widest` Tailwind utility is remapped to `0.20em` via the index.css palette override.
-- **Comparison framing (Problem section):** a 3-column table — `Vendor sprawl` vs `Agent framework only` vs `RevealUI` — across Auth, CMS, Stripe, MCP, audit log, cost. Six rows. The old binary `"Six months of plumbing"` framing has been retired.
-- **Pricing tiers and CTAs:** Free (`$0`, "Get started free"), **Pro** (`$49/mo`, "See Pro pricing" — marked `Most popular`), Max (`$149/mo`, surfaced via "See full pricing"), Enterprise (`$299/mo`, "Talk to us"). Pro includes **10,000 agent tasks / month**.
-- **Footer mission statement:** unchanged — "Agentic business runtime. Users, content, products, payments, and AI, pre-wired, open source, and ready to deploy."
-- **Persona italic pull-quote** (governance-flavored, the new ICP): *"You have a working agent demo. Now your first procurement review wants audit trails, identity gates, and a story for who can revoke an agent at 3am — without rebuilding the runtime to get there."*
+- **Hero H1 (technical default, locked L1):** *"Build it once. Every product after starts ahead."*
+- **Hero subtitle (locked positioning):** three sentences: runtime under one roof; every agent a governed and audited user on your infrastructure; any AI provider you choose.
+- **Receipt foil:** *"If an agent did it, there's a receipt."* Signature creative moment on the hero (ReceiptCard print animation).
+- **Trust strip:** `Open source · Self-hostable · Local-first AI` (separators, not brand-colored dots).
+- **CLI pill:** `$ npx create-revealui@latest my-app` on **GetStarted**, not competing with hero CTAs.
+- **Section eyebrows:** uppercase, `0.20em` tracking, muted. Examples: `THE PROBLEM`, `WATCH IT WORK`, `PRICING`. Marketing `tracking-widest` remaps to `0.20em` in `index.css`.
+- **Problem framing:** capability **stack** (not a table, not mobile matrix cards). Quiet path blurbs (Vendor sprawl / Agent framework only / RevealUI), then each capability with three aligned answers. Label column ~`11rem`.
+- **Pricing teaser CTAs:** Free (`$0`, "Start free"), **Pro** (`$49/mo`, "See Pro pricing", quiet Recommended chip). Max / Enterprise are links to `/pricing`. **Do not** invert the Pro card to black.
+- **Footer tagline:** agentic business runtime; People, content, offers, payments, and agents.
 
 ---
 
@@ -125,7 +128,7 @@ RevealUI sounds like a **technical co-founder writing to another technical co-fo
 - **Brand hue: Cobalt.** `oklch(0.36 0.190 240)` on light (paper) surfaces, `oklch(0.58 0.150 240)` on dark surfaces (AA-compliant — lifted in shipped code). On marketing, use `var(--rvui-brand)` for ink and primary CTAs, `var(--rvui-brand-strong)` for press / deep ink moments, `var(--rvui-brand-soft)` for ringed soft chips and code-pill backgrounds. The Tailwind `emerald-*` palette is **aliased to the Cobalt ladder** in `apps/marketing/app/index.css`, so existing utility classes (`text-emerald-700`, `bg-emerald-50`, `ring-emerald-200`) all paint Cobalt without component edits.
 - **Accent: Solar Amber.** `oklch(0.80 0.165 85)` — honey-gold complement (kept away from rusty-orange). Reserved for premium tier highlights, warning state, the hero pulse-dot, and the brand-glow press shadow. **Never** becomes a primary CTA color.
 - **Neutrals are cool blue-tinted slate.** Tailwind's `gray-*` ramp is **aliased to the smoke ladder** (`oklch(L 0.025-0.032 250-260)`) so existing utilities (`text-gray-950`, `bg-gray-50`, `text-gray-600`) all read as cool slate. Admin's dark surfaces are OKLCH near-midnights (`0.16 0.030 260`) — cool blue, never warm.
-- **Primitive palette stays multi-hue.** Users (Cobalt — the brand itself), Content (blue), Products (amber, the accent), Payments (cyan), Intelligence (violet). Users moved from the prior build's emerald to Cobalt, preserving the "Users is the brand color" relationship.
+- **Primitive palette stays multi-hue.** People (Cobalt — the brand itself), Content (blue), Offers (amber, the accent), Payments (cyan), Agents (violet). People is the brand color (formerly "Users"; never "Intelligence" / "Products" on marketing).
 - **Status colors** follow the new OKLCH ladder: success = teal-green at `L=0.55` (visually distinct from the brand blue), warning = amber `L=0.70` (the accent), error = vermillion `L=0.52`, info = the brand (info IS the brand on Cobalt).
 
 ### Typography
@@ -142,22 +145,32 @@ RevealUI sounds like a **technical co-founder writing to another technical co-fo
 
 - **4px base.** Tokens go `space-0 / 1 / 2 / 3 / 4 / 5 / 6 / 8 / 10 / 12 / 16 / 20 / 24` (px multiples of 4).
 - **Page max-widths.** Marketing content boxes top out at `max-w-7xl` (80rem, 1280px). Cards-grid clamps to `max-w-5xl`. Center text blocks clamp to `max-w-2xl` or `max-w-3xl`.
-- **Section rhythm.** Every marketing section has `py-24 sm:py-32` (96/128px vertical), separated by alternating `bg-white` / `bg-gray-50` bands. **No gradients between sections.**
+- **Section rhythm.** Marketing homepage sections use `py-20 sm:py-28` (craft pass; was `py-24 sm:py-32`). Alternate paper / secondary bands. **No gradients between sections.**
 - **Horizontal padding.** `px-6 lg:px-8` on every section. Mobile breathes; desktop never goes edge-to-edge.
+
+### Marketing craft principles (2026-08)
+
+ADR `2026-07-10-frontend-design-direction` + Linear UI redesign lessons applied to marketing:
+
+1. **Thesis:** the calmest page in the room. Subtraction first, then one signature moment.
+2. **Signature moment:** the receipt (`ReceiptCard` print animation + foil). Not multi-blob gradients, not competing CLI + multi-CTA hero stacks.
+3. **Reduce visual noise:** no feature-matrix tables, no mobile "table cards," no inverted black pricing cards, no dense card grids for primitives.
+4. **Alignment + density:** fixed label columns, hairline dividers, type weight for hierarchy.
+5. **Limit brand chrome:** cobalt for primary CTAs and receipt integrity; surfaces stay neutral (opacities of smoke, not brand fills).
+6. **Homepage max 7 sections;** hero max primary + one secondary CTA.
 
 ### Backgrounds
 
 - **No full-bleed photography.** No hand-illustration. No repeating tile patterns.
-- **Hero treatment** is a soft paper-to-cobalt-glow vertical wash, plus one large radial spotlight at top center painted with `var(--rvui-brand-glow)` blurred 2xl (the `from-emerald-50` Tailwind class re-resolves to a cobalt tint via the palette alias), plus the **5 ghosted heroicons of the primitives** floated at `opacity-[0.05]` and rotated. The icons are not decorative noise — they are the same 5 primitive icons repeated on the page. On dark blocks, the spotlight switches to `var(--rvui-accent-glow)` so amber does the lighting work.
-- **Demo section**: dark `bg-gray-950` mat with a 2px pad around a white inner card, ringed and shadowed (`ring-1 ring-gray-950/10 shadow-2xl`). It's the only "device frame" trick on the site.
-- **Dark blocks** appear as compare-cards in Problem (`bg-gray-950 text-white`), as the Pricing-highlight (`bg-gray-950`, cobalt accents inside — rendered via the `emerald-400` Tailwind alias), and as the **footer**. Dark blocks always carry cobalt accents (not cobalt-700).
+- **Hero treatment:** one quiet top-down wash + a single low-opacity primary radial (not a 5-blob stack; not ghosted primitive icons).
+- **Demo / product-as-proof:** dark outer mat (`bg-foreground` pad) around a paper admin shell. Live presentation components preferred over screenshots (stale captures are dishonest).
+- **Dark blocks** on marketing: footer, receipt surface, product mat only. **Not** the Pro pricing card.
 
 ### Motion
 
 - **Easing presets.** All animation uses RevealUI's named curves: `--rvui-ease` (cubic-bezier 0.22, 1, 0.36, 1) for default, `--rvui-ease-spring` for playful overshoots, plus in/out. **No `ease-in-out`** — the curves are always shaped.
 - **Durations.** `--rvui-duration-fast` 120ms, `--rvui-duration-normal` 200ms, `--rvui-duration-slow` 350ms.
-- **Hero stagger.** A `hero-fade-up` keyframe (`translateY(12px)→0`, opacity 0→1, 600ms ease-out) plays on mount; nth-child(2) is delayed 120ms.
-- **Pulse dot.** The single live element on the hero is the cobalt `1.5px` dot in front of the eyebrow — `animate-pulse` (Tailwind default).
+- **Hero signature motion:** ReceiptCard `animate="print"` (staggered lines + one seal pulse; `prefers-reduced-motion` static).
 - **No bouncing, no scroll-jacking, no parallax.**
 
 ### Hover & press states
@@ -182,28 +195,31 @@ RevealUI sounds like a **technical co-founder writing to another technical co-fo
 
 ### Image vibe
 
-- The codebase does not ship hero photography. Imagery is **product screenshots only** — placed inside that signature gray-950 mat.
-- When an image is missing the marketing site shows a flat white inner card with the play-button overlay (the recording is "coming soon").
+- Prefer **live component frames** (`ProductFrame`: StatusDot, VerdictChip, AuditLine in admin chrome) over screenshots.
+- Screenshots only when fresh and honest; never ship scaffold captures as product proof (removed from `/products` 2026-07-11 for that reason).
 
 ### Landing page structure
 
-The marketing homepage (`HomePage.tsx`) composes these sections in this exact order:
+Technical homepage spine (`HomePage.tsx` → `TechnicalLanding`, ADR ≤7 sections):
 
 ```
-Hero → Problem → Demo → Primitives → WhatsShipped → Persona →
-Proof → PricingTeaser → Faq → GetStarted → Footer
+Hero → Problem → Demo → Primitives → Proof → PricingTeaser → GetStarted → Footer
 ```
 
-Three are new vs the prior DS guide:
+- **`Hero`:** audience toggle + locked H1/subtitle + 2 CTAs + trust strip + receipt motif.
+- **`Problem`:** capability stack (aligned answers). Not a table; not mobile matrix cards.
+- **`Demo`:** product mat + `ProductFrame` + three beats as divided columns.
+- **`Primitives`:** stacked alternating rows (People…Agents), not a 5-card grid.
+- **`Proof`:** open-source trust + live metrics (claim-drift pinned) + secondary FDE band.
+- **`PricingTeaser`:** Free + Pro on paper; Max/Enterprise as links.
+- **`GetStarted`:** closing CTAs + CLI pill + newsletter.
 
-- **`WhatsShipped.tsx`** — a 9-card "capabilities, file by file" grid linking each card directly to a source file in the repo (audit chain, RBAC engine, Stripe webhook reconciliation, CRDT replay, circuit breakers, MCP hypervisor, envelope encryption, code provenance). The trust strategy is *specificity*: a buyer sees primitives most platforms ship as separate products, or never ship at all.
-- **`Proof.tsx`** — three sub-blocks: live GitHub shields-badges + CI gates ("Live signals"), the tech stack card on a dark mat ("Standards your team already knows"), and a "Verifiable in three places" trio (repo / schema / production).
-- **`GetStarted.tsx`** — final CTA section before the footer. Mirrors the Hero terminal pill with a longer secondary CTA path.
+Non-technical audience (`?for=non-technical`) composes the operator services spine instead.
 
 ### Layout fixed elements
 
-- **Sticky header** at `z-50`, height `h-16`, white-translucent + blur, bottom border `gray-950/5`.
-- **Footer** is a single dark band; no sticky CTAs, no chat bubble, no cookie banner in the source.
+- **Sticky header** at `z-50`, height `h-16`, background + blur, bottom border.
+- **Footer** is a muted band with product / community / trust columns; secondary paths (services, agency) live here, not in the hero.
 
 ---
 
@@ -218,17 +234,21 @@ This means **for this design system, icons are reproduced inline** matching Hero
 ### The Five Primitive Icons (semantic, branded)
 
 These five icons are the visual backbone of the marketing site. They appear in:
-- the Hero background (rotated, `opacity-0.05`, scale 160–200px)
-- the Primitives grid (40px, ringed pastel chip)
-- meta links and footer columns
+- the Primitives stack (ringed accent chip)
+- product frame sidebar labels
+- meta links where relevant
 
-| Primitive | Heroicon | Accent |
-|---|---|---|
-| Users | `users` (variant with badge) | cobalt (brand) |
-| Content | `document-text` | blue |
-| Products | `archive-box` (catalog) | amber |
-| Payments | `credit-card` | cyan |
-| Intelligence | `sparkles` | violet |
+Production icons ship from `@revealui/presentation` (`IconPrimitivePeople` … `IconPrimitiveAgents`).
+
+| Primitive | Accent |
+|---|---|
+| People | cobalt (brand) |
+| Content | blue |
+| Offers | amber |
+| Payments | cyan |
+| Agents | violet |
+
+Retired labels (never reintroduce on marketing): Users, Products, Intelligence.
 
 ### Logo
 
@@ -237,7 +257,7 @@ These five icons are the visual backbone of the marketing site. They appear in:
 ### Emoji & unicode
 
 - **Emoji: never.** Confirmed across marketing site, admin app, and docs.
-- **Unicode glyphs that appear:** `→` (right arrow in link CTAs, e.g. "See full pricing →"), `&times;` and `&mdash;` in copy. Checkmarks in feature lists are always **drawn as inline SVG**, never `✓`.
+- **Unicode glyphs that appear:** `→` (right arrow in link CTAs, e.g. "See full pricing →"), `&times;` for close. Checkmarks are always **inline SVG**, never `✓`. No em dashes in copy.
 
 ---
 

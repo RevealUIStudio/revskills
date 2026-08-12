@@ -84,7 +84,7 @@ Across 10 dogfooded artifacts, these patterns are universal and you should reuse
 
 ### Microcopy — string library status
 
-- **Canonical CTA is "Start free"** — not "Talk to us about being a design partner" (the current `cta.signup` entry contradicts the README).
+- **Canonical CTA is "Start free"** — not design-partner or early-access phrasing on the technical hero.
 - **"Your role can't do that"** is anti-pattern phrasing. Use **"This action needs the admin role"** — blame the action, not the user identity.
 - Missing categories (build before consuming): success & confirmations, destructive flows, loading & in-flight, agent-specific.
 
@@ -93,16 +93,29 @@ Across 10 dogfooded artifacts, these patterns are universal and you should reuse
 | Rule | Detail |
 |---|---|
 | **No emoji**, anywhere | Checkmarks/close icons are always inline SVG |
+| **No em dashes** in copy | Hardline; use sentences or commas |
 | **Sentence case** for headings | h1, h2, section titles. Title case only for proper nouns + nav labels |
 | **ALL CAPS** only for eyebrows | At `0.20em` letter-spacing, 11–12px size, brand color or smoke-500 |
 | **Second person** for the user | First-person plural ("we") only in legal/contact contexts |
 | **Operational verbs** | build, run, ship, deploy, wire, save, publish. Never revolutionize / supercharge / unleash / empower |
 | **Brand casing** | `RevealUI` in prose. `REVEALUI` only for legal entity. `Rev`-prefix camel for sub-products (RevDev, RevForge) |
+| **Primitives vocabulary** | People, Content, Offers, Payments, Agents (never Users/Products/Intelligence on marketing) |
 | **Honest about status** | Stripe in test mode? Say so. Component preview? Say so. Don't hide pre-launch state |
 | **Canonical CTAs** | "Start free", "See Pro pricing", "Talk to us" — never "Buy now" or "Subscribe" |
 | **Numbers stay numeric** | "60 seconds", not "sixty seconds" |
 | **Code names in backticks** | `npx create-revealui@latest`, `--rvui-brand` |
 | **Status terms in `**bold**`** | `**Pro**`, `**TEST mode**`, `**preview**` — never colored pills outside admin UI |
+
+## Marketing craft bar (homepage)
+
+When designing marketing (especially `/`):
+
+1. Max 7 sections; hero ≤2 CTAs.
+2. Signature moment = receipt, not multi-blob gradients.
+3. Problem = capability stack (aligned type columns). Never spreadsheet tables or mobile matrix cards.
+4. Product-as-proof = live frame / product mat; no stale screenshots.
+5. Pricing teaser: paper cards + quiet Recommended chip; never inverted black Pro card.
+6. Code over docs: if this skill and `apps/marketing` disagree, **code wins**, then update this skill.
 
 ## Token usage rules
 
