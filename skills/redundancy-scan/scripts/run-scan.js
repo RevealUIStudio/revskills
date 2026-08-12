@@ -11,7 +11,7 @@
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
-const { parseArgs, ensureDirFor } = require("./lib.js");
+const { parseArgs } = require("./lib.js");
 
 function run(script, args) {
   const r = spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
@@ -39,13 +39,13 @@ function main() {
 
   const root = path.resolve(args.root);
   const configArgs = args.config ? ["--config", args.config] : [];
-  const prefix = args.prefix || (args.fleet ? "" : "");
 
   const meta = {
     root,
     fleet: Boolean(args.fleet),
     started: new Date().toISOString(),
     outDir,
+    prefix: args.prefix || "",
   };
   fs.writeFileSync(path.join(outDir, "RUN.json"), JSON.stringify(meta, null, 2) + "\n");
 

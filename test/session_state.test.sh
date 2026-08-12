@@ -254,3 +254,69 @@ test_ss_daemon_snapshot_write_skips_without_file() {
   unset DAEMON_SOCKET REVEALUI_COORD_ROOT GROK_ACTIVE_SESSIONS
   _ss_clear_session_env
 }
+
+test_ss_snapshot_sections_to_markdown_roundtrip() {
+  _ss_load
+  local sid sections md json
+  sid="roundtrip-sid"
+  sections='{"resumeFromHere":"do the thing","whatShipped":"revskills#n","activeConstraints":"c","doNotRepeat":"d","openLooseEnds":"e"}'
+  md="$(ss_snapshot_sections_to_markdown "$sid" "$sections")"
+  assert_eq "1" "$(printf '%s' "$md" | grep -c '## Resume-From-Here')" "markdown has Resume-From-Here heading"
+  local tmp
+  tmp="$(make_sandbox)/rt.md"
+  printf '%s' "$md" >"$tmp"
+  json="$(ss_snapshot_sections_json "$tmp")"
+  assert_eq "1" "$(printf '%s' "$json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(1 if d.get("resumeFromHere")=="do the thing" and d.get("whatShipped")=="revskills#n" else 0)')" \
+    "markdown→json roundtrip preserves sections"
+}
+
+test_ss_snapshot_load_path_prefers_filesystem() {
+  _ss_load
+  local tmp sid path got
+  tmp="$(make_sandbox)"
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  export DAEMON_SOCKET="$tmp/no-such.sock"
+  export REVEALUI_SOCKET="$tmp/no-such.sock"
+  export GROK_ACTIVE_SESSIONS="$tmp/no-active.json"
+  sid="file-prefer-sid"
+  export AGENT_SESSION_ID="$sid"
+  mkdir -p "$REVEALUI_COORD_ROOT/snapshots"
+  path="$REVEALUI_COORD_ROOT/snapshots/$sid.md"
+  cat >"$path" <<'MD'
+## Resume-From-Here
+from file
+
+## What-Shipped
+none
+
+## Active-Constraints
+none
+
+## Do-Not-Repeat
+none
+
+## Open-Loose-Ends
+none
+MD
+  got="$(ss_snapshot_load_path "$sid")"
+  assert_eq "$path" "$got" "load_path returns filesystem SSOT when present"
+  unset DAEMON_SOCKET REVEALUI_SOCKET REVEALUI_COORD_ROOT GROK_ACTIVE_SESSIONS AGENT_SESSION_ID
+  _ss_clear_session_env
+}
+
+test_ss_snapshot_load_path_empty_without_file_or_daemon() {
+  _ss_load
+  local tmp sid got
+  tmp="$(make_sandbox)"
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  export DAEMON_SOCKET="$tmp/no-such.sock"
+  export REVEALUI_SOCKET="$tmp/no-such.sock"
+  export GROK_ACTIVE_SESSIONS="$tmp/no-active.json"
+  sid="missing-sid"
+  export AGENT_SESSION_ID="$sid"
+  mkdir -p "$REVEALUI_COORD_ROOT/snapshots"
+  got="$(ss_snapshot_load_path "$sid")"
+  assert_eq "" "$got" "load_path empty when no file and no daemon"
+  unset DAEMON_SOCKET REVEALUI_SOCKET REVEALUI_COORD_ROOT GROK_ACTIVE_SESSIONS AGENT_SESSION_ID
+  _ss_clear_session_env
+}

@@ -1,58 +1,95 @@
+/**
+ * Pricing teaser craft (2026-08): no inverted black Pro card.
+ * Highlight with quiet badge + light ring; both Free and Pro on paper surfaces.
+ * Full pricing page may still show Max/Enterprise elsewhere.
+ */
 const PRICING_TIERS = [
-  { name:'Free',  price:'$0',   sub:'OSS · MIT · community',          features:['All five primitives','Local dev runtime','Community Discord','Self-host forever'], cta:'Start building',  variant:'soft'  },
-  { name:'Pro',   price:'$49',  sub:'10k agent tasks/mo · SLA · SSO', features:['Everything in Free','Hosted runtime','SSO + audit log','Email support'],          cta:'Start 14-day trial', variant:'presence', popular:true },
-  { name:'Enterprise', price:'$299', sub:'Audit log · multi-tenant · dedicated', features:['Everything in Pro','Multi-tenant','Dedicated infra','99.99% SLA'], cta:'Talk to sales',    variant:'authority' }
+  {
+    name: 'Free',
+    price: '$0',
+    period: '',
+    description: 'Run the open stack on your own infrastructure. Most packages stay MIT forever. No telemetry.',
+    features: ['Full primitive stack', 'Admin dashboard + API', 'Self-host on any infra', 'Bring your own model (open-weight default)'],
+    cta: 'Start free',
+    highlight: false,
+  },
+  {
+    name: 'Pro',
+    price: '$49',
+    period: '/mo',
+    description: 'Add the AI layer, an agent task allowance, and priority support when you scale agents.',
+    features: ['Everything in Free', '10,000 agent tasks / month included', 'Pro AI features (agents, MCP, memory), beta in production', 'Priority support'],
+    cta: 'See Pro pricing',
+    highlight: true,
+  },
 ];
 
 function Pricing() {
   return (
-    <section id="pricing" className="bg-brand-50 py-24 sm:py-32">
+    <section id="pricing" className="py-20 sm:py-28" style={{background:'#f1f5fa'}}>
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-400">Pricing</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.20em]" style={{color:'#4f6580'}}>Pricing</p>
           <h2 style={{fontFamily:'"Inter Tight", sans-serif'}} className="mt-3 text-3xl font-bold tracking-tight text-brand-900 sm:text-4xl">
-            Free to start. Fair to scale.
+            Start free. Pay when you scale.
           </h2>
-          <p className="mt-6 text-lg leading-8 text-brand-500">
-            Pro and Enterprise are <a href="#" className="text-brand-700 underline decoration-brand-300 underline-offset-4">Fair Source</a> — source-available, free for small teams.
+          <p className="mt-5 text-lg leading-8" style={{color:'#4f6580'}}>
+            Self-host the open stack at no cost. Pro, Max, and Enterprise add agent capacity and support. Pro and Max include a 7-day free trial.
           </p>
         </div>
-        <div className="mx-auto mt-14 grid max-w-5xl grid-cols-1 gap-5 lg:grid-cols-3 items-stretch">
-          {PRICING_TIERS.map(t => {
-            const isAuth = t.variant === 'authority';
-            const isPres = t.variant === 'presence';
-            const cardStyle = isAuth
-              ? {background:'#07090e', color:'#e0e7eb', boxShadow:'0 12px 28px rgba(7,9,14,0.32), inset 0 0 0 1px rgba(194,205,213,0.22)'}
-              : isPres
-                ? {background:'#fff', boxShadow:'inset 0 0 0 2px #003E7A, 0 12px 28px rgba(0,62,122,0.22)'}
-                : {background:'#e3eafc', boxShadow:'inset 0 0 0 1px #9eb6dc'};
-            return (
-              <div key={t.name} className="relative flex flex-col rounded-2xl p-8" style={cardStyle}>
-                {isPres && <div className="absolute -inset-px rounded-2xl pointer-events-none" style={{background:'radial-gradient(120% 70% at 0% 0%, rgba(0,62,122,0.12), transparent 60%)', mixBlendMode:'multiply'}} />}
-                {isAuth && <div className="absolute inset-0 rounded-2xl pointer-events-none overflow-hidden"><div className="absolute right-[-30%] top-[-30%] w-[170px] h-[170px] rounded-full" style={{background:'radial-gradient(closest-side,rgba(87,114,125,0.55),rgba(0,62,122,0.20) 55%,transparent 80%)', filter:'blur(8px)'}} /></div>}
-                {t.popular && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{background:'linear-gradient(110deg,#004F8C 0%,#003E7A 100%)', color:'#f8fafa', boxShadow:'0 4px 14px rgba(0,62,122,0.32), inset 0 0 0 1px rgba(255,255,255,0.22)'}}>Most popular</span>}
-                <div className="relative">
-                  <div className={isAuth?'text-sm font-semibold':'text-sm font-semibold text-brand-900'} style={isAuth?{color:'#9eb6dc'}:null}>{t.name}</div>
-                  <div className="mt-3 flex items-baseline gap-1">
-                    <span style={{fontFamily:'"Inter Tight", sans-serif', color:isAuth?'#f8fafa':'#001540'}} className="text-5xl font-extrabold tracking-tight">{t.price}</span>
-                    {t.price !== '$0' && <span className="text-sm" style={{color:isAuth?'#4485bd':'#4485bd'}}>/mo</span>}
-                  </div>
-                  <p className="mt-2 text-sm" style={{color:isAuth?'#9eb6dc':'#004F8C'}}>{t.sub}</p>
-                  <ul className="mt-6 space-y-3 flex-1">
-                    {t.features.map(f => (
-                      <li key={f} className="flex items-start gap-2 text-sm">
-                        <svg className="h-5 w-5 flex-none" fill="currentColor" viewBox="0 0 20 20" style={{color:isAuth?'#4485bd':'#003E7A'}}><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
-                        <span style={{color:isAuth?'#e0e7eb':'#001540'}}>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <a href="#" className="mt-8 inline-flex items-center justify-center h-11 rounded-[10px] text-sm font-semibold w-full transition-all" style={isAuth ? {background:'#f8fafa', color:'#0c181e'} : isPres ? {background:'#003E7A', color:'#f8fafa', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.15), 0 1px 2px rgba(13,10,31,0.20), 0 6px 20px rgba(0,62,122,0.42)'} : {background:'#fff', color:'#001540', boxShadow:'inset 0 0 0 1px #9eb6dc'}}>
-                    {t.cta} →
-                  </a>
-                </div>
+
+        <div className="mx-auto mt-14 grid max-w-3xl grid-cols-1 gap-5 sm:mt-16 sm:grid-cols-2 sm:gap-6">
+          {PRICING_TIERS.map((t) => (
+            <div
+              key={t.name}
+              className="relative flex flex-col rounded-2xl bg-white p-7 sm:p-8"
+              style={{
+                boxShadow: t.highlight
+                  ? '0 8px 24px rgba(10,19,32,0.06), inset 0 0 0 1px rgba(10,19,32,0.10)'
+                  : 'inset 0 0 0 1px rgba(10,19,32,0.08)',
+              }}
+            >
+              {t.highlight && (
+                <span
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.20em]"
+                  style={{background:'#f1f5fa', color:'#0a1320', boxShadow:'inset 0 0 0 1px rgba(10,19,32,0.10)'}}
+                >
+                  Recommended
+                </span>
+              )}
+              <h3 style={{fontFamily:'"Inter Tight", sans-serif'}} className="text-lg font-semibold text-brand-900">{t.name}</h3>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span style={{fontFamily:'"Inter Tight", sans-serif'}} className="text-4xl font-bold tracking-tight text-brand-900 tabular-nums">{t.price}</span>
+                {t.period && <span className="text-sm" style={{color:'#4f6580'}}>{t.period}</span>}
               </div>
-            );
-          })}
+              <p className="mt-4 text-sm leading-6" style={{color:'#4f6580'}}>{t.description}</p>
+              <ul className="mt-6 flex-1 space-y-3 list-none p-0 m-0">
+                {t.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-brand-900">
+                    <svg className="mt-0.5 h-4 w-4 flex-none" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M3.5 8.5l3 3 6-7" stroke="#003E7A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a
+                href="#"
+                className="mt-8 inline-flex h-11 w-full items-center justify-center rounded-[10px] text-sm font-semibold transition-all"
+                style={
+                  t.highlight
+                    ? {background:'#003E7A', color:'#f8fafa', boxShadow:'0 6px 20px rgba(0,62,122,0.28)'}
+                    : {background:'#fff', color:'#001540', boxShadow:'inset 0 0 0 1px #9eb6dc'}
+                }
+              >
+                {t.cta}
+              </a>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10 text-center">
+          <a href="#" className="text-sm font-medium text-brand-600 hover:text-brand-900">See full pricing →</a>
         </div>
       </div>
     </section>
