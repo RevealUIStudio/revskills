@@ -48,29 +48,18 @@ revealui-design/  (this skill)
 ├── README.md                       — you are here (canonical doc)
 ├── CLAUDE.md                       — brand orientation, open issues, voice rules
 └── ui_kits/
-    ├── marketing/                  — cobalt light marketing site (self-contained)
+    ├── marketing/                  — pointer only (GAP-479 retired .jsx kits)
     │   ├── README.md
-    │   ├── index.html                open directly in browser — no external deps
-    │   ├── NavBar.jsx
-    │   ├── Hero.jsx              — receipt motif hero
-    │   ├── Problem.jsx           — capability stack (no table)
-    │   ├── Demo.jsx              — product mat + admin frame
-    │   ├── Primitives.jsx
-    │   ├── Pricing.jsx           — calm Free/Pro teaser
-    │   ├── Faq.jsx
-    │   └── Footer.jsx
-    └── admin/                      — cobalt dark Studio dashboard (self-contained)
+    │   └── index.html              — compose @revealui/presentation in .tsx
+    └── admin/                      — pointer only (GAP-479 retired .jsx kits)
         ├── README.md
-        ├── index.html                open directly in browser — no external deps
-        ├── Sidebar.jsx
-        ├── Topbar.jsx
-        └── Dashboard.jsx
+        └── index.html              — compose @revealui/presentation in .tsx
 
 Token source (not in this skill — read from the package):
   @revealui/tokens/design-context/  — committed, CI-drift-gated token pack
 ```
 
-The canonical token source is the `@revealui/tokens/design-context/` pack — never a local snapshot. The ui_kits inline a minimal cobalt token subset for standalone browser use; production code should read from the pack.
+The canonical token source is the `@revealui/tokens/design-context/` pack — never a local snapshot. Do not add Babel-in-browser `.jsx` kits. Production and prototype React compose `@revealui/presentation` in TypeScript.
 
 ---
 
