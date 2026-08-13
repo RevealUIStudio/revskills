@@ -27,7 +27,7 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 
 ## Skills
 
-**22** skills total. Public OSS pack needs no RevFleet layout. Studio workflow pack assumes `~/revfleet` (and related Studio services), but not a single vendor CLI.
+**24** skills total. Public OSS pack needs no RevFleet layout. Studio workflow pack assumes `~/revfleet` (and related Studio services), but not a single vendor CLI.
 
 ### Framework & app patterns
 
@@ -87,6 +87,8 @@ These skills assume RevFleet layout (`~/revfleet/`, private planning hub, RevVau
 | [revealui-sync-lts](skills/revealui-sync-lts/) | **Deprecated** — DR moved to weekly WSL snapshots (revkit) |
 | [revealui-sync-rules](skills/revealui-sync-rules/) | Rules distribution topology (revcon / control-layer entry preferred) |
 | [revealui-skills-test](skills/revealui-skills-test/) | Static validator for Studio skill installs (multi-home + revskills SoT) |
+| [revealui-tracker](skills/revealui-tracker/) | Fleet TRACKER auto-sync (`/tracker`, `/next`) |
+| [revvault-resolve](skills/revvault-resolve/) | Resolve keys from revvault. Never print values. Never Stripe Projects. |
 
 ## Contributing
 
