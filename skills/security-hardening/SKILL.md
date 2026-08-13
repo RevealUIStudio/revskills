@@ -135,7 +135,7 @@ const users = await db.execute(`SELECT * FROM users WHERE email = '${userInput}'
 
 - Never commit `.env` files, API keys, or credentials
 - Prefer a single encrypted vault (or platform secret store) as source of truth; inject at runtime
-- **RevealUI Studio / RevFleet:** secrets live in **revvault** (`revvault run --env KEY=path -- cmd` / `with-secrets`). Env vars are a downstream injection surface, not the store. See fleet `secrets` hardline.
+- **RevealUI Studio / RevFleet:** secrets live in **revvault** (`revvault run --env KEY=path -- cmd` / `with-secrets`). Env vars are a downstream injection surface, not the store. See fleet `secrets` hardline. Lookup and inject: **revvault-resolve**.
 - Generic apps: environment variables or managed secret stores; never hardcode
 - Rotate credentials after any suspected exposure
 - Scan for secrets in CI (Gitleaks, GitHub Secret Scanning)
