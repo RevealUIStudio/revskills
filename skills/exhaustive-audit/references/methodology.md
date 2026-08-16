@@ -17,14 +17,17 @@ If inventory and coverage disagree, the audit is incomplete. Full stop.
 
 ## Phases
 
+### Phase 0 — Product assessment (optional, fleet honesty)
+
+Before or beside line reads: one `reports/assessment.md` using `templates/assessment.md`. Verdicts are per repo (`shippable-core` / `sold-ahead-of-runtime` / `infra-only` / `archive-grade` / `leftover`). This is not coverage. Do not call the run exhaustive after Phase 0 alone.
+
 ### Phase A — Open run (once)
 
-1. Define scope root(s): one repo or fleet parent.
-2. Pin ref: `git rev-parse HEAD` into `AUDIT-RUN.yml`.
-3. Build manifest (`manifest-build.js --exclude-defaults`).
-4. Build shards (`shard-plan.js`).
-5. Optional: `revkg scan` for graph substrate.
-6. Workboard note: `audit-run:<slug>` claimed for coordination.
+1. Define scope: one repo or `open-run.js --fleet` (allowlist in `scripts/lib/fleet-scope.js`; `archive/` is opt-in).
+2. `open-run.js` pins each repo HEAD, writes `AUDIT-RUN.yml`, builds manifest + `--by-repo` shards.
+3. Optional: `revkg scan` for graph substrate.
+4. Workboard note: `audit-run:<slug>` claimed for coordination.
+5. Do not claim a shard in the open step.
 
 ### Phase B — Shard execution (N sessions)
 
@@ -34,7 +37,7 @@ For each shard:
 2. For each path: full Read; classify; coverage + findings JSONL append.
 3. Large files: paginate Read with offset/limit until `lines_read[1] === manifest.lines`.
 4. Binary: `blocked` or `skipped-generated` with reason (do not pretend to "read" bytes as text).
-5. Release claim; update progress.
+5. `--complete` the shard (status `done`). `--release` only to abandon. Update progress.
 
 ### Phase C — Cross-check pass
 
@@ -58,7 +61,8 @@ Use `kg_neighbors` / grep for callers after body read.
 - Shards are the unit of parallelism (path sets disjoint).
 - Findings may race: use unique `F-` prefixes per agent (`F-g1-0001`).
 - Never rewrite another agent's coverage row; append superseding row (last wins in status tool).
-- Serial resume: pick first `status: open` shard.
+- Serial resume: pick first `status: open` shard. Skip `done`.
+- `--mode code` (default) does not treat MD-truth C3 statuses as terminal. Use `--mode md-truth` only for GAP-407 runs.
 
 ## Correctness standard
 

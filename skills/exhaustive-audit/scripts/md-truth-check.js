@@ -91,7 +91,15 @@ function coverageCheck(runId) {
 
   const r = spawnSync(
     process.execPath,
-    [path.join(HERE, "coverage-status.js"), "--manifest", combined, "--ledger", ledger],
+    [
+      path.join(HERE, "coverage-status.js"),
+      "--manifest",
+      combined,
+      "--ledger",
+      ledger,
+      "--mode",
+      "md-truth",
+    ],
     { encoding: "utf8" },
   );
   process.stdout.write(r.stdout || "");

@@ -3,13 +3,14 @@
  * manifest-build.js — exhaustive path inventory for an audit run.
  *
  * Every file under --root (minus excludes) becomes one JSONL record:
- *   path, abs, bytes, lines, sha256, ext, kind
+ *   path, abs, bytes, lines, sha256, ext, kind, repo
  *
  * Completeness is machine-checked later via coverage-status.js.
  *
  * Usage:
  *   node manifest-build.js --root ~/revfleet/revealui --out /path/manifest.jsonl
- *   node manifest-build.js --root ~/revfleet --fleet --out /path/manifest.jsonl
+ *   node manifest-build.js --root ~/revfleet --fleet --exclude-defaults --out /path/manifest.jsonl
+ *   node manifest-build.js --root ~/revfleet --fleet --include-archive --out /path/manifest.jsonl
  *   node manifest-build.js --root . --exclude-defaults --exclude '.pgdata/**'
  */
 "use strict";
@@ -17,6 +18,10 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const {
+  resolveFleetAllowlist,
+  shouldWalkFleetChild,
+} = require("./lib/fleet-scope");
 
 const DEFAULT_EXCLUDES = [
   "node_modules",
@@ -42,7 +47,13 @@ const DEFAULT_EXCLUDES = [
 ];
 
 function parseArgs(argv) {
-  const out = { exclude: [], excludeDefaults: false, fleet: false };
+  const out = {
+    exclude: [],
+    excludeDefaults: false,
+    fleet: false,
+    includeArchive: false,
+    repos: [],
+  };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--root") out.root = argv[++i];
@@ -50,14 +61,21 @@ function parseArgs(argv) {
     else if (a === "--exclude-defaults") out.excludeDefaults = true;
     else if (a === "--exclude") out.exclude.push(argv[++i]);
     else if (a === "--fleet") out.fleet = true;
-    else if (a === "--help" || a === "-h") out.help = true;
+    else if (a === "--include-archive") out.includeArchive = true;
+    else if (a === "--repos") {
+      const raw = argv[++i] || "";
+      out.repos = raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    } else if (a === "--help" || a === "-h") out.help = true;
   }
   return out;
 }
 
 function usage() {
   process.stderr.write(
-    "Usage: node manifest-build.js --root <dir> --out <manifest.jsonl> [--exclude-defaults] [--exclude name]...\n",
+    "Usage: node manifest-build.js --root <dir> --out <manifest.jsonl> [--exclude-defaults] [--exclude name]... [--fleet] [--include-archive] [--repos a,b]\n",
   );
 }
 
@@ -69,13 +87,22 @@ function shouldSkipDir(name, excludeSet) {
 
 function classify(rel, ext) {
   const base = path.basename(rel);
-  if (base === "package.json" || base === "pnpm-lock.yaml" || base === "Cargo.toml") return "manifest";
+  if (base === "package.json" || base === "pnpm-lock.yaml" || base === "Cargo.toml")
+    return "manifest";
   if (ext === ".md" || ext === ".mdx") return "doc";
   if (ext === ".yml" || ext === ".yaml" || ext === ".toml" || ext === ".json" || ext === ".jsonc")
     return "config";
-  if (ext === ".ts" || ext === ".tsx" || ext === ".js" || ext === ".jsx" || ext === ".mjs" || ext === ".cjs")
+  if (
+    ext === ".ts" ||
+    ext === ".tsx" ||
+    ext === ".js" ||
+    ext === ".jsx" ||
+    ext === ".mjs" ||
+    ext === ".cjs"
+  )
     return "code";
-  if (ext === ".rs" || ext === ".go" || ext === ".py" || ext === ".sh" || ext === ".ps1") return "code";
+  if (ext === ".rs" || ext === ".go" || ext === ".py" || ext === ".sh" || ext === ".ps1")
+    return "code";
   if (ext === ".sql") return "schema";
   if (ext === ".css" || ext === ".scss") return "style";
   if (base.startsWith(".env")) return "env";
@@ -88,7 +115,6 @@ function countLines(buf) {
   for (let i = 0; i < buf.length; i++) {
     if (buf[i] === 10) n++;
   }
-  // trailing newline: last empty line still counts as editor line end; keep simple
   if (buf[buf.length - 1] === 10) n--;
   if (n < 1) n = 1;
   return n;
@@ -102,7 +128,7 @@ function isProbablyBinary(buf) {
   return false;
 }
 
-function walk(rootAbs, relBase, excludeSet, records) {
+function walk(rootAbs, relBase, excludeSet, records, repo) {
   let entries;
   try {
     entries = fs.readdirSync(rootAbs, { withFileTypes: true });
@@ -114,7 +140,7 @@ function walk(rootAbs, relBase, excludeSet, records) {
     const name = ent.name;
     if (ent.isDirectory()) {
       if (shouldSkipDir(name, excludeSet)) continue;
-      walk(path.join(rootAbs, name), path.join(relBase, name), excludeSet, records);
+      walk(path.join(rootAbs, name), path.join(relBase, name), excludeSet, records, repo);
       continue;
     }
     if (!ent.isFile()) continue;
@@ -129,6 +155,7 @@ function walk(rootAbs, relBase, excludeSet, records) {
         abs,
         error: String(err.message),
         kind: "unreadable",
+        repo,
       });
       continue;
     }
@@ -145,6 +172,7 @@ function walk(rootAbs, relBase, excludeSet, records) {
       ext,
       kind: binary ? "binary" : classify(rel, ext),
       binary,
+      repo,
     });
   }
 }
@@ -167,17 +195,23 @@ function main() {
   }
 
   const records = [];
+  const walked = [];
   if (args.fleet) {
-    // Inventory each immediate child dir as repo-relative paths prefixed by name
+    const allow = resolveFleetAllowlist({
+      repos: args.repos,
+      includeArchive: args.includeArchive,
+    });
     const kids = fs.readdirSync(rootAbs, { withFileTypes: true });
     for (const ent of kids) {
       if (!ent.isDirectory()) continue;
-      if (shouldSkipDir(ent.name, excludeSet)) continue;
-      if (ent.name.startsWith(".") && ent.name !== ".jv") continue;
-      walk(path.join(rootAbs, ent.name), ent.name, excludeSet, records);
+      if (!shouldWalkFleetChild(ent.name, allow)) continue;
+      walked.push(ent.name);
+      walk(path.join(rootAbs, ent.name), ent.name, excludeSet, records, ent.name);
     }
   } else {
-    walk(rootAbs, "", excludeSet, records);
+    const repo = path.basename(rootAbs);
+    walked.push(repo);
+    walk(rootAbs, "", excludeSet, records, repo);
   }
 
   records.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
@@ -202,6 +236,8 @@ function main() {
         files: records.length,
         totalLines,
         totalBytes,
+        fleet: Boolean(args.fleet),
+        repos: walked,
         exclude: [...excludeSet],
       },
       null,

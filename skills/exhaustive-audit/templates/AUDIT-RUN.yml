@@ -5,14 +5,19 @@ opened: YYYY-MM-DDTHH:MM:SSZ
 closed: null
 opened_by: agent-or-human-id
 
+mode: code # code | md-truth  (C3 statuses only count in md-truth)
+
 scope:
-  # Absolute or fleet-relative roots inventoried
+  # Prefer open-run.js to write this file. Absolute or fleet-relative roots.
+  fleet: false
+  include_archive: false
   roots:
     - ~/revfleet/revealui
   # git pins at open (code-over-docs)
   pins:
     - repo: revealui
       head: REPLACE_WITH_git_rev_parse_HEAD
+      branch: REPLACE_WITH_git_abbrev_ref
   exclude_defaults: true
   extra_excludes: []
 
@@ -32,6 +37,7 @@ artifacts:
   coverage: ledger/coverage.jsonl
   findings: ledger/findings.jsonl
   progress: reports/progress.md
+  assessment: reports/assessment.md
   final: reports/final.md
   system_map: reports/system-map.md
 
