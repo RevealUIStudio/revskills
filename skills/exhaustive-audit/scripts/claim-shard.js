@@ -7,6 +7,7 @@
  *
  * Usage:
  *   node claim-shard.js --run <run-root> --shard shard-003 --agent grok-1
+ *   node claim-shard.js --run <run-root> --shard shard-003 --complete --agent grok-1
  *   node claim-shard.js --run <run-root> --shard shard-003 --release
  */
 "use strict";
@@ -22,6 +23,7 @@ function parseArgs(argv) {
     else if (a === "--shard") out.shard = argv[++i];
     else if (a === "--agent") out.agent = argv[++i];
     else if (a === "--release") out.release = true;
+    else if (a === "--complete") out.complete = true;
     else if (a === "--help" || a === "-h") out.help = true;
   }
   return out;
@@ -81,9 +83,13 @@ function main() {
   const args = parseArgs(process.argv);
   if (args.help || !args.run || !args.shard) {
     process.stderr.write(
-      "Usage: node claim-shard.js --run <run-root> --shard <id> (--agent <id> | --release)\n",
+      "Usage: node claim-shard.js --run <run-root> --shard <id> (--agent <id> | --complete --agent <id> | --release)\n",
     );
     process.exit(args.help ? 0 : 1);
+  }
+  if (args.release && args.complete) {
+    process.stderr.write("claim-shard: use either --release or --complete, not both\n");
+    process.exit(1);
   }
   if (!args.release && !args.agent) {
     process.stderr.write("claim-shard: --agent required unless --release\n");
@@ -111,6 +117,10 @@ function main() {
   const claimFile = path.join(claimsDir, `${args.shard}.yml`);
 
   if (args.release) {
+    if (shard.status === "done") {
+      process.stderr.write(`claim-shard: ${args.shard} is done; not reopening\n`);
+      process.exit(2);
+    }
     unlinkIfPresent(claimFile);
     shard.status = "open";
     delete shard.claimedBy;
@@ -118,6 +128,36 @@ function main() {
     fs.writeFileSync(shardsPath, JSON.stringify(plan, null, 2) + "\n");
     process.stdout.write(`released ${args.shard}\n`);
     return;
+  }
+
+  if (args.complete) {
+    if (shard.status === "done" && shard.completedBy === args.agent) {
+      process.stdout.write(`already complete ${args.shard} by ${args.agent}\n`);
+      return;
+    }
+    if (shard.status === "claimed" && shard.claimedBy && shard.claimedBy !== args.agent) {
+      process.stderr.write(
+        `claim-shard: ${args.shard} claimed by ${shard.claimedBy}, not ${args.agent}\n`,
+      );
+      process.exit(2);
+    }
+    if (shard.status !== "claimed" && shard.status !== "done") {
+      process.stderr.write(`claim-shard: ${args.shard} is ${shard.status}, cannot complete\n`);
+      process.exit(2);
+    }
+    const now = new Date().toISOString();
+    unlinkIfPresent(claimFile);
+    shard.status = "done";
+    shard.completedBy = args.agent;
+    shard.completedAt = now;
+    fs.writeFileSync(shardsPath, JSON.stringify(plan, null, 2) + "\n");
+    process.stdout.write(`completed ${args.shard} by ${args.agent}\n`);
+    return;
+  }
+
+  if (shard.status === "done") {
+    process.stderr.write(`claim-shard: ${args.shard} is done; not reclaiming\n`);
+    process.exit(2);
   }
 
   if (shard.status === "claimed" && shard.claimedBy && shard.claimedBy !== args.agent) {

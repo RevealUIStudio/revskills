@@ -6,12 +6,13 @@ description: >
   read and verify every line with a machine-checked coverage ledger, cross-check
   docs/config/code, and optionally map the system via the knowledge graph (revkg / kg_*).
   Use when the user runs /exhaustive-audit, asks for a full-codebase audit, line-level
-  verification, multi-agent audit, fleet-wide audit, or "account for every file/line".
+  verification, multi-agent audit, fleet-wide audit, "account for every file/line",
+  or a brutally honest per-repo product assessment (Phase 0).
 license: MIT
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.1.0"
+  version: "0.2.0"
   website: https://revealui.com
   related:
     - knowledge-graph
@@ -39,10 +40,11 @@ Knowledge graph (`revkg` / `kg_*`) **maps and relates**; it does **not** replace
 |---------|--------|
 | `/exhaustive-audit` or "audit every file/line" | Run full framework |
 | Multi-session / multi-agent audit | Open run + shard claims |
-| "Is the fleet correct?" | Fleet mode: one run root, per-repo shards |
+| "Is the fleet correct?" / product honesty | Phase 0 (`reports/assessment.md`), then line-level if still needed |
+| Fleet line inventory | `open-run.js --fleet` (allowlist in `scripts/lib/fleet-scope.js`) |
 | Single package deep dive | Scope to that path; still inventory-first |
 
-**Not for:** tiny one-file reviews (use normal review skill); pure claim-drift (use claims validators).
+**Not for:** tiny one-file reviews (use normal review skill); pure claim-drift (use claims validators). A Phase 0 verdict is not line-complete and must not be called exhaustive.
 
 ## Artifacts (canonical locations)
 
@@ -59,6 +61,7 @@ Pick one run root (prefer an operator-private audits directory):
     findings.jsonl           # structured findings
   reports/
     progress.md              # human progress
+    assessment.md            # Phase 0 per-repo honesty (not line coverage)
     system-map.md            # optional KG-derived map
     final.md                 # closeout report
 ```
@@ -78,17 +81,26 @@ All under `$HOME/revfleet/revskills/skills/exhaustive-audit/scripts/`:
 
 | Script | Purpose |
 |--------|---------|
-| `manifest-build.js` | Walk scope → `manifest.jsonl` (every file) |
-| `shard-plan.js` | Partition manifest into non-overlapping shards |
-| `coverage-status.js` | Report covered vs missing; exit 1 if incomplete |
-| `claim-shard.js` | Claim/release a shard (workboard-friendly) |
+| `open-run.js` | Create run dir, pin HEADs, write `AUDIT-RUN.yml`, build manifest + shards. Does **not** claim. |
+| `manifest-build.js` | Walk scope → `manifest.jsonl` (every file; `repo` on each row) |
+| `shard-plan.js` | Partition manifest. `--by-repo` (default when 2+ repos) never mixes repos. |
+| `coverage-status.js` | Covered vs missing; `--mode code` (default) or `md-truth`. Exit 1 if incomplete. |
+| `claim-shard.js` | Claim / `--complete` (status `done`) / `--release` (back to `open`) |
+| `lib/fleet-scope.js` | Default fleet allowlist + skip rules (SSOT) |
 
 ```bash
 SKILL="$HOME/revfleet/revskills/skills/exhaustive-audit"
-node "$SKILL/scripts/manifest-build.js" --root ~/revfleet/revealui --out "$RUN_ROOT/manifest.jsonl"
-node "$SKILL/scripts/shard-plan.js" --manifest "$RUN_ROOT/manifest.jsonl" --out "$RUN_ROOT/shards.json" --target-lines 8000
-node "$SKILL/scripts/coverage-status.js" --manifest "$RUN_ROOT/manifest.jsonl" --ledger "$RUN_ROOT/ledger/coverage.jsonl"
+export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$HOME/revfleet/archive/cold}"
+node "$SKILL/scripts/open-run.js" --root "$HOME/revfleet" --fleet --slug fleet-p0
+# or one repo:
+node "$SKILL/scripts/open-run.js" --root "$HOME/revfleet/revealui" --slug revealui
+node "$SKILL/scripts/coverage-status.js" \
+  --manifest "$RUN_ROOT/manifest.jsonl" \
+  --ledger "$RUN_ROOT/ledger/coverage.jsonl" \
+  --mode code
 ```
+
+Fleet `--fleet` walks only `DEFAULT_FLEET_REPOS` in `scripts/lib/fleet-scope.js`. It skips `archive/`, `tmp/`, `scripts/`, hidden dirs except `.jv`, and worktree-style names. Cold archive is opt-in: `--include-archive`. Override the allowlist with `--repos a,b`.
 
 ## Multi-session protocol
 
@@ -116,16 +128,13 @@ Same ledger; next session resumes first `status: open` or unclaimed shard. Do no
 ### 0. Open or resume
 
 ```bash
-# Open (once)
-mkdir -p "$RUN_ROOT"/{ledger,claims,reports}
-# write AUDIT-RUN.yml from templates/AUDIT-RUN.yml
-node "$SKILL/scripts/manifest-build.js" --root <SCOPE> --out "$RUN_ROOT/manifest.jsonl" \
-  --exclude-defaults
-node "$SKILL/scripts/shard-plan.js" --manifest "$RUN_ROOT/manifest.jsonl" \
-  --out "$RUN_ROOT/shards.json" --target-lines 8000
+# Open (once). Do not claim a shard in the same breath.
+node "$SKILL/scripts/open-run.js" --root <SCOPE> --slug <slug> [--fleet] [--mode code]
 # optional system map seed
 revkg scan --repo <name>   # if POSTGRES_URL available; non-blocking
 ```
+
+For a fleet **product** assessment, write `reports/assessment.md` (Phase 0) before claiming shards. Inventory is substrate, not the verdict.
 
 ### 1. Claim a shard
 
@@ -212,19 +221,24 @@ Publish audit conclusions:
 }}
 ```
 
-### 5. Release claim + progress
+### 5. Complete claim + progress
 
 ```bash
-node "$SKILL/scripts/claim-shard.js" --run "$RUN_ROOT" --shard shard-003 --release
+# Finished the shard: mark done (not --release; release reopens it).
+node "$SKILL/scripts/claim-shard.js" --run "$RUN_ROOT" --shard shard-003 --complete --agent "$AGENT_ID"
 node "$SKILL/scripts/coverage-status.js" --manifest "$RUN_ROOT/manifest.jsonl" \
-  --ledger "$RUN_ROOT/ledger/coverage.jsonl" --write-md "$RUN_ROOT/reports/progress.md"
+  --ledger "$RUN_ROOT/ledger/coverage.jsonl" --mode code \
+  --write-md "$RUN_ROOT/reports/progress.md"
 ```
+
+`--release` abandons a claim (`status: open`). `--complete` is terminal (`status: done`). Do not reclaim a done shard.
 
 ### 6. Close run
 
-Only when `coverage-status.js` exits 0:
+Only when `coverage-status.js --mode <run mode>` exits 0:
 
 - `reports/final.md` — counts, finding index, gap ids filed, residual waivers
+- `reports/assessment.md` — Phase 0 per-repo honesty if this was a fleet/product run
 - Set `AUDIT-RUN.yml` `status: closed`
 - Checkpoint / handoff fragment with run path
 
@@ -249,7 +263,9 @@ Only when `coverage-status.js` exits 0:
 
 **Exclude by default** (manifest-build `--exclude-defaults`):
 
-`node_modules`, `.git`, `dist`, `build`, `.next`, `coverage`, `.turbo`, `opensrc`, binary blobs under `playwright-report`, large media, `*.map` if generated alongside dist.
+`node_modules`, `.git`, `dist`, `build`, `.next`, `coverage`, `.turbo`, `opensrc`, `.direnv`, `target`, `vendor`, `playwright-report`, `test-results`, and the other names in `DEFAULT_EXCLUDES` inside `manifest-build.js`.
+
+**Fleet `--fleet` additionally skips** (see `scripts/lib/fleet-scope.js`): `archive/`, `tmp/`, fleet-root `scripts/`, hidden dirs except `.jv`, worktree-style names. `--include-archive` is the only way to pull cold dumps into a fleet manifest.
 
 **Never exclude without recording:** `.env.example`/templates, migrations, security gates, license files.
 
@@ -263,6 +279,23 @@ Only when `coverage-status.js` exits 0:
 | L4 | **Cross-checked** | Related tests/docs/callers consistent (use KG + grep) |
 
 Exhaustive audit requires **L2 for every path**. L3 is the default for code/config; L4 for security, money, auth, and public claims surfaces.
+
+## Phase 0 — product assessment (fleet honesty)
+
+Line inventory answers "did we account for every file." It does **not** answer "is this product real." Phase 0 is the honesty pass. Write `reports/assessment.md` from `templates/assessment.md`.
+
+Per repo:
+
+| Field | Ground in |
+|-------|-----------|
+| Identity | `package.json` / `Cargo.toml` / entrypoints |
+| Ship state | `git` pins in `AUDIT-RUN.yml`, test vs main lag |
+| What works | Routes, CLIs, servers that exist in code |
+| Honesty gaps | README / marketing vs those paths |
+| Dead weight | Unused trees, dual deploy targets |
+| Verdict | `shippable-core` / `sold-ahead-of-runtime` / `infra-only` / `archive-grade` / `leftover` |
+
+Phase 0 may finish in one session. Calling it exhaustive is a contract violation until `coverage-status.js --mode code` exits 0.
 
 ## Subagent routing
 
@@ -284,8 +317,9 @@ Exhaustive audit requires **L2 for every path**. L3 is the default for code/conf
 ## References
 
 - `references/methodology.md` — full phases, concurrency rules, anti-patterns  
-- `templates/AUDIT-RUN.yml` — run metadata  
+- `templates/AUDIT-RUN.yml` — run metadata (prefer `open-run.js`)  
 - `templates/coverage-line.json` — coverage record schema  
+- `templates/assessment.md` — Phase 0 rubric  
 - Hardline: audit-first SDLC (studio rules)  
 - Work units: tracked gaps/lanes only for remediation work  
 
@@ -299,6 +333,8 @@ Exhaustive audit requires **L2 for every path**. L3 is the default for code/conf
 | Fix while auditing without tracking | Split audit vs implement PRs; file gaps |
 | Write a second free-floating "audit backlog" at docs root | Use findings.jsonl + gaps |
 | Mark minified vendor bundles `verified` without allowlist | Use `skipped-generated` or waive |
+| Call Phase 0 or inventory-only "exhaustive" | Completeness is `coverage-status --mode code` exit 0 |
+| Close a code run on `historical-ok` | C3 statuses are `--mode md-truth` only |
 
 ## MD-truth program (GAP-407)
 
