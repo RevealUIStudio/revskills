@@ -1,20 +1,57 @@
 ---
 name: revealui-recover
-description: Diagnose and recover from a crashed or interrupted Studio session in RevFleet (Claude + Grok equal adapters). Surfaces git corruption, stale hook state, orphaned handoffs, daemon status, and workboard CRASHED markers. Diagnostic-first — never executes destructive repairs without explicit approval.
+description: Recover crashed or interrupted Studio sessions (Claude + Grok). Mandatory 72h historical inventory first. Surfaces unfinished threads, orphan artifacts, git corruption, hook residue, and workboard CRASHED markers. Diagnostic-first — never executes destructive repairs without explicit approval.
 license: MIT
 allowed-tools: Bash, Read, Grep, Glob
 metadata:
   author: RevealUI Studio
-  version: "0.3.0"
+  version: "0.4.0"
   website: https://revealui.com
 ---
 
-Recover from a crashed or interrupted **Studio** session (any equal adapter). Diagnostic-first: surface state, then propose concrete next actions. Never execute destructive repairs without explicit approval.
+Recover from a crashed or interrupted **Studio** session (any equal adapter).
+
+Power loss, battery death, and WSL death are **in scope** for this skill. `claude-safe` cannot relaunch after the machine dies; this skill still has to reconstruct work from on-disk stores. Empty `/tmp` crash markers do **not** mean nothing was lost.
+
+Diagnostic-first: surface state, then continue unfinished **agent** work. Never execute destructive repairs without explicit approval.
 
 Load shared helpers:
 ```bash
 . "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
 ```
+
+## Required first action
+
+Run the inventory **this turn** before any "nothing to recover" claim:
+
+```bash
+node "$HOME/revfleet/revskills/scripts/recover-inventory.js" --hours 72
+```
+
+Default window is 72 hours. If the user named a longer window, pass that `--hours`.
+
+The script is the work list. Do not substitute a memory of earlier sessions, a workboard skim, or `/tmp` crash-marker absence.
+
+## Forbidden early exits
+
+Never emit **No recovery needed** (Step 9 or Step 10) until all of these are true:
+
+1. `recover-inventory.js` ran in this turn.
+2. Every **unique** row is classified: `done` | `owner-gated` | `agent-unfinished` | `orphan-artifact`.
+3. Every PR the inventory listed was checked live (`gh pr view N -R owner/repo`). Do not trust assistant tails.
+4. `agent-unfinished` is empty, or each item is being continued in this session.
+5. Recovery-artifact paths (`~/.local/share/revealui/recovery/`) are either in git or listed as `orphan-artifact` with a next action.
+
+Cron / watcher rows are one class, not N recoveries.
+
+## Classification (closed)
+
+| Class | Meaning | This session does |
+|-------|---------|-------------------|
+| `done` | Live git/gh matches the tail (PR merged, commit on the integration ref) | Note and skip |
+| `owner-gated` | Merge, vault, prod env, promote, or a human machine step | List the one-line owner command. Do not do it |
+| `agent-unfinished` | Spec, PR, tests, tag, watch, or follow-up an agent can do | Continue it |
+| `orphan-artifact` | File only under `recovery/`, `/tmp`, or an untracked worktree | Persist or register; do not leave silent |
 
 ## Step 0 — Identity
 
@@ -26,7 +63,15 @@ echo "identity=$IDENTITY session_id=${SID:-unresolved}"
 
 Known identities: `conductor`, `agent-extension[-N]`, `agent-edit[-N]`, `agent-system[-N]`, `revealui-studio`, `revealui-console`, `stagehand` (fallback). If `stagehand`, perform full (unscoped) recovery and flag that multi-agent state cannot be identity-filtered.
 
-## Step 1 — Crash / session residue (multi-adapter)
+## Step 1 — Historical inventory (mandatory)
+
+```bash
+node "$HOME/revfleet/revskills/scripts/recover-inventory.js" --hours 72
+```
+
+Then classify every unique row using the table above. Verify named PRs live. Open recovery-artifact files (they are often the only copy of a design).
+
+## Step 1b — Crash / session residue (multi-adapter)
 
 **Claude adapter:**
 ```bash
@@ -38,15 +83,14 @@ If a file matching `claude-crash-<IDENTITY>.json` exists, cat it, note `task`/`f
 
 **Grok / neutral:**
 ```bash
-# Live Grok sessions table (read-only)
 [ -f "$HOME/.grok/active_sessions.json" ] && cat "$HOME/.grok/active_sessions.json"
-# SessionStart stamps (GAP-469)
 ls "$HOME/.local/share/revealui/coordination/harness-sessions/by-pid" 2>/dev/null | head
-# Neutral crash markers if any future harness writes them
 ls /tmp/revealui-crash-*.json 2>/dev/null
 ```
 
 Report Grok sessions whose `pid` is not alive (stale active_sessions rows) as WARN residue — do not delete the JSON file without owner auth.
+
+Empty markers after reboot are expected for battery death. Continue with Step 1's inventory.
 
 ## Step 2 — Active repo + git integrity
 
@@ -60,6 +104,7 @@ ss_empty_objects "$REPO"
 - Report uncommitted files grouped by area.
 - If `git fsck` reports errors or empty objects exist: **flag as corruption**. Do not auto-repair. Propose the sequence (backup working-tree, remove empty objects, `git fetch origin`, re-verify) and ask for authorization.
 - If the crash cache had a `files` list, also run `cd "$REPO" && git diff HEAD -- <files>` scoped to those paths.
+- Also report dirty shared checkouts and `~/revfleet/.wt/*` that are not clean. Do not commit a dirty shared `.jv` checkout that a peer owns.
 
 ## Step 3 — Hook shared state
 
@@ -139,12 +184,17 @@ Recovery diagnostic complete.
 
 Identity:   <IDENTITY>
 Repo:       <REPO> (branch: <...>)
+Inventory:  <N unique / N cron / N recovery-artifacts> (hours=<N>)
+Unfinished: <N agent-unfinished | N owner-gated | N orphan-artifact>
 Git:        <status summary | CORRUPTION: N empty objects>
 Hooks:      <agent-edits: N files | autocommit: N pending>
 Run-tasks:  <N crashed | N running | N done>
 Handoffs:   <N orphaned>
 Env:        <daemon: up/down | flake: ok/check | direnv: ok/miss | revvault: ok/down>
 Last work:  <most recent workboard entry, summarized>
+
+Classified unique sessions:
+  - <sid or title>: <class> — <one line>
 
 Findings that need authorization:
   1. <concrete action>
@@ -153,11 +203,13 @@ Findings that need authorization:
 Suggested next: <one sentence>
 ```
 
-If all checks green and no crash markers: say "No recovery needed." in one line.
+Only after the Forbidden early exits checks pass may you say there is no unfinished agent work.
+
+Then **continue** every `agent-unfinished` item in this session. Do not stop at the table.
 
 ## Step 10 — Auto-proceed classification (crash-triggered only)
 
-Only runs when `$CLAUDE_CRASH_MARKER` or `$REVEALUI_CRASH_MARKER` is set (crash-triggered launcher). If unset, stop after Step 9 and wait for the user.
+Only runs when `$CLAUDE_CRASH_MARKER` or `$REVEALUI_CRASH_MARKER` is set (crash-triggered launcher). If unset, finish Step 9 including unfinished-work continuation; do not wait for the user to type "proceed" when the inventory already named agent-unfinished items.
 
 Classify every finding from Steps 1–8 into two buckets using this **closed allowlist**:
 
@@ -177,10 +229,16 @@ Classify every finding from Steps 1–8 into two buckets using this **closed all
 - Any production / `.prod.` / neon.tech / supabase.co hostname in surfaced config.
 - Any finding the skill does not recognize. Unknown = unsafe.
 
+Historical unfinished threads (`agent-unfinished`, `orphan-artifact`) are **not** auto-healable. They are Step 9 continuation, not Step 10 heals.
+
 Decision:
 
 ```
-if len(authRequired) == 0 and len(autoHealable) > 0:
+if inventory has agent-unfinished or orphan-artifact:
+  emit Step 9 synthesis
+  continue those items
+  do not emit "No recovery needed"
+elif len(authRequired) == 0 and len(autoHealable) > 0:
   emit line: "AUTO_PROCEED: <n> safe heals queued"
   execute the auto-healable list in order, reporting each
   end with one-sentence resumption note
@@ -188,7 +246,17 @@ elif len(authRequired) > 0:
   emit Step 9 synthesis with the findings-requiring-auth block populated
   stop and wait for user
 else:
-  emit "No recovery needed." and stop
+  emit "No unfinished agent work in the inventory window." and stop
 ```
 
 Never expand the auto-healable allowlist inline in a session. If a new finding-type seems "probably safe," STOP and add it to this file in a follow-up — the closed list is the guard.
+
+## SessionStart (adapters)
+
+Adapters print a one-line reminder so the owner does not have to ask:
+
+```bash
+node "$HOME/revfleet/revskills/scripts/recover-inventory.js" --hours 72 --summary
+```
+
+Grok: `~/.grok/hooks/session-start.json`. Claude: `~/.claude/hooks/session-start.js`. Warn-only, fail-open, never block startup.
