@@ -57,9 +57,10 @@ For every PR number named in those sections:
 gh pr view <n> -R RevealUIStudio/<repo> --json state,mergedAt,mergeable,url,title
 ```
 
-Repo pin: `revealui#N` → `RevealUIStudio/revealui`; `jv#N` / `revealui-jv#N`
-→ `RevealUIStudio/revealui-jv`; other fleet product names as their GitHub
-repos. If the fragment omits the repo, `gh pr view` the likely product first.
+Repo pin: `revealui#N` → `RevealUIStudio/revealui`. Planning-hub PRs (`jv#N`):
+`cd "$JV_REPO" && gh pr view N --json state,mergedAt,mergeable,url,title`.
+Other fleet product names as their GitHub repos. If the fragment omits the
+repo, `gh pr view` the likely product first.
 
 Also confirm named worktrees/branches still exist:
 
