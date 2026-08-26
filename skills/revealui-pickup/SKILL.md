@@ -10,7 +10,7 @@ license: MIT
 allowed-tools: Bash, Read, Grep
 metadata:
   author: RevealUI Studio
-  version: "0.1.0"
+  version: "0.1.1"
   website: https://revealui.com
   related:
     - revealui-checkpoint
@@ -41,11 +41,13 @@ CURRENT_HANDOFF="$JV_REPO/docs/handoffs/CURRENT-HANDOFF.md"
 cd "$JV_REPO" && node scripts/handoff-render.js
 ```
 
-Do not commit the render. Then read `$CURRENT_HANDOFF` sections **Ordered next
-actions**, **Owner-gated**, **In-flight**, and the newest rolling fragment
-under `docs/handoffs/rolling/`.
+Do not commit the render. Then read `$CURRENT_HANDOFF` sections **Launch**,
+**Ordered next actions**, **Owner-gated**, **In-flight**, and the newest
+rolling fragment under `docs/handoffs/rolling/`.
 
 If the file is missing: say so, run Step 6 (TRACKER print), stop.
+If **Launch** is missing: fail closed — name that the fragment predates
+ADR 2026-08-26-session-launch-record. Do not guess a product.
 
 ## Step 2 — Re-verify (mandatory)
 
@@ -81,8 +83,12 @@ wins.
 
 ## Step 4 — Continue
 
-1. If any `agent-doable` remains: do **item 1** this session. Worktree from
-   `origin/test` in the product repo. Do not dirty-switch a shared checkout.
+First action is CURRENT-HANDOFF **## Launch** row 1 (exact `rfg`/`rfc`
+command, including `--worktree=`). That is Ordered next item 1. Then:
+
+1. If any `agent-doable` remains after Launch: do it this session. Worktree
+   from `origin/test` in the product named by Launch. Do not dirty-switch a
+   shared checkout.
 2. Else if only `owner-gated` remains: list owner one-liners (`gh pr merge …`
    with `-R owner/repo`) and stop.
 3. Else (checkpoint exhausted): Step 6.
@@ -116,3 +122,4 @@ Print free surfaces. Do **not** auto-claim a gap. Wait for the owner to pick.
 - Do not paste a next-agent prompt back at the owner; this skill *is* the consume path.
 - Do not start `/recover` unless git is corrupt or the owner asked.
 - Do not auto-run on SessionStart.
+- Do not guess a product when **Launch** is missing.
