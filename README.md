@@ -80,6 +80,7 @@ These skills assume RevFleet layout (`~/revfleet/`, private planning hub, RevVau
 |-------|-------------|
 | [revealui-recover](skills/revealui-recover/) | Diagnose and recover from crashed/interrupted Studio sessions (Claude + Grok markers) |
 | [revealui-checkpoint](skills/revealui-checkpoint/) | Checkpoint checklist — tracking surfaces, handoff fragments, workboard log |
+| [revealui-pickup](skills/revealui-pickup/) | Consume CURRENT-HANDOFF and continue agent-doable work (`/pickup`; not `/next`) |
 | [revealui-snapshot](skills/revealui-snapshot/) | Mid-session fidelity snapshot for checkpoint composition (auto session id) |
 | [revealui-ops](skills/revealui-ops/) | Thin `/ops` shim onto the operational-workflow-layer runner |
 | [revealui-doctor](skills/revealui-doctor/) | Health check for equal-adapter Studio homes + fleet workflow |

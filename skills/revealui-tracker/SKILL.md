@@ -9,10 +9,11 @@ license: MIT
 allowed-tools: Bash, Read
 metadata:
   author: RevealUI Studio
-  version: "0.3.0"
+  version: "0.3.1"
   website: https://revealui.com
   related:
     - revealui-checkpoint
+    - revealui-pickup
     - next
 ---
 
@@ -68,7 +69,7 @@ Soft-project / goals overlay never fail the session
 | `state` | Regenerate `docs/.generated/STATE.json` |
 | `snapshot` / `graph` | Machine views |
 
-Slash: **`/tracker`**, **`/next`**.
+Slash: **`/tracker`**, **`/next`** (free surfaces only). Continue-from-handoff is **`/pickup`**, not `/next`.
 
 ## Claim flow after sync
 
@@ -87,4 +88,4 @@ Slash: **`/tracker`**, **`/next`**.
 
 - `$JV_REPO/scripts/tracker.js`  
 - `$JV_REPO/scripts/tracker-session-check.js`  
-- Sibling: `revealui-checkpoint`
+- Sibling: `revealui-checkpoint`, `revealui-pickup` (`/pickup` consumes CURRENT-HANDOFF; `/next` stays this board)
