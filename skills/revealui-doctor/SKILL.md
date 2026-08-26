@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Glob, Grep
 metadata:
   author: RevealUI Studio
-  version: "0.4.0"
+  version: "0.4.1"
   website: https://revealui.com
 ---
 
@@ -31,8 +31,8 @@ If Claude home is missing: do **not** fail the whole doctor — continue with Gr
 
 ## 1. Hook syntax
 
-**Claude:** `node --check` on every `~/.claude/hooks/*.js` when the dir exists. List failures.  
-**Grok:** list `~/.grok/hooks/*.json` when present; confirm JSON parses (`python3 -m json.tool` or `jq`). FAIL on invalid JSON.
+**Claude:** `node --check` on every `~/.claude/hooks/*.js` when the dir exists. List failures. Confirm `settings.json` registers `PreCompact` → `snapshot-before-compact.js` (last-ditch mechanical capture).  
+**Grok:** list `~/.grok/hooks/*.json` when present; confirm JSON parses (`python3 -m json.tool` or `jq`). FAIL on invalid JSON. Required for snapshot-before-compact: `pre-compact.json` and `stop-snapshot.json` (or equivalent PreCompact + Stop entries) pointing at `snapshot-before-compact.js`. WARN if either event is missing — Grok auto-compacts at 85% and discards UserPromptSubmit stdout, so without these hooks checkpoints lose pre-compact fidelity.
 
 ## 2. Rules directories
 
