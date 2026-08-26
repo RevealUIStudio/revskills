@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.13.2"
+  version: "0.14.0"
   website: https://revealui.com
 ---
 
@@ -177,12 +177,19 @@ Compose the delta PRIMARILY from the Step 1b snapshot when present, supplemented
 ### 4a. Write the fragment
 
 ```bash
-# Compose body with at least ## Last merge (renderer extracts it for the top block).
+# Compose body with at least ## Last merge (renderer extracts it for the top block)
+# and ## Launch (product + exact rfg/rfc command). ADR 2026-08-26-session-launch-record.
 # Include Live board / In-flight / Ordered next / Owner-gated as needed.
 HANDOFF_BODY="$(cat <<'EOF'
 ## Last merge
 
 <ISO_DATE> — <IDENTITY>: <≤15 words what landed>
+
+## Launch
+
+| Product | Command |
+|---------|---------|
+| <rfg basename> | `rfg <product> [--worktree=<label>]` |
 
 ## Live board
 
@@ -196,7 +203,7 @@ HANDOFF_BODY="$(cat <<'EOF'
 
 ## Ordered next actions
 
-1. …
+1. <exact Command from ## Launch row 1>
 
 ## Owner-gated
 
@@ -454,8 +461,8 @@ Per fleet coordination rules (Archive-Readiness Convention): the final output of
 Compose the prompt with these 5 sections (in order):
 
 1. **First line** — `Session <session-id> — read first: $JV_REPO/docs/handoffs/CURRENT-HANDOFF.md`. The path is the absolute filesystem path to the rolling handoff file.
-2. **TL;DR** — 1–2 sentences with the single most important next action. Mirror §"Ordered next actions" item 1 from CURRENT-HANDOFF.md; do not re-summarize.
-3. **Ordered next-actions** — numbered list with EXACT commands / values / file paths. No "investigate X" / "decide Y" / "look into Z" — those belong in CURRENT-HANDOFF.md body. Pre-resolve every path, hash, branch name, PR number. If the next-agent has to fill in `<paste prod URL here>`, the convention has been violated.
+2. **TL;DR** — 1–2 sentences with the single most important next action. Mirror CURRENT-HANDOFF **## Launch** row 1 (exact `rfg`/`rfc` command). Do not re-summarize.
+3. **Ordered next-actions** — numbered list. Item 1 is that Launch command. Further items are EXACT commands / paths. No "investigate X" / "decide Y". If the next-agent has to fill in `<paste prod URL here>` or guess a product, the convention has been violated.
 4. **Locked-posture reminder** — one line. HARDLINES: `core.fileMode=false` on every .jv commit; **fragments-only pathspec** (`rolling` + `workboard.d`, never derived CURRENT-HANDOFF/workboard); `-F /tmp/cmsg-*.txt`; `--body-file`; `--head`/`--base` explicit; `gh pr merge --merge` only on revealui-jv (label `merge:merge-commit`); no `--auto`/`--no-verify`/`--admin`/`--force-push`/`--squash`; audit-first; no authored regex; revvault-first secrets; durable-only.
 5. **Owner-gated deferrals** — one short list of items the next agent must NOT auto-pick up without explicit owner sign-off.
 
@@ -499,5 +506,6 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 - `docs/decisions/2026-07-23-jv-merge-commit-only.md` — merge-commit policy + label
 - `docs/decisions/2026-07-21-current-handoff-rolling-fragments.md` — rolling fragments (amended)
 - `docs/decisions/2026-07-04-workboard-fragment-store.md` — workboard.d fragments
+- `docs/decisions/2026-08-26-session-launch-record.md` — `## Launch` / rfg product id
 - `docs/gap-specs/GAP-469-revskills-vendor-agnostic-design.md` — neutral session + coordination root
 - `docs/gaps/GAP-469.yml` — session contract execution unit
