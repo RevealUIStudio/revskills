@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.14.0"
+  version: "0.15.0"
   website: https://revealui.com
 ---
 
@@ -452,15 +452,17 @@ else
 fi
 ```
 
-Daemon notification is non-blocking. If it fails for any reason, the handoff is still valid: next session's SessionStart hook discovers it via filesystem — `session-start.js` prints the `[menu] CURRENT-HANDOFF §Ordered next actions` pointer whenever the rolling handoff exists, which is the next-session orientation surface. (The former Step 7.5 invoked a `session-note` skill that was never built; removed in 0.6.1.)
+Daemon notification is non-blocking. If it fails for any reason, the handoff is still valid: next session's SessionStart hook discovers it via filesystem — `session-start.js` / Grok SessionStart print the `[menu] CURRENT-HANDOFF` pointer (orientation only). Consume is `/pickup`. (The former Step 7.5 invoked a `session-note` skill that was never built; removed in 0.6.1.)
 
-## Step 8 — Emit copy-pasteable next-agent prompt (LAST output — nothing after this)
+## Step 8 — Next session consume path (prompt LAST)
 
-Per fleet coordination rules (Archive-Readiness Convention): the final output of any checkpoint flow MUST be a copy-pasteable "next-agent prompt" the owner can drop straight into a **new equal-adapter session** (Claude, Grok, Cursor, …) — no synthesis required, no jumping between docs. **The prompt is non-negotiable.** Without it, the owner has to do friction work (read CURRENT-HANDOFF.md + workboard + memories + figure out the first action) every multi-session handoff. That friction compounds across the fleet.
+**Primary:** new equal-adapter session, owner types `/pickup` (skill `revealui-pickup`). That skill reads CURRENT-HANDOFF, re-verifies with `gh`, and continues agent-doable work. Do not auto-run `/pickup` on SessionStart.
 
-Compose the prompt with these 5 sections (in order):
+**Fallback** (skill missing, other adapter, chat closed): emit a copy-pasteable next-agent prompt. Archive-Readiness still requires the fenced block as the last output of this turn.
 
-1. **First line** — `Session <session-id> — read first: $JV_REPO/docs/handoffs/CURRENT-HANDOFF.md`. The path is the absolute filesystem path to the rolling handoff file.
+Per fleet coordination rules: the fallback prompt must be droppable into a new session with no synthesis. Compose it with these 5 sections (in order):
+
+1. **First line** — `New session: /pickup. Session <session-id> read-first: $JV_REPO/docs/handoffs/CURRENT-HANDOFF.md`. The path is the absolute filesystem path to the rolling handoff file.
 2. **TL;DR** — 1–2 sentences with the single most important next action. Mirror CURRENT-HANDOFF **## Launch** row 1 (exact `rfg`/`rfc` command). Do not re-summarize.
 3. **Ordered next-actions** — numbered list. Item 1 is that Launch command. Further items are EXACT commands / paths. No "investigate X" / "decide Y". If the next-agent has to fill in `<paste prod URL here>` or guess a product, the convention has been violated.
 4. **Locked-posture reminder** — one line. HARDLINES: `core.fileMode=false` on every .jv commit; **fragments-only pathspec** (`rolling` + `workboard.d`, never derived CURRENT-HANDOFF/workboard); `-F /tmp/cmsg-*.txt`; `--body-file`; `--head`/`--base` explicit; `gh pr merge --merge` only on revealui-jv (label `merge:merge-commit`); no `--auto`/`--no-verify`/`--admin`/`--force-push`/`--squash`; audit-first; no authored regex; revvault-first secrets; durable-only.
@@ -498,7 +500,7 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 
 ## Relationship to /handoff
 
-`/handoff` is the predecessor — writes a basic handoff doc to the (now non-canonical) `.claude/handoffs/` location with no tracking-surface validation. `/checkpoint` supersedes it: rolling **fragments** + local CURRENT-HANDOFF render + 6 validators + inventory + structured report. Recommend the slash command symlink at `~/.claude/commands/handoff.md` be retargeted to this skill in a follow-up (separate revskills PR).
+`/handoff` is the predecessor — writes a basic handoff doc to the (now non-canonical) `.claude/handoffs/` location with no tracking-surface validation. `/checkpoint` supersedes it: rolling **fragments** + local CURRENT-HANDOFF render + 6 validators + inventory + structured report. **Consume** is `/pickup`, not `/next`. Recommend the slash command symlink at `~/.claude/commands/handoff.md` be retargeted to this skill in a follow-up (separate revskills PR).
 
 ## Related ADRs / gaps (.jv)
 
