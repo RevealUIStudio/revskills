@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.13.1"
+  version: "0.13.2"
   website: https://revealui.com
 ---
 
@@ -35,7 +35,7 @@ Rolling handoff **read surface** per `~/.claude/rules/model-allocation.md` §Ses
 
 ## Step 1b — Load the auto-checkpoint snapshot (fidelity source)
 
-A session snapshot is captured mid-session by the `/snapshot` skill (nudged by the `track-session` context advisory at the soft-context line), while fidelity is still high. When one exists it is the PRIMARY source for the narrative sections in Step 4 — more trustworthy than reconstructing from now-deep session memory.
+A session snapshot is captured **before context compaction** by the `/snapshot` skill (Grok Stop-gate at the occupancy gate; Claude `[snapshot]` advisory; PreCompact mechanical last-ditch). When one exists it is the PRIMARY source for the narrative sections in Step 4 — more trustworthy than reconstructing from now-deep or already-compacted session memory.
 
 Resolve it by **this session's id, never by mtime** — a peer's snapshot must be structurally unreachable (GAP-317 + GAP-469). Session id and paths come from `session-state.sh` (neutral SSOT under `~/.local/share/revealui/coordination/`, with read-through of the legacy Claude adapter path).
 
@@ -54,12 +54,15 @@ if [ -n "$SID" ]; then
 fi
 if [ -n "$SNAPSHOT" ]; then
   echo "snapshot for this session: $SNAPSHOT (sid=$SID)"
+  if grep -q '^origin: precompact-mechanical' "$SNAPSHOT"; then
+    echo "WARNING: origin=precompact-mechanical — last-ditch hook capture, lower fidelity. Prefer an agent-authored /snapshot if one can still be written."
+  fi
 else
   echo "no snapshot for this session (${SID:-no-session-id}) — Step 4 falls back to session memory"
 fi
 ```
 
-If `$SNAPSHOT` is set it is unambiguously THIS session's (the filename equals the resolved session id), so no content-matching guesswork is needed. READ it and use its five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 merge; they map onto the rolling file's sections. With no snapshot — no threshold was crossed, or `/snapshot` was not run, or no session id is set — Step 4 proceeds from session memory as before. Do **not** abort solely because `CLAUDE_CODE_SESSION_ID` is unset when another alias is present. Do NOT fall back to the most-recent file on disk; an unmatched id means no snapshot for this session.
+If `$SNAPSHOT` is set it is unambiguously THIS session's (the filename equals the resolved session id), so no content-matching guesswork is needed. READ it and use its five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 merge; they map onto the rolling file's sections. If frontmatter has `origin: precompact-mechanical`, say so in the fragment (lower fidelity; compaction fired before agent authoring). With no snapshot — occupancy never hit the gate, or `/snapshot` was not run, or no session id is set — Step 4 proceeds from session memory as before. Do **not** abort solely because `CLAUDE_CODE_SESSION_ID` is unset when another alias is present. Do NOT fall back to the most-recent file on disk; an unmatched id means no snapshot for this session.
 
 ## Step 2 — Run coherent-tracking validators
 
@@ -333,7 +336,7 @@ Step 6 surfaces this output as the PREPARE-FOR-EXIT section of the CHECKPOINT RE
 
 ## Step 5d — Archive the consumed snapshot + GC stale ones (GAP-317 lifecycle)
 
-Now that Step 4 folded this session's snapshot into the rolling handoff, retire it so the active dir only ever holds live sessions' records (acceptance: none older than 7 days active). This is the agent-invoked mover — no hook writes these files, by the hooks read-only invariant.
+Now that Step 4 folded this session's snapshot into the rolling handoff, retire it so the active dir only ever holds live sessions' records (acceptance: none older than 7 days active). This is the agent-invoked mover. Agent-authored five-section files are still not hook-authored; PreCompact may have written a labeled `origin: precompact-mechanical` last-ditch file — archive that too.
 
 ```bash
 ss_ensure_coord_dirs
