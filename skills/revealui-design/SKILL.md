@@ -15,11 +15,11 @@ Read CLAUDE.md for brand orientation, open issues, voice rules, and substitution
 
 For canonical tokens, read from `@revealui/tokens/design-context/` — a committed, CI-drift-gated pack generated from the revealui repo's `packages/tokens/src/tokens.css`. Do not rely on local token snapshots.
 
-This skill includes cobalt starting-point UI kits:
-- `ui_kits/marketing/` — light marketing site (NavBar, Hero+receipt, Problem stack, Demo product frame, Primitives, Pricing, Faq, Footer)
-- `ui_kits/admin/` — dark Studio dashboard recreation (Sidebar, Topbar, Dashboard)
-
-Open `ui_kits/marketing/index.html` or `ui_kits/admin/index.html` directly in a browser — both are self-contained. Use these as cobalt starting points; for production work read token values from the design-context pack and ship components from `@revealui/presentation`.
+Do not write JSX outside `@revealui/*` packages as a parallel kit. Production
+and prototype React must compose `@revealui/presentation` in TypeScript
+(`.tsx`). The old Babel-in-browser `ui_kits/**/*.jsx` files are retired
+(GAP-479). For throwaway visual artifacts, emit static HTML (no JSX syntax).
+Tokens come from `@revealui/tokens/design-context/`.
 
 RevealUI is dual-surface:
 - **Marketing site** (revealui.com) — cool paper + cobalt-ink + amber-accent; craft bar: calm, receipt signature, no tables/matrix cards/inverted pricing
@@ -34,6 +34,6 @@ Marketing signatures:
 - CLI pill on GetStarted: `npx create-revealui@latest my-app` (not in the hero)
 - Primitives: People, Content, Offers, Payments, Agents
 
-If creating visual artifacts (slides, mocks, throwaway prototypes), create static HTML files for the user to view. Use the ui_kits as cobalt starting points or build from scratch using token values from the design-context pack.
+If creating visual artifacts (slides, mocks, throwaway prototypes), create static HTML files for the user to view. Build from `@revealui/presentation` in TypeScript, or from token values in the design-context pack. Do not add `.jsx` files.
 
 If the user invokes this skill without other guidance, ask what they want to build or design (marketing landing? admin dashboard? blog post template? slide deck?), ask some questions, and act as an expert designer who outputs HTML artifacts or production code, depending on the need.

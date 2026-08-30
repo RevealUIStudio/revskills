@@ -1,17 +1,32 @@
 ---
 name: revealui-snapshot
-description: Capture a mid-session fidelity snapshot for RevFleet sessions, keyed to a harness-neutral session id (AGENT_SESSION_ID, then REVEALUI_SESSION_ID, then CLAUDE_CODE_SESSION_ID). Assembles mechanical state and authors the five sections checkpoint consumes, writing under ~/.local/share/revealui/coordination/snapshots/$SID.md (GAP-469). Also promotes durable feedback/rule-class lessons to the memory directory. Exposed as /snapshot. Nudged by the track-session context advisory at the soft-context line; the producer half of GAP-317.
+description: Capture a mid-session fidelity snapshot for RevFleet sessions, keyed to a harness-neutral session id (AGENT_SESSION_ID, then REVEALUI_SESSION_ID, then CLAUDE_CODE_SESSION_ID). Assembles mechanical state and authors the five sections checkpoint consumes, writing under ~/.local/share/revealui/coordination/snapshots/$SID.md (GAP-469). Also promotes durable feedback/rule-class lessons to the memory directory. Exposed as /snapshot. MUST run this turn when a Stop hook blocks for snapshot, when a [snapshot] advisory fires, or before /compact. Producer half of GAP-317.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.2.2"
+  version: "0.3.0"
   website: https://revealui.com
 ---
 
-Capture a session snapshot **while fidelity is high** — mid-session, at the soft-context line — so the eventual `/checkpoint` composes its handoff from a fresh record, not from now-deep session memory. The producer half of GAP-317; `revealui-checkpoint` Step 1b is the consumer.
+Capture a session snapshot **while fidelity is high** — **before context compaction** — so the eventual `/checkpoint` composes its handoff from a fresh record, not from now-deep (or already-compacted) session memory. The producer half of GAP-317; `revealui-checkpoint` Step 1b is the consumer.
 
-The snapshot is a hook-can't-author artifact: a hook (`track-session.js`) only nudges you here; **you** assemble the mechanical state and author the narrative. The file is keyed to the resolved session id (`ss_session_id`), so a peer's snapshot is structurally unreachable at consume time. Vendor env vars (e.g. `CLAUDE_CODE_SESSION_ID`) are **aliases**, not the only key (GAP-469).
+**This skill is mandatory this turn** when any of these fire. Do not continue other work first:
+
+1. A Stop hook blocks with `BLOCKED: context occupancy … Run the revealui-snapshot skill NOW`
+2. A `[snapshot]` advisory from `track-session.js` (Claude UserPromptSubmit; Grok discards that stdout)
+3. The user runs `/compact`, or auto-compact is about to run
+4. The current snapshot file has `origin: precompact-mechanical` (last-ditch hook capture — replace it with a real authoring)
+
+The five sections are a hook-can't-author artifact: **you** assemble mechanical state and author the narrative. The file is keyed to the resolved session id (`ss_session_id`), so a peer's snapshot is structurally unreachable at consume time. Vendor env vars (e.g. `CLAUDE_CODE_SESSION_ID`) are **aliases**, not the only key (GAP-469).
+
+Compaction path (do not weaken):
+
+| Layer | Who | When | What |
+|-------|-----|------|------|
+| Force | `scripts/snapshot-before-compact.js` on **Stop** (Grok) | occupancy ≥ gate (auto-compact % minus 25, floor 50) and no agent-authored `$SID.md` | Blocks the turn until this skill writes the file |
+| Nudge | `track-session.js` `[snapshot]` (Claude) | heuristic occupancy ≥ `snapshot` threshold | Advisory every prompt until the agent file exists (Grok ignores this stdout) |
+| Last-ditch | same script on **PreCompact** | compact is already firing and no agent file | Writes `$SID.md` with `origin: precompact-mechanical` so checkpoint is not empty |
 
 Load helpers:
 ```bash
@@ -116,4 +131,6 @@ Requires `~/.local/share/revealui/harness.sock` (or `REVEALUI_SOCKET` / `DAEMON_
 - Do NOT ask the operator to export `AGENT_SESSION_ID` / `CLAUDE_CODE_SESSION_ID` — resolution is automatic via `ss_session_id` (GAP-469).
 - Do NOT invent mechanical state — if `gh`/`git` could not answer, say so in the section rather than guessing PR numbers or branch names.
 - Do NOT promote session-scoped facts to memory; only durable feedback/rule-class lessons. Over-promotion is drift.
-- Do NOT run this as a hook or on a timer — it is agent-authored by design (the hook only nudges). See GAP-317 design (`$JV_REPO/docs/gap-specs/GAP-317-session-snapshot-lifecycle-design.md`) and GAP-469 design (`$JV_REPO/docs/gap-specs/GAP-469-revskills-vendor-agnostic-design.md`).
+- Do NOT skip this skill when Stop-blocked or when a `[snapshot]` advisory fires — compaction after this turn will drop session fidelity for `/checkpoint`.
+- Do NOT treat a file with `origin: precompact-mechanical` as done; that is a last-ditch hook capture. Overwrite it with this skill while remainder context is still high.
+- Do NOT author the five narrative sections from a hook. `scripts/snapshot-before-compact.js` may only Stop-block or write a labeled mechanical last-ditch. See GAP-317 design (`$JV_REPO/docs/gap-specs/GAP-317-session-snapshot-lifecycle-design.md`) and GAP-469 design (`$JV_REPO/docs/gap-specs/GAP-469-revskills-vendor-agnostic-design.md`).

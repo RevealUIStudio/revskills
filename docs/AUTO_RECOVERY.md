@@ -22,7 +22,8 @@ Zero-touch recovery for common failure modes:
 ## Non-goals
 
 - Not a replacement for the `/recover` skill (still the recovery engine).
-- Not a session-persistence mechanism — context is rebuilt from rolling state snapshots and git, not serialized.
+- Not a session-persistence mechanism — context is rebuilt from rolling state snapshots, git, and `recover-inventory.js` over on-disk session stores.
+- Wrapper relaunch after host / battery / WSL death (the parent dies too). Historical reconstruction is still required: `revealui-recover` + `scripts/recover-inventory.js` (default 72h). Empty `/tmp` crash markers after reboot are not "nothing to recover."
 - No tmux or pane management. Terminal-native.
 
 ## Components

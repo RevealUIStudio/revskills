@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.13.1"
+  version: "0.15.0"
   website: https://revealui.com
 ---
 
@@ -35,7 +35,7 @@ Rolling handoff **read surface** per `~/.claude/rules/model-allocation.md` §Ses
 
 ## Step 1b — Load the auto-checkpoint snapshot (fidelity source)
 
-A session snapshot is captured mid-session by the `/snapshot` skill (nudged by the `track-session` context advisory at the soft-context line), while fidelity is still high. When one exists it is the PRIMARY source for the narrative sections in Step 4 — more trustworthy than reconstructing from now-deep session memory.
+A session snapshot is captured **before context compaction** by the `/snapshot` skill (Grok Stop-gate at the occupancy gate; Claude `[snapshot]` advisory; PreCompact mechanical last-ditch). When one exists it is the PRIMARY source for the narrative sections in Step 4 — more trustworthy than reconstructing from now-deep or already-compacted session memory.
 
 Resolve it by **this session's id, never by mtime** — a peer's snapshot must be structurally unreachable (GAP-317 + GAP-469). Session id and paths come from `session-state.sh` (neutral SSOT under `~/.local/share/revealui/coordination/`, with read-through of the legacy Claude adapter path).
 
@@ -54,12 +54,15 @@ if [ -n "$SID" ]; then
 fi
 if [ -n "$SNAPSHOT" ]; then
   echo "snapshot for this session: $SNAPSHOT (sid=$SID)"
+  if grep -q '^origin: precompact-mechanical' "$SNAPSHOT"; then
+    echo "WARNING: origin=precompact-mechanical — last-ditch hook capture, lower fidelity. Prefer an agent-authored /snapshot if one can still be written."
+  fi
 else
   echo "no snapshot for this session (${SID:-no-session-id}) — Step 4 falls back to session memory"
 fi
 ```
 
-If `$SNAPSHOT` is set it is unambiguously THIS session's (the filename equals the resolved session id), so no content-matching guesswork is needed. READ it and use its five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 merge; they map onto the rolling file's sections. With no snapshot — no threshold was crossed, or `/snapshot` was not run, or no session id is set — Step 4 proceeds from session memory as before. Do **not** abort solely because `CLAUDE_CODE_SESSION_ID` is unset when another alias is present. Do NOT fall back to the most-recent file on disk; an unmatched id means no snapshot for this session.
+If `$SNAPSHOT` is set it is unambiguously THIS session's (the filename equals the resolved session id), so no content-matching guesswork is needed. READ it and use its five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 merge; they map onto the rolling file's sections. If frontmatter has `origin: precompact-mechanical`, say so in the fragment (lower fidelity; compaction fired before agent authoring). With no snapshot — occupancy never hit the gate, or `/snapshot` was not run, or no session id is set — Step 4 proceeds from session memory as before. Do **not** abort solely because `CLAUDE_CODE_SESSION_ID` is unset when another alias is present. Do NOT fall back to the most-recent file on disk; an unmatched id means no snapshot for this session.
 
 ## Step 2 — Run coherent-tracking validators
 
@@ -174,12 +177,19 @@ Compose the delta PRIMARILY from the Step 1b snapshot when present, supplemented
 ### 4a. Write the fragment
 
 ```bash
-# Compose body with at least ## Last merge (renderer extracts it for the top block).
+# Compose body with at least ## Last merge (renderer extracts it for the top block)
+# and ## Launch (product + exact rfg/rfc command). ADR 2026-08-26-session-launch-record.
 # Include Live board / In-flight / Ordered next / Owner-gated as needed.
 HANDOFF_BODY="$(cat <<'EOF'
 ## Last merge
 
 <ISO_DATE> — <IDENTITY>: <≤15 words what landed>
+
+## Launch
+
+| Product | Command |
+|---------|---------|
+| <rfg basename> | `rfg <product> [--worktree=<label>]` |
 
 ## Live board
 
@@ -193,7 +203,7 @@ HANDOFF_BODY="$(cat <<'EOF'
 
 ## Ordered next actions
 
-1. …
+1. <exact Command from ## Launch row 1>
 
 ## Owner-gated
 
@@ -333,7 +343,7 @@ Step 6 surfaces this output as the PREPARE-FOR-EXIT section of the CHECKPOINT RE
 
 ## Step 5d — Archive the consumed snapshot + GC stale ones (GAP-317 lifecycle)
 
-Now that Step 4 folded this session's snapshot into the rolling handoff, retire it so the active dir only ever holds live sessions' records (acceptance: none older than 7 days active). This is the agent-invoked mover — no hook writes these files, by the hooks read-only invariant.
+Now that Step 4 folded this session's snapshot into the rolling handoff, retire it so the active dir only ever holds live sessions' records (acceptance: none older than 7 days active). This is the agent-invoked mover. Agent-authored five-section files are still not hook-authored; PreCompact may have written a labeled `origin: precompact-mechanical` last-ditch file — archive that too.
 
 ```bash
 ss_ensure_coord_dirs
@@ -442,17 +452,19 @@ else
 fi
 ```
 
-Daemon notification is non-blocking. If it fails for any reason, the handoff is still valid: next session's SessionStart hook discovers it via filesystem — `session-start.js` prints the `[menu] CURRENT-HANDOFF §Ordered next actions` pointer whenever the rolling handoff exists, which is the next-session orientation surface. (The former Step 7.5 invoked a `session-note` skill that was never built; removed in 0.6.1.)
+Daemon notification is non-blocking. If it fails for any reason, the handoff is still valid: next session's SessionStart hook discovers it via filesystem — `session-start.js` / Grok SessionStart print the `[menu] CURRENT-HANDOFF` pointer (orientation only). Consume is `/pickup`. (The former Step 7.5 invoked a `session-note` skill that was never built; removed in 0.6.1.)
 
-## Step 8 — Emit copy-pasteable next-agent prompt (LAST output — nothing after this)
+## Step 8 — Next session consume path (prompt LAST)
 
-Per fleet coordination rules (Archive-Readiness Convention): the final output of any checkpoint flow MUST be a copy-pasteable "next-agent prompt" the owner can drop straight into a **new equal-adapter session** (Claude, Grok, Cursor, …) — no synthesis required, no jumping between docs. **The prompt is non-negotiable.** Without it, the owner has to do friction work (read CURRENT-HANDOFF.md + workboard + memories + figure out the first action) every multi-session handoff. That friction compounds across the fleet.
+**Primary:** new equal-adapter session, owner types `/pickup` (skill `revealui-pickup`). That skill reads CURRENT-HANDOFF, re-verifies with `gh`, and continues agent-doable work. Do not auto-run `/pickup` on SessionStart.
 
-Compose the prompt with these 5 sections (in order):
+**Fallback** (skill missing, other adapter, chat closed): emit a copy-pasteable next-agent prompt. Archive-Readiness still requires the fenced block as the last output of this turn.
 
-1. **First line** — `Session <session-id> — read first: $JV_REPO/docs/handoffs/CURRENT-HANDOFF.md`. The path is the absolute filesystem path to the rolling handoff file.
-2. **TL;DR** — 1–2 sentences with the single most important next action. Mirror §"Ordered next actions" item 1 from CURRENT-HANDOFF.md; do not re-summarize.
-3. **Ordered next-actions** — numbered list with EXACT commands / values / file paths. No "investigate X" / "decide Y" / "look into Z" — those belong in CURRENT-HANDOFF.md body. Pre-resolve every path, hash, branch name, PR number. If the next-agent has to fill in `<paste prod URL here>`, the convention has been violated.
+Per fleet coordination rules: the fallback prompt must be droppable into a new session with no synthesis. Compose it with these 5 sections (in order):
+
+1. **First line** — `New session: /pickup. Session <session-id> read-first: $JV_REPO/docs/handoffs/CURRENT-HANDOFF.md`. The path is the absolute filesystem path to the rolling handoff file.
+2. **TL;DR** — 1–2 sentences with the single most important next action. Mirror CURRENT-HANDOFF **## Launch** row 1 (exact `rfg`/`rfc` command). Do not re-summarize.
+3. **Ordered next-actions** — numbered list. Item 1 is that Launch command. Further items are EXACT commands / paths. No "investigate X" / "decide Y". If the next-agent has to fill in `<paste prod URL here>` or guess a product, the convention has been violated.
 4. **Locked-posture reminder** — one line. HARDLINES: `core.fileMode=false` on every .jv commit; **fragments-only pathspec** (`rolling` + `workboard.d`, never derived CURRENT-HANDOFF/workboard); `-F /tmp/cmsg-*.txt`; `--body-file`; `--head`/`--base` explicit; `gh pr merge --merge` only on revealui-jv (label `merge:merge-commit`); no `--auto`/`--no-verify`/`--admin`/`--force-push`/`--squash`; audit-first; no authored regex; revvault-first secrets; durable-only.
 5. **Owner-gated deferrals** — one short list of items the next agent must NOT auto-pick up without explicit owner sign-off.
 
@@ -488,7 +500,7 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 
 ## Relationship to /handoff
 
-`/handoff` is the predecessor — writes a basic handoff doc to the (now non-canonical) `.claude/handoffs/` location with no tracking-surface validation. `/checkpoint` supersedes it: rolling **fragments** + local CURRENT-HANDOFF render + 6 validators + inventory + structured report. Recommend the slash command symlink at `~/.claude/commands/handoff.md` be retargeted to this skill in a follow-up (separate revskills PR).
+`/handoff` is the predecessor — writes a basic handoff doc to the (now non-canonical) `.claude/handoffs/` location with no tracking-surface validation. `/checkpoint` supersedes it: rolling **fragments** + local CURRENT-HANDOFF render + 6 validators + inventory + structured report. **Consume** is `/pickup`, not `/next`. Recommend the slash command symlink at `~/.claude/commands/handoff.md` be retargeted to this skill in a follow-up (separate revskills PR).
 
 ## Related ADRs / gaps (.jv)
 
@@ -496,5 +508,6 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 - `docs/decisions/2026-07-23-jv-merge-commit-only.md` — merge-commit policy + label
 - `docs/decisions/2026-07-21-current-handoff-rolling-fragments.md` — rolling fragments (amended)
 - `docs/decisions/2026-07-04-workboard-fragment-store.md` — workboard.d fragments
+- `docs/decisions/2026-08-26-session-launch-record.md` — `## Launch` / rfg product id
 - `docs/gap-specs/GAP-469-revskills-vendor-agnostic-design.md` — neutral session + coordination root
 - `docs/gaps/GAP-469.yml` — session contract execution unit
