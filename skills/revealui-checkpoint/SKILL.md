@@ -1,15 +1,15 @@
 ---
 name: revealui-checkpoint
-description: Checkpoint checklist for RevFleet sessions. Validates the 6 coherent-tracking surfaces, inventories tracking state, writes a rolling handoff fragment + workboard log fragment, re-renders CURRENT-HANDOFF/workboard locally for read convenience, and commits ONLY append-only fragments (docs/handoffs/rolling + .claude/workboard.d) per ADR 2026-07-23-jv-coordination-merge-model. Worktree-gated when a peer is live. Never commits derived CURRENT-HANDOFF.md or workboard.md. Never master-handoff regen or auto-merge with --admin.
+description: Checkpoint checklist for RevFleet sessions. Validates the 6 coherent-tracking surfaces, inventories tracking state, writes a rolling handoff fragment + workboard log fragment, re-renders CURRENT-HANDOFF/workboard locally for read convenience, and commits ONLY append-only fragments (docs/handoffs/rolling + .revealui/workboard.d, with leftover adapter .claude/workboard.d read-through) per ADR 2026-07-23-jv-coordination-merge-model. Worktree-gated when a peer is live. Never commits derived CURRENT-HANDOFF.md or workboard.md. Never master-handoff regen or auto-merge with --admin.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.15.0"
+  version: "0.15.1"
   website: https://revealui.com
 ---
 
-Checkpoint orchestrator. Run before ending a meaningful session to ensure the next agent can pick up cleanly. Wires together the 6 coherent-tracking validators + 4 inventory surfaces + writes a **rolling handoff fragment** (`docs/handoffs/rolling/`) + a workboard log fragment (`.claude/workboard.d/`), **renders** `$JV_REPO/docs/handoffs/CURRENT-HANDOFF.md` and `workboard.md` **locally only** (read convenience), and **commits only append-only fragment paths** (ADR `2026-07-23-jv-coordination-merge-model` / jv#601). Concurrent sessions must not stack: unique fragment filenames merge without rewriting shared derived files. Then reports CHECKPOINT-READY + emits the archive-readiness next-agent prompt.
+Checkpoint orchestrator. Run before ending a meaningful session to ensure the next agent can pick up cleanly. Wires together the 6 coherent-tracking validators + 4 inventory surfaces + writes a **rolling handoff fragment** (`docs/handoffs/rolling/`) + a workboard log fragment (`.revealui/workboard.d/`), **renders** `$JV_REPO/docs/handoffs/CURRENT-HANDOFF.md` and `workboard.md` **locally only** (read convenience), and **commits only append-only fragment paths** (ADR `2026-07-23-jv-coordination-merge-model` / jv#601). Concurrent sessions must not stack: unique fragment filenames merge without rewriting shared derived files. Then reports CHECKPOINT-READY + emits the archive-readiness next-agent prompt.
 
 Authority on locations + tiers: [`master-handoff.md`]($JV_REPO/.claude/rules/master-handoff.md) (active at `docs/HANDOFF-*.md` root; archive at `docs/handoffs/archive/`). Authority on doc-location enforcement: [`jv-doc-locations.md`]($JV_REPO/.claude/rules/jv-doc-locations.md).
 
@@ -235,7 +235,7 @@ Rolling history is capped by `handoff-render.js --max` (default 12 fragments). O
 - [YYYY-MM-DD HH:MM] <IDENTITY>: [CHECKPOINT] → rolling fragment only | tracking: <X pass / Y fail> | next: <one-line next action from §Ordered next actions>
 ```
 
-Step 5b writes it as a **fragment** (`.claude/workboard.d/log/<ts>-<id>.md` — a new per-session file that can never collide with a peer) and re-renders `workboard.md` **locally only**, in the correct checkout (main for SOLO, the worktree for PEER). Set the volatile parts **as single-quoted literals** so a next-action containing backticks / `$(…)` / quotes is never command-substituted (`§Ordered next actions` holds exact commands + paths, which routinely use backticks):
+Step 5b writes it as a **fragment** (`.revealui/workboard.d/log/<ts>-<id>.md` — a new per-session file that can never collide with a peer) and re-renders `workboard.md` **locally only**, in the correct checkout (main for SOLO, the worktree for PEER). Set the volatile parts **as single-quoted literals** so a next-action containing backticks / `$(…)` / quotes is never command-substituted (`§Ordered next actions` holds exact commands + paths, which routinely use backticks):
 ```bash
 TS="$(date -u '+%Y-%m-%d %H:%M')"
 TRACK='<X pass / Y fail>'
@@ -248,7 +248,7 @@ Step 5b assembles the line with `printf %s` (never re-evaluates) and pipes it to
 DEFAULT: commit **append-only fragment paths only** and converge them to `origin/test`:
 
 - `docs/handoffs/rolling/**`
-- `.claude/workboard.d/**`
+- `.revealui/workboard.d/**`
 
 **Never stage** `docs/handoffs/CURRENT-HANDOFF.md` or `.claude/workboard.md` in a session checkpoint PR (derived renders; concurrent rewrites always conflict). CI **Coord paths guard** on `revealui-jv` fails those paths unless labeled `coord:allow-render-commit` (escape hatch only).
 
@@ -268,7 +268,7 @@ CMSG="/tmp/cmsg-ckpt-${STAMP}.txt"   # write the commit message here (Step 5b us
 If `jv-single-writer-check.js` has no `--count` mode yet, `ss_live_harness_peers` is authoritative (not `pgrep claude` alone).
 
 Throughout: `core.fileMode=false` on every `.jv` commit; **explicit pathspec (fragments only)**
-`-- docs/handoffs/rolling .claude/workboard.d`
+`-- docs/handoffs/rolling .revealui/workboard.d`
 (NEVER stage `CURRENT-HANDOFF.md`, `workboard.md`, `tmp/`, or peer-WIP untracked);
 `-F "$CMSG"`; `--body-file` PR bodies; `--head`/`--base` explicit;
 **merge-COMMIT only, never squash** on `.jv` protecteds (repo squash disabled + label
@@ -284,9 +284,9 @@ printf -- '- [%s] %s: [CHECKPOINT] → rolling fragment only | tracking: %s | ne
   | node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY"
 node "$JV_ROOT/scripts/workboard-sweep.js" --render-only
 # Fragments only — do not add CURRENT-HANDOFF.md or workboard.md
-git add docs/handoffs/rolling .claude/workboard.d
+git add docs/handoffs/rolling .revealui/workboard.d
 git -c core.fileMode=false commit -F "$CMSG" -- \
-  docs/handoffs/rolling .claude/workboard.d
+  docs/handoffs/rolling .revealui/workboard.d
 git push origin "HEAD:refs/heads/$BR"
 gh pr create --base test --head "$BR" --body-file "$CMSG"
 gh pr edit <n> --repo RevealUIStudio/revealui-jv --add-label "merge:merge-commit"
@@ -311,12 +311,12 @@ printf '%s\n' "$HANDOFF_BODY" \
   | node "$JV_ROOT/scripts/handoff-fragment.js" --id "$IDENTITY" --base "$WT/docs/handoffs/rolling"
 node "$JV_ROOT/scripts/handoff-render.js" --base "$WT/docs/handoffs/rolling" --out "$WT/docs/handoffs/CURRENT-HANDOFF.md"
 printf -- '- [%s] %s: [CHECKPOINT] → rolling fragment only | tracking: %s | next: %s\n' "$TS" "$IDENTITY" "$TRACK" "$NEXT" \
-  | node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY" --base "$WT/.claude/workboard.d"
-node "$JV_ROOT/scripts/workboard-sweep.js" --render-only --workboard "$WT/.claude/workboard.md" --base "$WT/.claude/workboard.d"
+  | node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY" --base "$WT/.revealui/workboard.d"
+node "$JV_ROOT/scripts/workboard-sweep.js" --render-only --workboard "$WT/.claude/workboard.md" --base "$WT/.revealui/workboard.d"
 # Fragments only
-git add docs/handoffs/rolling .claude/workboard.d
+git add docs/handoffs/rolling .revealui/workboard.d
 git -c core.fileMode=false commit -F "$CMSG" -- \
-  docs/handoffs/rolling .claude/workboard.d
+  docs/handoffs/rolling .revealui/workboard.d
 git push origin "HEAD:refs/heads/$BR"
 gh pr create --base test --head "$BR" --body-file "$CMSG"
 gh pr edit <n> --repo RevealUIStudio/revealui-jv --add-label "merge:merge-commit"
@@ -382,7 +382,7 @@ Print this structured summary to the user (NOT just the assistant log — actual
 === CHECKPOINT REPORT — <ISO_DATETIME> ===
 
 Handoff fragment:     <path under docs/handoffs/rolling/>
-Workboard fragment:   <path under .claude/workboard.d/>
+Workboard fragment:   <path under .revealui/workboard.d/>
 Derived render:       local only (CURRENT-HANDOFF + workboard re-rendered; not committed)
 Commit:               <#N merged to .jv test | committed locally <branch> | --no-commit: left unstaged for owner>
 
