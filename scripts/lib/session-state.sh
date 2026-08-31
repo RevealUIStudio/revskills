@@ -9,7 +9,12 @@
 REVFLEET_ROOT="${REVFLEET_ROOT:-$HOME/revfleet}"
 REVEALUI_REPO="${REVEALUI_REPO:-$REVFLEET_ROOT/revealui}"
 JV_REPO="${JV_REPO:-$REVFLEET_ROOT/.jv}"
+# Rendered workboard (derived). Fragments write to $JV_REPO/.revealui/workboard.d
+# (vendor-neutral). .claude/workboard.md is the current render target until sweep
+# cutover; do not treat .claude as the product home.
 WORKBOARD="${WORKBOARD:-$JV_REPO/.claude/workboard.md}"
+WORKBOARD_D_NEUTRAL="${WORKBOARD_D_NEUTRAL:-$JV_REPO/.revealui/workboard.d}"
+WORKBOARD_D_LEGACY="${WORKBOARD_D_LEGACY:-$JV_REPO/.claude/workboard.d}"
 DAEMON_SOCKET="${REVEALUI_SOCKET:-${DAEMON_SOCKET:-$HOME/.local/share/revealui/harness.sock}}"
 
 # Neutral coordination root (SSOT). Claude/Grok homes may hold legacy copies.
