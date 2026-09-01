@@ -27,7 +27,7 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 
 ## Skills
 
-**24** skills total. Public OSS pack needs no RevFleet layout. Studio workflow pack assumes `~/revfleet` (and related Studio services), but not a single vendor CLI.
+**24** skills total. Public OSS pack needs no RevealFleet layout. Studio workflow pack assumes `~/revfleet` (and related Studio services), but not a single vendor CLI.
 
 ### Framework & app patterns
 
@@ -74,7 +74,7 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 
 ### RevealUI Workflow (Studio layout)
 
-These skills assume RevFleet layout (`~/revfleet/`, private planning hub, RevVault, RevDev RPC daemon). They are **equal-adapter** Studio skills (Claude, Grok, …), not Claude-only products. Canonical copies live here; Studio machines may symlink into vendor command homes.
+These skills assume RevealFleet layout (`~/revfleet/`, private planning hub, RevVault, RevDev RPC daemon). They are **equal-adapter** Studio skills (Claude, Grok, …), not Claude-only products. Canonical copies live here; Studio machines may symlink into vendor command homes.
 
 | Skill | Description |
 |-------|-------------|
@@ -99,7 +99,7 @@ PRs welcome. Each skill must:
 - Pass `skills-ref validate ./skills/<name>` when that tool is available
 - Include a keyword-rich description (discovery surface)
 - Keep body under 500 lines — move detailed reference to `references/`
-- **Public pack:** no private filesystem paths. **Studio pack:** RevFleet layout is intentional; do not re-introduce Claude-only hard deps without an adapter label
+- **Public pack:** no private filesystem paths. **Studio pack:** RevealFleet layout is intentional; do not re-introduce Claude-only hard deps without an adapter label
 
 ### Pre-push validators
 
@@ -119,4 +119,4 @@ MIT
 
 ---
 
-Part of the [RevFleet](https://revealui.com) — the agentic business runtime. Build your business, not your boilerplate.
+Part of the [RevealFleet](https://revealui.com) — the agentic business runtime. Build your business, not your boilerplate.
