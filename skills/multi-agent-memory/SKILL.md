@@ -189,3 +189,15 @@ All memory is scoped by coordination session ID. When agents start a shared task
 2. All fact publications include this session ID
 3. Shape subscriptions filter by session ID
 4. Reconciliation processes one session at a time
+
+## Durable vs working vs session facts
+
+Keep these names distinct. Do not proxy `memory_publish_fact` into
+`kg_add_episode` (that ingest is a later graph phase, not this skill).
+
+| API | Store | Lifetime | Use |
+|---|---|---|---|
+| daemon `memory.store` / `memory.query` | PGlite | Process/machine working set | Self-scoped working memory. Not shared product memory. |
+| `memory_publish_fact` (`revealui-memory` MCP) | `shared_facts` | Session | Layer-1 live discoveries. Electric `shared-facts` shape. |
+| `kg_add_episode` | `kg_*` | Durable, bi-temporal | What any in-scope agent has learned, queryable after session death. See the `knowledge-graph` skill. |
+| Yjs kg-view / scratchpad | `yjs_documents` | Ephemeral overlay | Layout, annotations, session scratchpad. Flush to a `manual` episode to keep. |
