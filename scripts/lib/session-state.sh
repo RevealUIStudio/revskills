@@ -6,9 +6,26 @@
 #   . "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
 # Claude-home copy paths (if any) are adapters, not the SSOT.
 
-REVFLEET_ROOT="${REVFLEET_ROOT:-$HOME/revealfleet}"
-REVEALUI_REPO="${REVEALUI_REPO:-$REVFLEET_ROOT/revealui}"
-JV_REPO="${JV_REPO:-$REVFLEET_ROOT/.jv}"
+# Canonical env is REVEALFLEET_ROOT. REVFLEET_ROOT is a deprecated alias.
+if [ -z "${REVEALFLEET_ROOT:-}" ]; then
+  if [ -n "${REVFLEET_ROOT:-}" ]; then
+    REVEALFLEET_ROOT="$REVFLEET_ROOT"
+  else
+    _rf_home="${HOME}/revealfleet"
+    _rf_legacy="${HOME}/revfleet"
+    if [ -d "${_rf_home}/.jv" ]; then
+      REVEALFLEET_ROOT="$_rf_home"
+    elif [ -d "${_rf_legacy}/.jv" ]; then
+      REVEALFLEET_ROOT="$_rf_legacy"
+    else
+      REVEALFLEET_ROOT="$_rf_home"
+    fi
+    unset _rf_home _rf_legacy
+  fi
+fi
+REVFLEET_ROOT="${REVFLEET_ROOT:-$REVEALFLEET_ROOT}"
+REVEALUI_REPO="${REVEALUI_REPO:-$REVEALFLEET_ROOT/revealui}"
+JV_REPO="${JV_REPO:-$REVEALFLEET_ROOT/.jv}"
 # Rendered workboard (derived). Fragments write to $JV_REPO/.revealui/workboard.d
 # (vendor-neutral). .claude/workboard.md is the current render target until sweep
 # cutover; do not treat .claude as the product home.
@@ -287,7 +304,7 @@ ss_active_repo() {
   fi
   # 2. CWD is inside RevFleet — infer the enclosing repo.
   case "$PWD" in
-    "$REVFLEET_ROOT"/*) git -C "$PWD" rev-parse --show-toplevel 2>/dev/null && return 0 ;;
+    "$REVEALFLEET_ROOT"/*|"$REVFLEET_ROOT"/*) git -C "$PWD" rev-parse --show-toplevel 2>/dev/null && return 0 ;;
   esac
   # 3. Fall back to the canonical primary repo.
   printf '%s\n' "$REVEALUI_REPO"
