@@ -15,7 +15,7 @@ Authority on locations + tiers: [`master-handoff.md`]($JV_REPO/.claude/rules/mas
 
 Load helpers:
 ```bash
-. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
+. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Step 1 — Resolve context
@@ -70,7 +70,7 @@ Capture pass/fail per check. Do NOT auto-fix anything destructive.
 
 ### 2a. Doc locations
 ```bash
-cd "$JV_ROOT" && ~/revfleet/revealui/node_modules/.bin/tsx scripts/doc-locations-check.ts --quiet
+cd "$JV_ROOT" && ~/revealfleet/revealui/node_modules/.bin/tsx scripts/doc-locations-check.ts --quiet
 ```
 Exit 0 = clean. Exit 1 = drift (e.g., handoffs at `docs/handoffs/` top-level, lane plan missing).
 
@@ -94,13 +94,13 @@ Validates each lane's frontmatter + plan.md presence.
 
 ### 2e. M-1 ADR tracking-issue compliance
 ```bash
-~/revfleet/revealui/node_modules/.bin/tsx "$JV_ROOT/scripts/m1-adr-tracking-check.ts" --base-ref=origin/main --head-ref=HEAD --mode=ci
+~/revealfleet/revealui/node_modules/.bin/tsx "$JV_ROOT/scripts/m1-adr-tracking-check.ts" --base-ref=origin/main --head-ref=HEAD --mode=ci
 ```
 Every ADR (post-2026-05-16 cutoff) must carry `tracking-issue:` frontmatter. The check needs a diff range: `origin/main...HEAD` scopes it to ADRs on the current branch not yet on `main` (empty on a fresh `main` → exit 0). Invoking it with no range exits 2 with a usage error — that was the Step 2e bug, fixed 2026-06-06. Requires `origin/main` to be fetched (the inventory step already hits the network, so a stale ref is the only failure mode).
 
 ### 2f. M-1 frontmatter staleness
 ```bash
-~/revfleet/revealui/node_modules/.bin/tsx "$JV_ROOT/scripts/m1-frontmatter-staleness-check.ts" --mode=ci
+~/revealfleet/revealui/node_modules/.bin/tsx "$JV_ROOT/scripts/m1-frontmatter-staleness-check.ts" --mode=ci
 ```
 Lane plan `last-updated:` must not be older than the most-recent ADR's `date:` field.
 

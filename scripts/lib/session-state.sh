@@ -3,10 +3,10 @@
 # /snapshot, /doctor). Vendor-agnostic (GAP-469).
 #
 # Source from the revskills tree (canonical):
-#   . "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
+#   . "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
 # Claude-home copy paths (if any) are adapters, not the SSOT.
 
-REVFLEET_ROOT="${REVFLEET_ROOT:-$HOME/revfleet}"
+REVFLEET_ROOT="${REVFLEET_ROOT:-$HOME/revealfleet}"
 REVEALUI_REPO="${REVEALUI_REPO:-$REVFLEET_ROOT/revealui}"
 JV_REPO="${JV_REPO:-$REVFLEET_ROOT/.jv}"
 # Rendered workboard (derived). Fragments write to $JV_REPO/.revealui/workboard.d

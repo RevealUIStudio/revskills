@@ -13,12 +13,12 @@ Validate skill installs **without** requiring a Claude-only command dir. Goal: c
 
 Load helpers:
 ```bash
-. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
+. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Roots to scan (in order)
 
-1. **SoT (always):** `$HOME/revfleet/revskills/skills/*/SKILL.md`
+1. **SoT (always):** `$HOME/revealfleet/revskills/skills/*/SKILL.md`
 2. **Adapter homes (when present):**
    - `~/.claude/commands/*.md` (Claude slash / command links)
    - `~/.grok` skill pointers if listed in config, or paths under `[skills].paths`
@@ -39,20 +39,20 @@ Extract paths matching:
 
 - `$HOME/.claude/...` or `~/.claude/...`
 - `$HOME/.grok/...` or `~/.grok/...`
-- `$HOME/revfleet/revskills/...` or `~/revfleet/revskills/...`
+- `$HOME/revealfleet/revskills/...` or `~/revealfleet/revskills/...`
 - `bash "<path>"` / `node "<path>"` / `tsx "<path>"`
 
 Assert each target exists. Missing = FAIL.
 
 ### 3. Referenced repos
 
-Extract `~/revfleet/...`, `~/projects/...`, `~/suite/...`.  
-`~/suite/*` = FAIL (retired). Missing `~/revfleet/*` = FAIL.
+Extract `~/revealfleet/...`, `~/projects/...`, `~/suite/...`.  
+`~/suite/*` = FAIL (retired). Missing `~/revealfleet/*` = FAIL.
 
 ### 4. Rule compliance (awk linter)
 
 ```bash
-awk -f "$HOME/revfleet/revskills/scripts/lib/lint-skill.awk" <skill>
+awk -f "$HOME/revealfleet/revskills/scripts/lib/lint-skill.awk" <skill>
 ```
 
 Tags: `stale-suite-path`, `git-C-violates-bash.md`, `pnpm-dir-violates-bash.md`, `inline-node-e-violates-hooks.md`, `tmux-legacy`.
@@ -68,8 +68,8 @@ For known CLIs (`revvault`, `pnpm`, `nix`, `gh`, `git`, …): presence on PATH w
 ## Batch / CI (no interactive harness required)
 
 ```bash
-bash "$HOME/revfleet/revskills/scripts/lint-all-skills.sh"
-bash "$HOME/revfleet/revskills/scripts/lint-all-skills.sh" --json
+bash "$HOME/revealfleet/revskills/scripts/lint-all-skills.sh"
+bash "$HOME/revealfleet/revskills/scripts/lint-all-skills.sh" --json
 ```
 
 Exits 0 on clean, 1 on violation. Preferred pre-push path.

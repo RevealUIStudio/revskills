@@ -30,7 +30,7 @@ Compaction path (do not weaken):
 
 Load helpers:
 ```bash
-. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
+. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Step 1 — Pre-flight: resolve the session id + target path
@@ -63,13 +63,13 @@ cd "$JV_REPO" && node scripts/prepare-for-exit.js
 Then, for each repo you actually TOUCHED this session, grab the branch + short status directly (each command `cd`-prefixed, per the fleet bash rule — never `git -C`):
 
 ```bash
-cd ~/revfleet/revealui && git status -sb | head -1
+cd ~/revealfleet/revealui && git status -sb | head -1
 ```
 
 Open PRs you authored (best-effort — skip if `gh` is slow or offline; list from memory if so):
 
 ```bash
-cd ~/revfleet/revealui && gh pr list --author "@me" --state open --json number,title,headRefName --limit 20
+cd ~/revealfleet/revealui && gh pr list --author "@me" --state open --json number,title,headRefName --limit 20
 ```
 
 ## Step 3 — Author the five sections + Write the file

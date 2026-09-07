@@ -7,9 +7,9 @@
  * after shard work.
  *
  * Usage:
- *   node open-run.js --root ~/revfleet --fleet --slug fleet-p0
- *   node open-run.js --root ~/revfleet/revealui --slug revealui
- *   node open-run.js --root ~/revfleet --fleet --out /tmp/audit-run --mode code
+ *   node open-run.js --root ~/revealfleet --fleet --slug fleet-p0
+ *   node open-run.js --root ~/revealfleet/revealui --slug revealui
+ *   node open-run.js --root ~/revealfleet --fleet --out /tmp/audit-run --mode code
  */
 "use strict";
 

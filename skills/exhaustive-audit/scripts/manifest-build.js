@@ -8,9 +8,9 @@
  * Completeness is machine-checked later via coverage-status.js.
  *
  * Usage:
- *   node manifest-build.js --root ~/revfleet/revealui --out /path/manifest.jsonl
- *   node manifest-build.js --root ~/revfleet --fleet --exclude-defaults --out /path/manifest.jsonl
- *   node manifest-build.js --root ~/revfleet --fleet --include-archive --out /path/manifest.jsonl
+ *   node manifest-build.js --root ~/revealfleet/revealui --out /path/manifest.jsonl
+ *   node manifest-build.js --root ~/revealfleet --fleet --exclude-defaults --out /path/manifest.jsonl
+ *   node manifest-build.js --root ~/revealfleet --fleet --include-archive --out /path/manifest.jsonl
  *   node manifest-build.js --root . --exclude-defaults --exclude '.pgdata/**'
  */
 "use strict";
