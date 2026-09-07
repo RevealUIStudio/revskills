@@ -16,7 +16,7 @@ Answer "did the claude.ai/design project change since the codebase last pushed t
 
 Load helpers:
 ```bash
-. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
+. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Step 1 — Read the repo-side sync state

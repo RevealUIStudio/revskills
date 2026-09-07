@@ -17,7 +17,7 @@ Diagnostic-first: surface state, then continue unfinished **agent** work. Never 
 
 Load shared helpers:
 ```bash
-. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
+. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Required first action
@@ -25,7 +25,7 @@ Load shared helpers:
 Run the inventory **this turn** before any "nothing to recover" claim:
 
 ```bash
-node "$HOME/revfleet/revskills/scripts/recover-inventory.js" --hours 72
+node "$HOME/revealfleet/revskills/scripts/recover-inventory.js" --hours 72
 ```
 
 Default window is 72 hours. If the user named a longer window, pass that `--hours`.
@@ -66,7 +66,7 @@ Known identities: `conductor`, `agent-extension[-N]`, `agent-edit[-N]`, `agent-s
 ## Step 1 — Historical inventory (mandatory)
 
 ```bash
-node "$HOME/revfleet/revskills/scripts/recover-inventory.js" --hours 72
+node "$HOME/revealfleet/revskills/scripts/recover-inventory.js" --hours 72
 ```
 
 Then classify every unique row using the table above. Verify named PRs live. Open recovery-artifact files (they are often the only copy of a design).
@@ -104,7 +104,7 @@ ss_empty_objects "$REPO"
 - Report uncommitted files grouped by area.
 - If `git fsck` reports errors or empty objects exist: **flag as corruption**. Do not auto-repair. Propose the sequence (backup working-tree, remove empty objects, `git fetch origin`, re-verify) and ask for authorization.
 - If the crash cache had a `files` list, also run `cd "$REPO" && git diff HEAD -- <files>` scoped to those paths.
-- Also report dirty shared checkouts and `~/revfleet/.wt/*` that are not clean. Do not commit a dirty shared `.jv` checkout that a peer owns.
+- Also report dirty shared checkouts and `~/revealfleet/.wt/*` that are not clean. Do not commit a dirty shared `.jv` checkout that a peer owns.
 
 ## Step 3 — Hook shared state
 
@@ -256,7 +256,7 @@ Never expand the auto-healable allowlist inline in a session. If a new finding-t
 Adapters print a one-line reminder so the owner does not have to ask:
 
 ```bash
-node "$HOME/revfleet/revskills/scripts/recover-inventory.js" --hours 72 --summary
+node "$HOME/revealfleet/revskills/scripts/recover-inventory.js" --hours 72 --summary
 ```
 
 Grok: `~/.grok/hooks/session-start.json`. Claude: `~/.claude/hooks/session-start.js`. Warn-only, fail-open, never block startup.

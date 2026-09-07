@@ -9,7 +9,7 @@
 # Idempotent: re-running updates symlinks to point at the repo copies.
 # Refuses to overwrite a regular file — back it up first.
 #
-# Usage: bash ~/revfleet/revskills/bin/install.sh
+# Usage: bash ~/revealfleet/revskills/bin/install.sh
 
 set -euo pipefail
 

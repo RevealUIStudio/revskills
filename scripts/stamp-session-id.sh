@@ -9,7 +9,7 @@
 #   GROK_SESSION_ID | CLAUDE_CODE_SESSION_ID | AGENT_SESSION_ID
 #
 # Usage (hook command):
-#   bash "$HOME/revfleet/revskills/scripts/stamp-session-id.sh"
+#   bash "$HOME/revealfleet/revskills/scripts/stamp-session-id.sh"
 #
 # Safe to re-run; always exit 0 so SessionStart never blocks.
 

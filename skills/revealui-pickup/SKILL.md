@@ -31,7 +31,7 @@ continue last night's PR.
 
 Load helpers:
 ```bash
-. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
+. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Step 1 — Render + read
@@ -67,7 +67,7 @@ repo, `gh pr view` the likely product first.
 Also confirm named worktrees/branches still exist:
 
 ```bash
-cd "$HOME/revfleet/revealui" && git worktree list
+cd "$HOME/revealfleet/revealui" && git worktree list
 ```
 
 ## Step 3 — Classify

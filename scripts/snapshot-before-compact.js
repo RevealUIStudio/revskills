@@ -338,7 +338,7 @@ function runStop(payload, sid) {
     `BLOCKED: context occupancy ${occ}% (gate ${gate}%; auto-compact follows). ` +
     `Compaction will destroy session fidelity for /checkpoint. ` +
     `Run the revealui-snapshot skill NOW this turn — do not continue other work. ` +
-    `Follow ~/revfleet/revskills/skills/revealui-snapshot/SKILL.md and write the ` +
+    `Follow ~/revealfleet/revskills/skills/revealui-snapshot/SKILL.md and write the ` +
     `five-section snapshot keyed to session ${sid}.`;
   process.stdout.write(
     `${JSON.stringify({
