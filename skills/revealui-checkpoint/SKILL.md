@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.15.1"
+  version: "0.15.2"
   website: https://revealui.com
 ---
 
@@ -94,9 +94,20 @@ Validates each lane's frontmatter + plan.md presence.
 
 ### 2e. M-1 ADR tracking-issue compliance
 ```bash
-~/revealfleet/revealui/node_modules/.bin/tsx "$JV_ROOT/scripts/m1-adr-tracking-check.ts" --base-ref=origin/main --head-ref=HEAD --mode=ci
+TSX="$HOME/revealfleet/revealui/node_modules/.bin/tsx"
+# revealui-jv default branch is `test`; origin/main is not a ref. Prefer a
+# resolvable origin/test, then origin/main. The checker also falls back if the
+# named ref is missing (dangling origin/HEAD used to point at origin/main).
+if git -C "$JV_ROOT" rev-parse --verify --quiet origin/test >/dev/null 2>&1; then
+  BASE_REF=origin/test
+elif git -C "$JV_ROOT" rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
+  BASE_REF=origin/main
+else
+  BASE_REF=origin/test
+fi
+"$TSX" "$JV_ROOT/scripts/m1-adr-tracking-check.ts" --base-ref="$BASE_REF" --head-ref=HEAD --mode=ci
 ```
-Every ADR (post-2026-05-16 cutoff) must carry `tracking-issue:` frontmatter. The check needs a diff range: `origin/main...HEAD` scopes it to ADRs on the current branch not yet on `main` (empty on a fresh `main` → exit 0). Invoking it with no range exits 2 with a usage error — that was the Step 2e bug, fixed 2026-06-06. Requires `origin/main` to be fetched (the inventory step already hits the network, so a stale ref is the only failure mode).
+Every ADR (post-2026-05-16 cutoff) must carry `tracking-issue:` frontmatter. The check needs a diff range: `<default-branch>...HEAD` (empty range → exit 0). Invoking it with no range exits 2 with a usage error — that was the Step 2e bug, fixed 2026-06-06. Do not hardcode `origin/main` on repos whose GitHub default branch is `test`.
 
 ### 2f. M-1 frontmatter staleness
 ```bash
