@@ -98,12 +98,11 @@ TSX="$HOME/revealfleet/revealui/node_modules/.bin/tsx"
 # revealui-jv default branch is `test`; origin/main is not a ref. Prefer a
 # resolvable origin/test, then origin/main. The checker also falls back if the
 # named ref is missing (dangling origin/HEAD used to point at origin/main).
-if git -C "$JV_ROOT" rev-parse --verify --quiet origin/test >/dev/null 2>&1; then
+BASE_REF=origin/test
+if ( cd "$JV_ROOT" && git rev-parse --verify --quiet origin/test >/dev/null 2>&1 ); then
   BASE_REF=origin/test
-elif git -C "$JV_ROOT" rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
+elif ( cd "$JV_ROOT" && git rev-parse --verify --quiet origin/main >/dev/null 2>&1 ); then
   BASE_REF=origin/main
-else
-  BASE_REF=origin/test
 fi
 "$TSX" "$JV_ROOT/scripts/m1-adr-tracking-check.ts" --base-ref="$BASE_REF" --head-ref=HEAD --mode=ci
 ```
