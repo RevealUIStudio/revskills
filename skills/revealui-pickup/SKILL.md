@@ -67,7 +67,7 @@ repo, `gh pr view` the likely product first.
 Also confirm named worktrees/branches still exist:
 
 ```bash
-cd "$HOME/revealfleet/revealui" && git worktree list
+cd "$REVEALFLEET_ROOT/revealui" && git worktree list
 ```
 
 ## Step 3 — Classify

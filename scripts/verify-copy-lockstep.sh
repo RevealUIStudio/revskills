@@ -64,7 +64,7 @@ MANIFEST="$TARGET/$DOT/.revcon-manifest.json"
 if [[ ! -f "$MANIFEST" ]]; then
   echo "✗ missing $DOT/.revcon-manifest.json" >&2
   echo "  Materialize with revcon:" >&2
-  echo "    bash ~/revealfleet/revcon/link.sh --target $TARGET --profile revfleet --editor claude --mode copy" >&2
+  echo "    bash "$REVEALFLEET_ROOT/revcon/link.sh" --target $TARGET --profile revfleet --editor claude --mode copy" >&2
   exit 1
 fi
 
@@ -143,7 +143,7 @@ profiles="$(jq -r '.profiles | join(", ")' "$MANIFEST" 2>/dev/null || echo "?")"
 
 if (( problems > 0 )); then
   echo "✗ copy-lockstep: $problems violation(s) ($count manifest entr(y/ies), profiles: $profiles)" >&2
-  echo "  Re-apply: bash ~/revealfleet/revcon/link.sh --target $TARGET --editor claude --mode copy --profile …" >&2
+  echo "  Re-apply: bash "$REVEALFLEET_ROOT/revcon/link.sh" --target $TARGET --editor claude --mode copy --profile …" >&2
   exit 1
 fi
 

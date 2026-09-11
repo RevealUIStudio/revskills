@@ -18,7 +18,7 @@ Load helpers:
 
 ## Roots to scan (in order)
 
-1. **SoT (always):** `$HOME/revealfleet/revskills/skills/*/SKILL.md`
+1. **SoT (always):** `$REVEALFLEET_ROOT/revskills/skills/*/SKILL.md`
 2. **Adapter homes (when present):**
    - `~/.claude/commands/*.md` (Claude slash / command links)
    - `~/.grok` skill pointers if listed in config, or paths under `[skills].paths`
@@ -39,20 +39,20 @@ Extract paths matching:
 
 - `$HOME/.claude/...` or `~/.claude/...`
 - `$HOME/.grok/...` or `~/.grok/...`
-- `$HOME/revealfleet/revskills/...` or `~/revealfleet/revskills/...`
+- `$REVEALFLEET_ROOT/revskills/...`
 - `bash "<path>"` / `node "<path>"` / `tsx "<path>"`
 
 Assert each target exists. Missing = FAIL.
 
 ### 3. Referenced repos
 
-Extract `~/revealfleet/...`, `~/projects/...`, `~/suite/...`.  
-`~/suite/*` = FAIL (retired). Missing `~/revealfleet/*` = FAIL.
+Extract `$REVEALFLEET_ROOT/...`, `~/projects/...`, `~/suite/...`.  
+`~/suite/*` = FAIL (retired). Missing `$REVEALFLEET_ROOT/*` = FAIL.
 
 ### 4. Rule compliance (awk linter)
 
 ```bash
-awk -f "$HOME/revealfleet/revskills/scripts/lib/lint-skill.awk" <skill>
+awk -f "$REVEALFLEET_ROOT/revskills/scripts/lib/lint-skill.awk" <skill>
 ```
 
 Tags: `stale-suite-path`, `git-C-violates-bash.md`, `pnpm-dir-violates-bash.md`, `inline-node-e-violates-hooks.md`, `tmux-legacy`.
@@ -68,8 +68,8 @@ For known CLIs (`revvault`, `pnpm`, `nix`, `gh`, `git`, …): presence on PATH w
 ## Batch / CI (no interactive harness required)
 
 ```bash
-bash "$HOME/revealfleet/revskills/scripts/lint-all-skills.sh"
-bash "$HOME/revealfleet/revskills/scripts/lint-all-skills.sh" --json
+bash "$REVEALFLEET_ROOT/revskills/scripts/lint-all-skills.sh"
+bash "$REVEALFLEET_ROOT/revskills/scripts/lint-all-skills.sh" --json
 ```
 
 Exits 0 on clean, 1 on violation. Preferred pre-push path.

@@ -15,12 +15,12 @@ Run the topology check and report results.
 
 ```bash
 # 1) Control-layer / revcon when available
-if [ -x "$HOME/revealfleet/revcon/link.sh" ]; then
+if [ -x "$REVEALFLEET_ROOT/revcon/link.sh" ]; then
   # report-only: do not run link.sh without owner ask; prefer check scripts
-  echo "revcon present: $HOME/revealfleet/revcon"
+  echo "revcon present: $REVEALFLEET_ROOT/revcon"
 fi
-if [ -f "$HOME/revealfleet/revskills/scripts/verify-copy-lockstep.sh" ]; then
-  bash "$HOME/revealfleet/revskills/scripts/verify-copy-lockstep.sh" 2>/dev/null || true
+if [ -f "$REVEALFLEET_ROOT/revskills/scripts/verify-copy-lockstep.sh" ]; then
+  bash "$REVEALFLEET_ROOT/revskills/scripts/verify-copy-lockstep.sh" 2>/dev/null || true
 fi
 
 # 2) Claude adapter hook (legacy Studio path)
