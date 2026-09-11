@@ -3,24 +3,18 @@
 # /snapshot, /doctor). Vendor-agnostic (GAP-469).
 #
 # Source from the revskills tree (canonical):
-#   . "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
+#   . "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
+# Launch with rfg so REVEALFLEET_ROOT is the bootstrap pin.
 # Claude-home copy paths (if any) are adapters, not the SSOT.
 
 # Canonical env is REVEALFLEET_ROOT. REVFLEET_ROOT is a deprecated alias.
+# Never default to $HOME/revealfleet (HOME hijack). Fail closed if unset.
 if [ -z "${REVEALFLEET_ROOT:-}" ]; then
   if [ -n "${REVFLEET_ROOT:-}" ]; then
     REVEALFLEET_ROOT="$REVFLEET_ROOT"
   else
-    _rf_home="${HOME}/revealfleet"
-    _rf_legacy="${HOME}/revfleet"
-    if [ -d "${_rf_home}/.jv" ]; then
-      REVEALFLEET_ROOT="$_rf_home"
-    elif [ -d "${_rf_legacy}/.jv" ]; then
-      REVEALFLEET_ROOT="$_rf_legacy"
-    else
-      REVEALFLEET_ROOT="$_rf_home"
-    fi
-    unset _rf_home _rf_legacy
+    printf '%s\n' "session-state: REVEALFLEET_ROOT is unset. Launch with rfg (bootstrap pin). Never default to \$HOME/revealfleet." >&2
+    return 1 2>/dev/null || exit 1
   fi
 fi
 REVFLEET_ROOT="${REVFLEET_ROOT:-$REVEALFLEET_ROOT}"
