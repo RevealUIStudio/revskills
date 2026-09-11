@@ -27,7 +27,7 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 
 ## Skills
 
-**24** skills total. Public OSS pack needs no RevealFleet layout. Studio workflow pack assumes `~/revealfleet` (and related Studio services), but not a single vendor CLI.
+**24** skills total. Public OSS pack needs no RevealFleet layout. Studio workflow pack assumes `$REVEALFLEET_ROOT` (and related Studio services), but not a single vendor CLI.
 
 ### Framework & app patterns
 
@@ -74,7 +74,7 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 
 ### RevealUI Workflow (Studio layout)
 
-These skills assume RevealFleet layout (`~/revealfleet/`, private planning hub, RevVault, RevDev RPC daemon). They are **equal-adapter** Studio skills (Claude, Grok, …), not Claude-only products. Canonical copies live here; Studio machines may symlink into vendor command homes.
+These skills assume RevealFleet layout (`$REVEALFLEET_ROOT/`, private planning hub, RevVault, RevDev RPC daemon). They are **equal-adapter** Studio skills (Claude, Grok, …), not Claude-only products. Canonical copies live here; Studio machines may symlink into vendor command homes.
 
 | Skill | Description |
 |-------|-------------|

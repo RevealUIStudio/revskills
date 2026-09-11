@@ -54,7 +54,7 @@ Load helpers:
 ## Steps
 
 1. **Discover LTS mount**: `mount | grep /mnt/e` — fail if not mounted.
-2. **For each RevFleet repo** (iterate `~/revealfleet/*/` excluding dotfiles):
+2. **For each RevFleet repo** (iterate `$REVEALFLEET_ROOT/*/` excluding dotfiles):
    - Skip if not a git repo.
    - Read `<repo>/.claude/lts-mode`. If missing, print `unconfigured: <repo>` and continue.
    - If `bundle`: create dated bundle, prune old, verify via `cd /mnt/e/professional/<RepoName> && git bundle verify <file>`.

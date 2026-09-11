@@ -70,7 +70,7 @@ Capture pass/fail per check. Do NOT auto-fix anything destructive.
 
 ### 2a. Doc locations
 ```bash
-cd "$JV_ROOT" && ~/revealfleet/revealui/node_modules/.bin/tsx scripts/doc-locations-check.ts --quiet
+cd "$JV_ROOT" && "$REVEALFLEET_ROOT/revealui/node_modules/.bin/tsx" scripts/doc-locations-check.ts --quiet
 ```
 Exit 0 = clean. Exit 1 = drift (e.g., handoffs at `docs/handoffs/` top-level, lane plan missing).
 
@@ -94,7 +94,7 @@ Validates each lane's frontmatter + plan.md presence.
 
 ### 2e. M-1 ADR tracking-issue compliance
 ```bash
-TSX="$HOME/revealfleet/revealui/node_modules/.bin/tsx"
+TSX="$REVEALFLEET_ROOT/revealui/node_modules/.bin/tsx"
 # revealui-jv default branch is `test`; origin/main is not a ref. Prefer a
 # resolvable origin/test, then origin/main. The checker also falls back if the
 # named ref is missing (dangling origin/HEAD used to point at origin/main).
@@ -110,7 +110,7 @@ Every ADR (post-2026-05-16 cutoff) must carry `tracking-issue:` frontmatter. The
 
 ### 2f. M-1 frontmatter staleness
 ```bash
-~/revealfleet/revealui/node_modules/.bin/tsx "$JV_ROOT/scripts/m1-frontmatter-staleness-check.ts" --mode=ci
+"$REVEALFLEET_ROOT/revealui/node_modules/.bin/tsx" "$JV_ROOT/scripts/m1-frontmatter-staleness-check.ts" --mode=ci
 ```
 Lane plan `last-updated:` must not be older than the most-recent ADR's `date:` field.
 
