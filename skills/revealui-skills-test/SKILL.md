@@ -13,7 +13,7 @@ Validate skill installs **without** requiring a Claude-only command dir. Goal: c
 
 Load helpers:
 ```bash
-. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
+. "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Roots to scan (in order)

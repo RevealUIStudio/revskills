@@ -13,7 +13,7 @@ Run a health check on **Studio-native** workflow surfaces for equal adapters. Re
 
 Load helpers:
 ```bash
-. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
+. "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
 ```
 
 ## 0. Adapter homes present

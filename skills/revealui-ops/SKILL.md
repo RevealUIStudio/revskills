@@ -13,7 +13,7 @@ Thin CLI shim onto the `.jv` operational-workflow-layer runner (`workflow-run.js
 
 Load helpers:
 ```bash
-. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
+. "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
 ```
 
 ## `/ops` or `/ops list` — discovery

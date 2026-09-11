@@ -17,7 +17,7 @@ Diagnostic-first: surface state, then continue unfinished **agent** work. Never 
 
 Load shared helpers:
 ```bash
-. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
+. "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Required first action

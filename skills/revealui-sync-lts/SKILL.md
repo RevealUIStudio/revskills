@@ -36,7 +36,7 @@ Sync RevFleet repos to the LTS drive. LTS mode is declared per-repo at `.claude/
 
 Load helpers:
 ```bash
-. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
+. "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Modes

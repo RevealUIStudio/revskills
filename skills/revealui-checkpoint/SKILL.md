@@ -15,7 +15,7 @@ Authority on locations + tiers: [`master-handoff.md`]($JV_REPO/.claude/rules/mas
 
 Load helpers:
 ```bash
-. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
+. "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Step 1 — Resolve context
