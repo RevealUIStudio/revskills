@@ -46,7 +46,9 @@ repos, spans time, or asks about relationships rather than text.
 
 Seven tools, all under `@revealui/mcp`'s `kg-server` factory
 (`createKnowledgeGraphServer`), wrapping `@revealui/knowledge-graph`'s
-search and ingest APIs:
+search and ingest APIs. Studio attaches them with stdio
+`revealui-mcp knowledge-graph`. Hosted clients use the same names on
+governed `/api/mcp` (no second MCP URL).
 
 | Tool | Use for |
 |---|---|
@@ -96,12 +98,13 @@ pull its context first instead of grepping around blind:
 This runs a BFS from the anchor node, reranks by node-distance and
 episode-mentions, and packs node summaries plus edge facts (each carrying
 its provenance episode ids) into a text block capped at `charBudget`
-characters (default 16000; characters, not tokens). The response also
-reports `truncated`, `charsUsed`, `nodeCount`, and `factCount` so you know
-whether the packed block is the whole neighborhood or a budgeted slice of
-it. Prefer this over `kg_search` when the question is "what do I need to
-know before touching X." `kg_search` is for open-ended queries where you
-don't yet have an anchor.
+characters (default 16000; characters, not tokens). In product mode the
+packed string is `data.context` on the envelope (not the JSON root); the
+same payload reports `truncated`, `charsUsed`, `nodeCount`, and
+`factCount` so you know whether the packed block is the whole neighborhood
+or a budgeted slice of it. Prefer this over `kg_search` when the question
+is "what do I need to know before touching X." `kg_search` is for
+open-ended queries where you don't yet have an anchor.
 
 ## Point-in-time query recipes
 
@@ -137,16 +140,18 @@ Use it to durably record an end-of-session discovery instead of letting it
 die in a handoff doc. This extends the `shared_facts` flow from the
 `multi-agent-memory` skill: a `shared_facts` row is session-scoped and
 ephemeral, while a `kg_add_episode` call with `episodeType: "agent-fact"`
-becomes a permanent, queryable graph fact with full provenance, and gets
-Layer-3 reconciliation for free once that lands.
+becomes a permanent, queryable graph fact with full provenance. Product
+mode stamps `source` and actor DID from the session principal — do not
+pass `"source": "claude-session"`; the client field is ignored. See
+`multi-agent-memory` for the durable vs working vs session table.
 
 ```json
 {
   "tool": "kg_add_episode",
   "arguments": {
     "episodeType": "agent-fact",
-    "source": "claude-session",
     "content": "the Electric proxy retries with exponential backoff on 5xx",
+    "classification": "workspace",
     "nodes": [
       {
         "kind": "concept",
@@ -168,10 +173,32 @@ Layer-3 reconciliation for free once that lands.
 
 **Explicit invocation only.** Publishing an episode is a deliberate act at
 the point a discovery is worth keeping. There is no hook that
-auto-publishes on session end or on every tool call (this is a ruled-open
-question, OQ2 in the design spec: hooks must stay fast, so automation is
-deferred). Call `kg_add_episode` yourself when you have something durable
-to say, the same way you would decide to write a `shared_facts` row.
+auto-publishes on session end or on every tool call. Call `kg_add_episode`
+yourself when you have something durable to say, the same way you would
+decide to write a `shared_facts` row.
+
+## Launcher, identity, envelope
+
+Studio stdio: `revealui-mcp knowledge-graph`. Set `REVDEV_AGENT_ID` so the
+server can load the hook identity
+(`REVDEV_HOOK_IDENTITY_DIR`, default
+`~/.local/share/revealui/hook-identities`). Missing principal → envelope
+`unavailable` / `principal-missing`, one WARN per process, then proceed.
+Do not invent a session-named `source` to paper over it.
+
+Hosted: same `kg_*` tools on `/api/mcp` with a device token. Tenant is the
+caller's `accountId`, not `studio-local`.
+
+Every product-mode JSON body is an envelope:
+
+| `status` | Meaning |
+|---|---|
+| `ok` | `available: true`, `enforcement`, `deniedCount`, `data` |
+| `denied` | In-scope result set empty and `deniedCount > 0`. Not an empty success. |
+| `unavailable` | Graph down, timeout, or principal missing. Session continues. |
+
+`ok` with empty lists and `deniedCount: 0` means nothing exists. Treat
+`unavailable` as a WARN, not a silent empty graph.
 
 If a discovery contradicts an existing edge, still just call
 `kg_add_episode` with the corrected fact. The ingest engine's entity

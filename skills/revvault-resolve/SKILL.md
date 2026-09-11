@@ -46,7 +46,7 @@ this skill. Account creation is owner disposition.
 2. Map the asked-for name (env key, vendor, or path token) in this
    order. Record **path**, **env key**, and **consumers** only.
    - If a revealui checkout is present (`$REVEALUI_ROOT` or
-     `$HOME/revfleet/revealui`): read
+     `$REVEALFLEET_ROOT/revealui`): read
      `scripts/sync/secret-paths.ts` and the generated table in
      `docs/SECRETS.md`. That module is the production-synced set
      (Phase 0). `dev/*`, `credentials/*`, `forge/*`, and `agents/*`

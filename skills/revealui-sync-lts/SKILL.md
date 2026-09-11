@@ -36,7 +36,7 @@ Sync RevFleet repos to the LTS drive. LTS mode is declared per-repo at `.claude/
 
 Load helpers:
 ```bash
-. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
+. "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Modes
@@ -54,7 +54,7 @@ Load helpers:
 ## Steps
 
 1. **Discover LTS mount**: `mount | grep /mnt/e` — fail if not mounted.
-2. **For each RevFleet repo** (iterate `~/revfleet/*/` excluding dotfiles):
+2. **For each RevFleet repo** (iterate `$REVEALFLEET_ROOT/*/` excluding dotfiles):
    - Skip if not a git repo.
    - Read `<repo>/.claude/lts-mode`. If missing, print `unconfigured: <repo>` and continue.
    - If `bundle`: create dated bundle, prune old, verify via `cd /mnt/e/professional/<RepoName> && git bundle verify <file>`.

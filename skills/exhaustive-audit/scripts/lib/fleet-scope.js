@@ -6,7 +6,7 @@
  */
 "use strict";
 
-/** Default children of ~/revfleet inventoried by --fleet. */
+/** Default children of ~/revealfleet inventoried by --fleet. */
 const DEFAULT_FLEET_REPOS = [
   ".jv",
   "agency",

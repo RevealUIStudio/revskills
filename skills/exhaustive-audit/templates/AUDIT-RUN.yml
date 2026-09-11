@@ -12,7 +12,7 @@ scope:
   fleet: false
   include_archive: false
   roots:
-    - ~/revfleet/revealui
+    - ~/revealfleet/revealui
   # git pins at open (code-over-docs)
   pins:
     - repo: revealui

@@ -69,15 +69,15 @@ Pick one run root (prefer an operator-private audits directory):
 Default run root (writable operator dir; prefer fleet shared archive):
 
 ```bash
-# Fleet shared cold store (not inside product git). See ~/revfleet/archive/cold/README.md
-export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$HOME/revfleet/archive/cold}"
+# Fleet shared cold store (not inside product git). See $REVEALFLEET_ROOT/archive/cold/README.md
+export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$REVEALFLEET_ROOT/archive/cold}"
 export AUDIT_RUN_ROOT="${AUDIT_RUN_ROOT:-$REVFLEET_ARCHIVE/audits}"
 RUN_ROOT="$AUDIT_RUN_ROOT/$(date -u +%Y-%m-%d)-<slug>"
 ```
 
 ## Scripts (this skill)
 
-All under `$HOME/revfleet/revskills/skills/exhaustive-audit/scripts/`:
+All under `$REVEALFLEET_ROOT/revskills/skills/exhaustive-audit/scripts/`:
 
 | Script | Purpose |
 |--------|---------|
@@ -89,11 +89,11 @@ All under `$HOME/revfleet/revskills/skills/exhaustive-audit/scripts/`:
 | `lib/fleet-scope.js` | Default fleet allowlist + skip rules (SSOT) |
 
 ```bash
-SKILL="$HOME/revfleet/revskills/skills/exhaustive-audit"
-export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$HOME/revfleet/archive/cold}"
-node "$SKILL/scripts/open-run.js" --root "$HOME/revfleet" --fleet --slug fleet-p0
+SKILL="$REVEALFLEET_ROOT/revskills/skills/exhaustive-audit"
+export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$REVEALFLEET_ROOT/archive/cold}"
+node "$SKILL/scripts/open-run.js" --root "$REVEALFLEET_ROOT" --fleet --slug fleet-p0
 # or one repo:
-node "$SKILL/scripts/open-run.js" --root "$HOME/revfleet/revealui" --slug revealui
+node "$SKILL/scripts/open-run.js" --root "$REVEALFLEET_ROOT/revealui" --slug revealui
 node "$SKILL/scripts/coverage-status.js" \
   --manifest "$RUN_ROOT/manifest.jsonl" \
   --ledger "$RUN_ROOT/ledger/coverage.jsonl" \
@@ -349,5 +349,5 @@ Phase 0 may finish in one session. Calling it exhaustive is a contract violation
 ```bash
 node skills/exhaustive-audit/scripts/md-truth-check.js --self-test
 # operator:
-# REVFLEET_ARCHIVE=~/revfleet/archive/cold node …/md-truth-check.js --coverage
+# REVFLEET_ARCHIVE=$REVEALFLEET_ROOT/archive/cold node …/md-truth-check.js --coverage
 ```

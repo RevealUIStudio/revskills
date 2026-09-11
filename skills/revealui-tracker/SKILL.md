@@ -34,7 +34,7 @@ require owner shell steps.
 ## What agents run (silently)
 
 ```bash
-. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
+. "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
 node "$JV_REPO/scripts/tracker.js" sync
 ```
 

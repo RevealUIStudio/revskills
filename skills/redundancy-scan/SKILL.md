@@ -62,7 +62,7 @@ Do not put private planning-repo paths in config committed to this package.
 Prefer the fleet shared archive (not product git):
 
 ```bash
-export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$HOME/revfleet/archive/cold}"
+export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$REVEALFLEET_ROOT/archive/cold}"
 OUT="$REVFLEET_ARCHIVE/audits/$(date -u +%Y-%m-%d)-redundancy-<scope>"
 ```
 
@@ -79,13 +79,13 @@ $OUT/
 ## Quick start (one repo)
 
 ```bash
-SKILL="$HOME/revfleet/revskills/skills/redundancy-scan"
-export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$HOME/revfleet/archive/cold}"
+SKILL="$REVEALFLEET_ROOT/revskills/skills/redundancy-scan"
+export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$REVEALFLEET_ROOT/archive/cold}"
 OUT="$REVFLEET_ARCHIVE/audits/$(date -u +%Y-%m-%d)-redundancy-revealui"
 mkdir -p "$OUT"
 
 node "$SKILL/scripts/run-scan.js" \
-  --root "$HOME/revfleet/revealui" \
+  --root "$REVEALFLEET_ROOT/revealui" \
   --out-dir "$OUT"
 
 # read $OUT/report.md then classify findings
@@ -95,7 +95,7 @@ node "$SKILL/scripts/run-scan.js" \
 
 ```bash
 node "$SKILL/scripts/run-scan.js" \
-  --root "$HOME/revfleet" \
+  --root "$REVEALFLEET_ROOT" \
   --fleet \
   --out-dir "$REVFLEET_ARCHIVE/audits/$(date -u +%Y-%m-%d)-redundancy-fleet"
 ```

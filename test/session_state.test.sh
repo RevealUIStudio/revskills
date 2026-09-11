@@ -4,6 +4,10 @@
 
 # shellcheck source=scripts/lib/session-state.sh
 _ss_load() {
+  # Pin required: session-state fail-closes without REVEALFLEET_ROOT.
+  if [ -z "${REVEALFLEET_ROOT:-}" ]; then
+    export REVEALFLEET_ROOT="$REPO_ROOT"
+  fi
   # shellcheck disable=SC1091
   . "$REPO_ROOT/scripts/lib/session-state.sh"
 }
@@ -11,6 +15,41 @@ _ss_load() {
 _ss_clear_session_env() {
   unset AGENT_SESSION_ID REVEALUI_SESSION_ID CLAUDE_CODE_SESSION_ID GROK_SESSION_ID
   unset REVEALUI_IDENTITY AGENT_ROLE CLAUDE_AGENT_ROLE GROK_ACTIVE_SESSIONS
+}
+
+test_ss_home_hijack_does_not_become_fleet_root() {
+  local tmp evil
+  tmp="$(make_sandbox)"
+  evil="$tmp/evil"
+  mkdir -p "$evil/revealfleet"
+  assert_exit "unset pin + HOME hijack does not source" 1 -- \
+    env -u REVEALFLEET_ROOT -u REVFLEET_ROOT HOME="$evil" \
+    bash -c '. "$1"' _ "$REPO_ROOT/scripts/lib/session-state.sh"
+  assert_contains "fail-closed names the pin" "REVEALFLEET_ROOT is unset" "$LAST_OUTPUT"
+}
+
+test_ss_revealfleet_root_pin_wins() {
+  local tmp
+  tmp="$(make_sandbox)/fleet"
+  mkdir -p "$tmp"
+  unset REVFLEET_ROOT
+  export REVEALFLEET_ROOT="$tmp"
+  # shellcheck disable=SC1091
+  . "$REPO_ROOT/scripts/lib/session-state.sh"
+  assert_eq "$tmp" "$REVEALFLEET_ROOT" "explicit REVEALFLEET_ROOT is the fleet root"
+  unset REVEALFLEET_ROOT
+}
+
+test_ss_revfleet_root_alias_still_works() {
+  local tmp
+  tmp="$(make_sandbox)/legacy-alias"
+  mkdir -p "$tmp"
+  unset REVEALFLEET_ROOT
+  export REVFLEET_ROOT="$tmp"
+  # shellcheck disable=SC1091
+  . "$REPO_ROOT/scripts/lib/session-state.sh"
+  assert_eq "$tmp" "$REVEALFLEET_ROOT" "REVFLEET_ROOT alias fills the pin"
+  unset REVEALFLEET_ROOT REVFLEET_ROOT
 }
 
 test_ss_session_id_prefers_agent_session_id() {

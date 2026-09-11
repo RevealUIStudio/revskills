@@ -13,7 +13,7 @@ Run a health check on **Studio-native** workflow surfaces for equal adapters. Re
 
 Load helpers:
 ```bash
-. "$HOME/revfleet/revskills/scripts/lib/session-state.sh"
+. "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
 ```
 
 ## 0. Adapter homes present
@@ -38,7 +38,7 @@ If Claude home is missing: do **not** fail the whole doctor — continue with Gr
 
 Verify these exist and contain `.md` files when the home is present:
 
-- `~/revfleet/revealui/.claude/rules/`
+- `$REVEALFLEET_ROOT/revealui/.claude/rules/`
 - `$JV_REPO/.claude/rules/`
 - `~/.claude/rules/` (Claude adapter)
 - `~/.grok/rules/` (Grok adapter; pointer files OK)
@@ -48,18 +48,18 @@ Verify these exist and contain `.md` files when the home is present:
 Prefer SoT + multi-home:
 
 ```bash
-bash "$HOME/revfleet/revskills/scripts/lint-all-skills.sh"
+bash "$REVEALFLEET_ROOT/revskills/scripts/lint-all-skills.sh"
 ```
 
 Additionally, for each present command/skill root (`~/.claude/commands`, `~/.grok` skill paths from config if readable):
 
-- Extract referenced script paths under `~/.claude`, `~/revfleet/revskills`, `node`/`bash` invocations.
+- Extract referenced script paths under `~/.claude`, `$REVEALFLEET_ROOT/revskills`, `node`/`bash` invocations.
 - Assert each referenced script exists. Report missing.
-- Flag any `~/suite/` references as stale (retired 2026-05-07 → `~/revfleet/`).
+- Flag any `~/suite/` references as stale (retired 2026-05-07 → `$REVEALFLEET_ROOT/`).
 
 ## 4. Git integrity (RevFleet repos)
 
-For each repo in `~/revfleet/revealui` and `$JV_REPO`:
+For each repo in `$REVEALFLEET_ROOT/revealui` and `$JV_REPO`:
 ```bash
 cd "$repo" && git fsck --full 2>&1 | grep -E '^(error|fatal|missing)'
 ss_empty_objects "$repo"
@@ -72,7 +72,7 @@ Parse `$WORKBOARD` (`$JV_REPO/.claude/workboard.md`). In `## Log`, flag `[CRASHE
 
 ## 6. Events log size
 
-`~/revfleet/revealui/.claude/events.jsonl` and `$JV_REPO/.claude/events.jsonl`. Warn if over 100KB.
+`$REVEALFLEET_ROOT/revealui/.claude/events.jsonl` and `$JV_REPO/.claude/events.jsonl`. Warn if over 100KB.
 
 ## 7. Daemon + Studio surface health
 
@@ -100,13 +100,13 @@ In both RevFleet repos: `git ls-files '*.env*'`. SAFE vs REVIEW classification a
 
 ```bash
 pnpm -v; node -v; biome --version 2>/dev/null || echo "biome via pnpm exec"
-cd ~/revfleet/revealui && test -f flake.lock && nix flake metadata --json >/dev/null 2>&1 && echo "flake: ok" || echo "flake: check"
-cd ~/revfleet/revealui && direnv status 2>&1 | tail -3
+cd "$REVEALFLEET_ROOT/revealui" && test -f flake.lock && nix flake metadata --json >/dev/null 2>&1 && echo "flake: ok" || echo "flake: check"
+cd "$REVEALFLEET_ROOT/revealui" && direnv status 2>&1 | tail -3
 ```
 
 ## 12. Disaster recovery (WSL snapshot)
 
-Per-repo LTS sync is retired. Flag leftover `.claude/lts-mode` under `~/revfleet/*/`. Snapshot freshness is Windows-side — SKIP with pointer to revkit `check-backup-staleness.ps1` when LTS drive unreachable.
+Per-repo LTS sync is retired. Flag leftover `.claude/lts-mode` under `$REVEALFLEET_ROOT/*/`. Snapshot freshness is Windows-side — SKIP with pointer to revkit `check-backup-staleness.ps1` when LTS drive unreachable.
 
 ## 13. Session id auto-resolve (GAP-469)
 
