@@ -9,7 +9,7 @@ staleness-status: FRESH
 # RevSkills — Master Plan
 
 **Last Updated:** 2026-08-13  
-**Status:** Active — **24** skills shipped under `skills/` (pre-1.0 per skill)  
+**Status:** Active — **25** skills shipped under `skills/` (pre-1.0 per skill)  
 **Owner:** RevealUI Studio  
 **Repo:** [RevealUIStudio/revskills](https://github.com/RevealUIStudio/revskills)
 
@@ -22,13 +22,13 @@ staleness-status: FRESH
 
 ### What exists
 
-24 Agent Skills (vendor-agnostic SSOT under `skills/`). Equal adapters: Claude Code, Grok, Cursor, OpenCode, VS Code. Public install: `npx skills add RevealUIStudio/revskills`. Claude `.claude-plugin/` is one marketplace adapter.
+25 Agent Skills (vendor-agnostic SSOT under `skills/`). Equal adapters: Claude Code, Grok, Cursor, OpenCode, VS Code. Public install: `npx skills add RevealUIStudio/revskills`. Claude `.claude-plugin/` is one marketplace adapter.
 
 Categories (see root `README.md` for the live table):
 
 - Framework & app patterns (Next, Tailwind, security)
 - Data & sync (Drizzle, Electric, Yjs)
-- AI & agents (MCP, multi-agent memory)
+- AI & agents (MCP, multi-agent memory, grok-bot-checkpoint)
 - Testing (Vitest)
 - Audit & architecture (exhaustive-audit, redundancy-scan, knowledge-graph)
 - Design (revealui-design + kits)

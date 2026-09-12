@@ -6,7 +6,7 @@ updated: 2026-08-13
 
 # RevSkills — Documentation Index
 
-Curated [Agent Skills](https://agentskills.io) for equal adapters (Claude Code, Grok, Cursor, OpenCode, VS Code). **24** skills under `skills/` (pre-1.0).
+Curated [Agent Skills](https://agentskills.io) for equal adapters (Claude Code, Grok, Cursor, OpenCode, VS Code). **25** skills under `skills/` (pre-1.0).
 
 ## This repo's masters
 
