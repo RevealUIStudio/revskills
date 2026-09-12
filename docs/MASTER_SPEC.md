@@ -9,7 +9,7 @@ staleness-status: FRESH
 # RevSkills — Master Spec
 
 **Last Updated:** 2026-08-13  
-**Status:** Pre-1.0 per skill — surface stable; **25** skills under `skills/`  
+**Status:** Pre-1.0 per skill — surface stable; **26** skills under `skills/`  
 **Repo:** [RevealUIStudio/revskills](https://github.com/RevealUIStudio/revskills)
 
 > SKILL.md format, distribution surface, harness compatibility. Companion to [`MASTER_PLAN.md`](./MASTER_PLAN.md).
@@ -32,7 +32,7 @@ revskills/
 ├── LICENSE                         # MIT
 ├── bin/                            # optional adapter launchers (e.g. claude-safe)
 ├── scripts/                        # validators + session helpers
-├── skills/                         # one directory per skill (SSOT) — 25 total
+├── skills/                         # one directory per skill (SSOT) — 26 total
 │   ├── next-best-practices/
 │   │   └── SKILL.md
 │   └── …
@@ -163,7 +163,7 @@ Studio skills must still be **vendor-agnostic** across Claude / Grok / equal ada
 
 ## Versioning
 
-Per-skill SemVer in `metadata.version`. Pre-1.0 default. Skill count = `find skills -name SKILL.md | wc -l` (currently **25**).
+Per-skill SemVer in `metadata.version`. Pre-1.0 default. Skill count = `find skills -name SKILL.md | wc -l` (currently **26**).
 
 ---
 

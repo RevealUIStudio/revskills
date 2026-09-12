@@ -27,7 +27,7 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 
 ## Skills
 
-**25** skills total. Public OSS pack needs no RevealFleet layout. Studio workflow pack assumes `$REVEALFLEET_ROOT` (and related Studio services), but not a single vendor CLI.
+**26** skills total. Public OSS pack needs no RevealFleet layout. Studio workflow pack assumes `$REVEALFLEET_ROOT` (and related Studio services), but not a single vendor CLI.
 
 ### Framework & app patterns
 
