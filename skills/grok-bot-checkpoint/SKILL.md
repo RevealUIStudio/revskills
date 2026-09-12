@@ -180,7 +180,7 @@ RENDER="$CKPT_ROOT/CURRENT-HANDOFF.md"
   printf 'Derived from rolling fragments (newest ≤12). Do not edit by hand.\n'
   printf 'Rendered: %s  agent: %s\n\n' "$ISO_DATETIME" "$AGENT_SLUG"
   find "$CKPT_ROOT/rolling" -maxdepth 1 -type f -name '*.md' | sort | tail -n 12 | while IFS= read -r f; do
-    printf '---\n\n<!-- fragment: %s -->\n\n' "$(basename "$f")"
+    printf -- '---\n\n<!-- fragment: %s -->\n\n' "$(basename "$f")"
     cat "$f"
     printf '\n'
   done
