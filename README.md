@@ -27,7 +27,7 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 
 ## Skills
 
-**24** skills total. Public OSS pack needs no RevealFleet layout. Studio workflow pack assumes `$REVEALFLEET_ROOT` (and related Studio services), but not a single vendor CLI.
+**26** skills total. Public OSS pack needs no RevealFleet layout. Studio workflow pack assumes `$REVEALFLEET_ROOT` (and related Studio services), but not a single vendor CLI.
 
 ### Framework & app patterns
 
@@ -51,6 +51,14 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 |-------|-------------|
 | [mcp-server](skills/mcp-server/) | Model Context Protocol server development — JSON-RPC, tools, resources, credential isolation |
 | [multi-agent-memory](skills/multi-agent-memory/) | Multi-agent shared memory — append-only facts, Yjs scratchpads, LLM-powered reconciliation |
+
+### Session handoff
+
+Portable session close-out. Does not require RevealFleet. Studio/RevealFleet sessions keep using [revealui-checkpoint](skills/revealui-checkpoint/).
+
+| Skill | Description |
+|-------|-------------|
+| [grok-bot-checkpoint](skills/grok-bot-checkpoint/) | Portable Grok Bot / desktop-assistant checkpoint — rolling fragments, CURRENT-HANDOFF, CHECKPOINT-READY |
 
 ### Testing
 
@@ -79,7 +87,7 @@ These skills assume RevealFleet layout (`$REVEALFLEET_ROOT/`, private planning h
 | Skill | Description |
 |-------|-------------|
 | [revealui-recover](skills/revealui-recover/) | Diagnose and recover from crashed/interrupted Studio sessions (Claude + Grok markers) |
-| [revealui-checkpoint](skills/revealui-checkpoint/) | Checkpoint checklist — tracking surfaces, handoff fragments, workboard log |
+| [revealui-checkpoint](skills/revealui-checkpoint/) | Checkpoint checklist — tracking surfaces, handoff fragments, workboard log (Studio/RevealFleet sibling of [grok-bot-checkpoint](skills/grok-bot-checkpoint/)) |
 | [revealui-pickup](skills/revealui-pickup/) | Consume CURRENT-HANDOFF and continue agent-doable work (`/pickup`; not `/next`) |
 | [revealui-snapshot](skills/revealui-snapshot/) | Mid-session fidelity snapshot for checkpoint composition (auto session id) |
 | [revealui-ops](skills/revealui-ops/) | Thin `/ops` shim onto the operational-workflow-layer runner |
@@ -99,7 +107,7 @@ PRs welcome. Each skill must:
 - Pass `skills-ref validate ./skills/<name>` when that tool is available
 - Include a keyword-rich description (discovery surface)
 - Keep body under 500 lines — move detailed reference to `references/`
-- **Public pack:** no private filesystem paths. **Studio pack:** RevealFleet layout is intentional; do not re-introduce Claude-only hard deps without an adapter label
+- **Public pack:** no private filesystem paths (grok-bot-checkpoint may document the public Grok Bot box checkpoint root). **Studio pack:** RevealFleet layout is intentional; do not re-introduce Claude-only hard deps without an adapter label
 
 ### Pre-push validators
 
