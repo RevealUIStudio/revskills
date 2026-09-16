@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.15.2"
+  version: "0.16.0"
   website: https://revealui.com
 ---
 
@@ -175,6 +175,17 @@ fi
 ```
 
 Read-only. Capture output for Step 6 **HOTFIXES** and Step 4 fragment **Owner-gated** / **Outstanding** when any entry is `pending`. Do **not** call `resolve` here. Pending entries never block CHECKPOINT-READY alone, but they **must** appear under OUTSTANDING.
+
+### 3g. Live peer refresh (GAP-494)
+
+Overwrite **this session's** `workboard.d/active` row so peers see the claim. Does not commit (Step 5b does). Do not run a nested `/coordinate` full skill.
+
+```bash
+node "$REVEALFLEET_ROOT/revskills/skills/revealui-coordinate/scripts/coordinate.js" \
+  --mode=refresh --id "$SID" --claim "<this session claim>"
+```
+
+Live `/coordinate` is the manual skill. This step is the checkpoint slice only.
 
 ## Step 4 — Write rolling handoff fragment + local render
 
@@ -521,3 +532,4 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 - `docs/decisions/2026-08-26-session-launch-record.md` — `## Launch` / rfg product id
 - `docs/gap-specs/GAP-469-revskills-vendor-agnostic-design.md` — neutral session + coordination root
 - `docs/gaps/GAP-469.yml` — session contract execution unit
+- `docs/gaps/GAP-494.yml` — `/coordinate` live peer packet (snapshot report / checkpoint refresh)
