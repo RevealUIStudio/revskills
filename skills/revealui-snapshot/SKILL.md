@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.3.0"
+  version: "0.4.0"
   website: https://revealui.com
 ---
 
@@ -71,6 +71,14 @@ Open PRs you authored (best-effort — skip if `gh` is slow or offline; list fro
 ```bash
 cd "$REVEALFLEET_ROOT/revealui" && gh pr list --author "@me" --state open --json number,title,headRefName --limit 20
 ```
+
+### Step 2.5 — Peer packet (GAP-494, read-only)
+
+```bash
+node "$REVEALFLEET_ROOT/revskills/skills/revealui-coordinate/scripts/coordinate.js" --mode=report
+```
+
+Fold the roster into `## Active-Constraints` as a short **Peers** list. Do not write workboard fragments from snapshot.
 
 ## Step 3 — Author the five sections + Write the file
 
