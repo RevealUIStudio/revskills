@@ -90,7 +90,8 @@ command, including `--worktree=`). That is Ordered next item 1. Then:
    from `origin/test` in the product named by Launch. Do not dirty-switch a
    shared checkout.
 2. Else if only `owner-gated` remains: list owner one-liners (`gh pr merge …`
-   with `-R owner/repo`) and stop.
+   with `-R owner/repo`). When the owner says "merged", re-verify with `gh`
+   and continue Step 4 / next recommended item; do not stop for another prompt.
 3. Else (checkpoint exhausted): Step 6.
 
 Never merge, force-push, add gate labels, or edit a stranded `.jv` checkout
