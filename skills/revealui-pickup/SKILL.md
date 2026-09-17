@@ -16,6 +16,8 @@ metadata:
     - revealui-checkpoint
     - revealui-tracker
     - revealui-recover
+    - revealui-cleanup
+    - revealui-rollup
 ---
 
 # Pickup (`/pickup`) — consume CURRENT-HANDOFF
@@ -124,3 +126,4 @@ Print free surfaces. Do **not** auto-claim a gap. Wait for the owner to pick.
 - Do not start `/recover` unless git is corrupt or the owner asked.
 - Do not auto-run on SessionStart.
 - Do not guess a product when **Launch** is missing.
+- Residue after consume is `/cleanup` (report) or `/cleanup --fix` (gated). Stale MASTER_HANDOFF is `/rollup`. Do not invent a second sweep.
