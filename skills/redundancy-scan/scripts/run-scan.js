@@ -57,7 +57,11 @@ function main() {
       if (!ent.isDirectory()) continue;
       // Skip hidden dirs and known non-product trees (worktrees, local archive).
       if (ent.name.startsWith(".")) continue;
-      if (["archive", "node_modules", "wt", "node_modules"].includes(ent.name)) continue;
+      if (
+        ["archive", "node_modules", "wt", "tmp", "docs", "scripts", "worktrees"].includes(ent.name)
+      ) {
+        continue;
+      }
       if (ent.name.endsWith("-wt") || ent.name === "wt") continue;
       const child = path.join(root, ent.name);
       const pref = `${ent.name}/`;

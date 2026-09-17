@@ -44,7 +44,7 @@ function defaultRunRoot(slug) {
   const archive =
     process.env.AUDIT_RUN_ROOT ||
     path.join(
-      process.env.REVFLEET_ARCHIVE || path.join(process.env.HOME || "", "revfleet/archive/cold"),
+      process.env.REVFLEET_ARCHIVE || path.join(process.env.HOME || "", "revealfleet/archive/cold"),
       "audits",
     );
   const day = new Date().toISOString().slice(0, 10);
