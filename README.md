@@ -27,7 +27,7 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 
 ## Skills
 
-**26** skills total. Public OSS pack needs no RevealFleet layout. Studio workflow pack assumes `$REVEALFLEET_ROOT` (and related Studio services), but not a single vendor CLI.
+**29** skills total. Public OSS pack needs no RevealFleet layout. Studio workflow pack assumes `$REVEALFLEET_ROOT` (and related Studio services), but not a single vendor CLI.
 
 ### Framework & app patterns
 
@@ -91,6 +91,8 @@ These skills assume RevealFleet layout (`$REVEALFLEET_ROOT/`, private planning h
 | [revealui-pickup](skills/revealui-pickup/) | Consume CURRENT-HANDOFF and continue agent-doable work (`/pickup`; not `/next`) |
 | [revealui-snapshot](skills/revealui-snapshot/) | Mid-session fidelity snapshot for checkpoint composition (auto session id) |
 | [revealui-ops](skills/revealui-ops/) | Thin `/ops` shim onto the operational-workflow-layer runner |
+| [revealui-cleanup](skills/revealui-cleanup/) | One-off `/cleanup` → workflow `cleanup-session` (report default; `--fix` gated) |
+| [revealui-rollup](skills/revealui-rollup/) | One-off `/rollup` → workflow `master-handoff-regen` (report-first; never from checkpoint) |
 | [revealui-doctor](skills/revealui-doctor/) | Health check for equal-adapter Studio homes + fleet workflow |
 | [revealui-design-status](skills/revealui-design-status/) | **Claude-adapter:** DesignSync / claude.ai design project change detection |
 | [revealui-sync-lts](skills/revealui-sync-lts/) | **Deprecated** — DR moved to weekly WSL snapshots (revkit) |

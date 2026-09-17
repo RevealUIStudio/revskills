@@ -1,12 +1,16 @@
 ---
 name: revealui-ops
-description: Thin shim onto the operational-workflow-layer runner (workflow-run.js). Lists registered workflows (cleanup-session, prepare-for-exit) or runs one by name, passing --dry-run/--fix/--yes straight through. Exposed as /ops. Delegates entirely to the runner — never reimplements workflow execution or safety classification (auto/report-first/gated/owner-only).
+description: Thin shim onto the operational-workflow-layer runner (workflow-run.js). Lists registered workflows (cleanup-session, prepare-for-exit, master-handoff-regen, …) or runs one by name, passing --dry-run/--fix/--yes straight through. Exposed as /ops. One-offs: /cleanup and /rollup. Delegates entirely to the runner — never reimplements workflow execution or safety classification (auto/report-first/gated/owner-only).
 license: MIT
 allowed-tools: Bash
 metadata:
   author: RevealUI Studio
-  version: "0.1.0"
+  version: "0.2.0"
   website: https://revealui.com
+  related:
+    - revealui-cleanup
+    - revealui-rollup
+    - revealui-checkpoint
 ---
 
 Thin CLI shim onto the `.jv` operational-workflow-layer runner (`workflow-run.js`, design contract at `docs/gap-specs/GAP-314-operational-workflow-layer-design.md` §4) — exposed as `/ops`. This skill delegates entirely to the runner; it does not reimplement workflow execution, step logic, or safety classification.
@@ -23,6 +27,13 @@ node "$JV_REPO/scripts/workflow-run.js" --list
 ```
 
 Prints every registered workflow (name, title, and its declared `safety` — always the max severity across its steps) from `$JV_REPO/workflows/*.yml`.
+
+Named one-offs (same runner, do not duplicate logic):
+
+| Slash | Workflow |
+|-------|----------|
+| `/cleanup` | `cleanup-session` |
+| `/rollup` | `master-handoff-regen` |
 
 ## `/ops <name> [flags]` — run a workflow
 
