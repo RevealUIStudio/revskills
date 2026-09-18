@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.15.2"
+  version: "0.16.1"
   website: https://revealui.com
 ---
 
@@ -84,7 +84,7 @@ Read-only. Warns on stale Active Sessions / Coordination Notes / Log entries. Ne
 ```bash
 node "$JV_ROOT/scripts/master-handoff-staleness.js"
 ```
-Recomputes `staleness-status` (FRESH / STALE / EXPIRED) in `docs/MASTER_HANDOFF.md` frontmatter. Read-only against body.
+Recomputes `staleness-status` (FRESH / STALE / EXPIRED) in `docs/MASTER_HANDOFF.md` frontmatter. Read-only against body. If the result is STALE or EXPIRED, list `/rollup` under OUTSTANDING — do **not** run `master-handoff-regen` inside checkpoint (skill `revealui-rollup`).
 
 ### 2d. Lane plans
 ```bash
@@ -175,6 +175,17 @@ fi
 ```
 
 Read-only. Capture output for Step 6 **HOTFIXES** and Step 4 fragment **Owner-gated** / **Outstanding** when any entry is `pending`. Do **not** call `resolve` here. Pending entries never block CHECKPOINT-READY alone, but they **must** appear under OUTSTANDING.
+
+### 3g. Live peer refresh (GAP-494)
+
+Overwrite **this session's** `workboard.d/active` row so peers see the claim. Does not commit (Step 5b does). Do not run a nested `/coordinate` full skill.
+
+```bash
+node "$REVEALFLEET_ROOT/revskills/skills/revealui-coordinate/scripts/coordinate.js" \
+  --mode=refresh --id "$SID" --claim "<this session claim>"
+```
+
+Live `/coordinate` is the manual skill. This step is the checkpoint slice only.
 
 ## Step 4 — Write rolling handoff fragment + local render
 
@@ -351,6 +362,16 @@ Runs unconditionally, in both the default (5b committed) and `--no-commit` paths
 
 Step 6 surfaces this output as the PREPARE-FOR-EXIT section of the CHECKPOINT REPORT.
 
+## Step 5c2 — Cleanup-session report (no `--fix`)
+
+Run the registered `cleanup-session` workflow through the runner so safety classification applies ([GAP-314 §6]($JV_REPO/docs/gap-specs/GAP-314-operational-workflow-layer-design.md)). Default (no `--fix`) runs the report-first arm then `STOPPED-GATED` on the destructive arm. Capture output as **CLEANUP-SESSION** in the report. One-off destructive apply is `/cleanup --fix` (skill `revealui-cleanup`), never from checkpoint.
+
+```bash
+node "$JV_ROOT/scripts/workflow-run.js" cleanup-session
+```
+
+`STOPPED-GATED` is expected and does **not** change CHECKPOINT-READY. Do not pass `--fix` or `--yes` here.
+
 ## Step 5d — Archive the consumed snapshot + GC stale ones (GAP-317 lifecycle)
 
 Now that Step 4 folded this session's snapshot into the rolling handoff, retire it so the active dir only ever holds live sessions' records (acceptance: none older than 7 days active). This is the agent-invoked mover. Agent-authored five-section files are still not hook-authored; PreCompact may have written a labeled `origin: precompact-mechanical` last-ditch file — archive that too.
@@ -424,12 +445,18 @@ PREPARE-FOR-EXIT (7, read-only, report-only)
   [PASS|WARN]  7. Scratchpad files that look like owner-run helpers are flagged
   <under each WARN, the verifier's own remediation line>
 
+CLEANUP-SESSION (workflow cleanup-session, no --fix)
+  [REPORT|STOPPED-GATED]  capture runner lines; STOPPED-GATED is expected
+  <SAFE-TO-REMOVE / PR-OPEN / UNKNOWN worktree labels; do not remove from checkpoint>
+
 OUTSTANDING (action by owner or next agent)
   - <enumerate each FAIL item with suggested fix>
   - <enumerate uncommitted/unpushed work>
   - <enumerate owner-gated items>
   - <enumerate each PREPARE-FOR-EXIT WARN with its remediation line>
   - <enumerate each pending hotfix id + durable target (from Step 3f); never omit>
+  - <if Step 2c is STALE or EXPIRED: `/rollup` (do not auto-run)>
+  - <cleanup residue the user must apply: `/cleanup --fix` — never implied>
 
 CHECKPOINT-READY: <YES | NO — see outstanding>
 ```
@@ -438,6 +465,7 @@ CHECKPOINT-READY: <YES | NO — see outstanding>
 - `YES` only when: all 6 validators PASS (or only `master-handoff-staleness` is STALE which is non-blocking) AND uncommitted .jv changes are zero (or explicitly peer-WIP untracked files only) AND every open PR for the active branches is either GREEN-AND-MERGEABLE or owner-gated.
 - `NO` otherwise. Finish agent-doable outstanding items in-session, then re-run the verdict; only owner-gated leftovers keep READY=NO.
 - PREPARE-FOR-EXIT WARNs do NOT gate CHECKPOINT-READY — the verifier is report-only by design (it can never fail, per `prepare-for-exit.js`'s own contract). List its WARNs under OUTSTANDING for visibility; do not flip YES to NO on their account alone.
+- CLEANUP-SESSION `STOPPED-GATED` does NOT gate CHECKPOINT-READY. List SAFE-TO-REMOVE items under OUTSTANDING; do not `--fix` from this skill.
 
 ## Step 7 — Optionally notify daemon
 
@@ -491,7 +519,8 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 - Do NOT emit ANY text or tool call after Step 8's fenced prompt block. The block is the last thing in the turn — the owner triple-clicks to select.
 - Do NOT auto-commit on the MAIN `.jv` checkout — committing there strands it on a `chore/checkpoint-*` branch (the 8-session divergence bug). Commit ONLY via Step 5b (worktree-gated when a peer is live), or pass `--no-commit` to defer to the owner. Still NEVER auto-merge with `--admin` or squash.
 - Do NOT commit `docs/handoffs/CURRENT-HANDOFF.md` or `.claude/workboard.md` in a session checkpoint PR (derived renders; ADR 2026-07-23). Commit fragments only.
-- Do NOT run `master-handoff-regen.js` — that's a separate audited operation (agent-invoked, owner-attended, expensive).
+- Do NOT run `master-handoff-regen.js` from this skill — one-off `/rollup` (workflow `master-handoff-regen`) only, when Step 2c is STALE/EXPIRED or the owner asked.
+- Do NOT pass `--fix`/`--yes` to `cleanup-session` from this skill — report only; one-off `/cleanup --fix` is explicit.
 - Do NOT create dated standalone handoff files (`docs/HANDOFF-YYYY-MM-DD-*.md`) — the rolling CURRENT-HANDOFF.md is the target. Do NOT write to `$JV_REPO/.claude/handoffs/` (non-canonical, retired 2026-05-19).
 - Do NOT write to `/tmp/agent-handoff-*.md` (orphaned by design).
 - Do NOT move or delete handoff files — the 7-day sweep handles dated files; the CURRENT-HANDOFF.md prune (Step 4b) handles the rolling file.
@@ -521,3 +550,4 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 - `docs/decisions/2026-08-26-session-launch-record.md` — `## Launch` / rfg product id
 - `docs/gap-specs/GAP-469-revskills-vendor-agnostic-design.md` — neutral session + coordination root
 - `docs/gaps/GAP-469.yml` — session contract execution unit
+- `docs/gaps/GAP-494.yml` — `/coordinate` live peer packet (snapshot report / checkpoint refresh)

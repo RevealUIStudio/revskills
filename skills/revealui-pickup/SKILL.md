@@ -16,6 +16,8 @@ metadata:
     - revealui-checkpoint
     - revealui-tracker
     - revealui-recover
+    - revealui-cleanup
+    - revealui-rollup
 ---
 
 # Pickup (`/pickup`) — consume CURRENT-HANDOFF
@@ -90,7 +92,8 @@ command, including `--worktree=`). That is Ordered next item 1. Then:
    from `origin/test` in the product named by Launch. Do not dirty-switch a
    shared checkout.
 2. Else if only `owner-gated` remains: list owner one-liners (`gh pr merge …`
-   with `-R owner/repo`) and stop.
+   with `-R owner/repo`). When the owner says "merged", re-verify with `gh`
+   and continue Step 4 / next recommended item; do not stop for another prompt.
 3. Else (checkpoint exhausted): Step 6.
 
 Never merge, force-push, add gate labels, or edit a stranded `.jv` checkout
@@ -123,3 +126,4 @@ Print free surfaces. Do **not** auto-claim a gap. Wait for the owner to pick.
 - Do not start `/recover` unless git is corrupt or the owner asked.
 - Do not auto-run on SessionStart.
 - Do not guess a product when **Launch** is missing.
+- Residue after consume is `/cleanup` (report) or `/cleanup --fix` (gated). Stale MASTER_HANDOFF is `/rollup`. Do not invent a second sweep.

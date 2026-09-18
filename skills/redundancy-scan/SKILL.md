@@ -100,7 +100,7 @@ node "$SKILL/scripts/run-scan.js" \
   --out-dir "$REVFLEET_ARCHIVE/audits/$(date -u +%Y-%m-%d)-redundancy-fleet"
 ```
 
-Skips hidden directories, `archive/`, and worktree-style sibling folders.
+Skips hidden directories, `archive/`, `tmp/`, `docs/`, `scripts/`, `worktrees/`, and `*-wt` sibling folders. Nested `tmp`/`worktrees` dirs are also in `defaults.json` excludeDirNames.
 
 ## Workflow (multi-session)
 

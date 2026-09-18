@@ -23,6 +23,7 @@ skills/revealui-recover/**       private-jv-repo,private-jv-name,lts-drive   # t
 skills/revealui-sync-lts/**      lts-drive,private-jv-name                    # backup target is LTS drive
 skills/revealui-skills-test/**   private-jv-repo                              # validates both public + internal skills
 skills/revealui-checkpoint/**    private-jv-name                              # §3b PR-scan loop iterates the private fleet repo by name (functional; paths sanitized to $JV_REPO)
+skills/grok-bot-checkpoint/**    abs-home-path                                # documented public Grok Bot box checkpoint root
 
 # By-design: the issue/PR-body leak-scan gitleaks config (consumed by
 # .github/workflows/issue-leak-scan.yml) must name the private-path and

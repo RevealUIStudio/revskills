@@ -20,7 +20,9 @@
     ".pgdata",
     ".playwright-mcp",
     "result",
-    "archive"
+    "archive",
+    "tmp",
+    "worktrees"
   ],
   "textExtensions": [
     ".ts",
