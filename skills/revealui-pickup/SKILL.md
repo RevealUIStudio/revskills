@@ -39,11 +39,13 @@ Load helpers:
 ## Step 1 — Render + read
 
 ```bash
-CURRENT_HANDOFF="$JV_REPO/docs/handoffs/CURRENT-HANDOFF.md"
-cd "$JV_REPO" && node scripts/handoff-render.js
+CURRENT_HANDOFF="$(cd "$JV_REPO" && node scripts/handoff-render.js)"
 ```
 
-Do not commit the render. Then read `$CURRENT_HANDOFF` sections **Launch**,
+Stdout is the path to read. On the shared primary checkout the renderer
+writes gitignored `docs/handoffs/.CURRENT-HANDOFF.local.md` so `.jv` stays
+clean. In a worktree it writes `CURRENT-HANDOFF.md` in that tree. Do not
+commit the render. Then read `$CURRENT_HANDOFF` sections **Launch**,
 **Ordered next actions**, **Owner-gated**, **In-flight**, and the newest
 rolling fragment under `docs/handoffs/rolling/`.
 
@@ -103,7 +105,7 @@ Never merge, force-push, add gate labels, or edit a stranded `.jv` checkout
 
 ```
 === PICKUP ===
-Handoff:     $JV_REPO/docs/handoffs/CURRENT-HANDOFF.md
+Handoff:     $CURRENT_HANDOFF
 Live:        <one line: what is still true after gh>
 Doing:       <agent-doable item 1 | owner-gated wait | tracker fallthrough>
 Owner-gated: <commands or none>
@@ -126,4 +128,5 @@ Print free surfaces. Do **not** auto-claim a gap. Wait for the owner to pick.
 - Do not start `/recover` unless git is corrupt or the owner asked.
 - Do not auto-run on SessionStart.
 - Do not guess a product when **Launch** is missing.
+- Do not rewrite tracked `CURRENT-HANDOFF.md` on the shared primary `.jv`.
 - Residue after consume is `/cleanup` (report) or `/cleanup --fix` (gated). Stale MASTER_HANDOFF is `/rollup`. Do not invent a second sweep.
