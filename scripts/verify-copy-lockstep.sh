@@ -64,7 +64,7 @@ MANIFEST="$TARGET/$DOT/.revcon-manifest.json"
 if [[ ! -f "$MANIFEST" ]]; then
   echo "✗ missing $DOT/.revcon-manifest.json" >&2
   echo "  Materialize with revcon:" >&2
-  echo "    bash "$REVEALFLEET_ROOT/revcon/link.sh" --target $TARGET --profile revfleet --editor claude --mode copy" >&2
+  echo "    bash "$REVEALFLEET_ROOT/revcon/link.sh" --target $TARGET --profile revealfleet --editor claude --mode copy" >&2
   exit 1
 fi
 
