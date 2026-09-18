@@ -168,7 +168,7 @@ Look for `[CRASHED]` entries. If the most recent entry for this identity is CRAS
 
 **Claude adapter memory:**
 ```bash
-grep -l -r "$(basename "$REPO")" "$HOME"/.claude/projects/*revfleet*/memory/ 2>/dev/null
+grep -l -r "$(basename "$REPO")" "$HOME"/.claude/projects/*revealfleet*/memory/ "$HOME"/.claude/projects/*revfleet*/memory/ 2>/dev/null
 ```
 
 **Grok:** if project memory lives under session dirs or `~/.grok`, surface paths only when present; SKIP when memory is disabled in config.
