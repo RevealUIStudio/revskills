@@ -11,7 +11,7 @@ _ri_setup() {
     "$tmp/.grok/sessions/fleet/sid-unique" \
     "$tmp/.grok/sessions/fleet/sid-cron" \
     "$tmp/.grok/sessions/fleet/sid-old" \
-    "$tmp/.claude/projects/-home-revfleet" \
+    "$tmp/.claude/projects/-home-revealfleet" \
     "$tmp/.local/share/revealui/recovery" \
     "$tmp/.local/share/revealui/coordination/snapshots"
   python3 - "$tmp" <<'PY'
@@ -23,7 +23,7 @@ root = Path(sys.argv[1])
 now = datetime.now(timezone.utc)
 old = now - timedelta(hours=90)
 
-def write_summary(p, sid, title, ts, cwd="/home/u/revfleet"):
+def write_summary(p, sid, title, ts, cwd="/home/u/revealfleet"):
     p.mkdir(parents=True, exist_ok=True)
     (p / "summary.json").write_text(json.dumps({
         "info": {"id": sid, "cwd": cwd},
@@ -54,7 +54,7 @@ o = root / ".grok/sessions/fleet/sid-old"
 write_summary(o, "sid-old", "Ancient leftover", old)
 write_chat(o, "old work", "done")
 
-proj = root / ".claude/projects/-home-revfleet"
+proj = root / ".claude/projects/-home-revealfleet"
 cron_user = "Using the gh CLI only, list open PRs in RevealUIStudio/revdev"
 (proj / "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jsonl").write_text(
     json.dumps({"message": {"role": "user", "content": cron_user}}) + "\n",
