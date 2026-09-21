@@ -1,6 +1,6 @@
 ---
 name: revealui-snapshot
-description: Capture a mid-session fidelity snapshot for RevFleet sessions, keyed to a harness-neutral session id (AGENT_SESSION_ID, then REVEALUI_SESSION_ID, then CLAUDE_CODE_SESSION_ID). Assembles mechanical state and authors the five sections checkpoint consumes, writing under ~/.local/share/revealui/coordination/snapshots/$SID.md (GAP-469). Also promotes durable feedback/rule-class lessons to the memory directory. Exposed as /snapshot. MUST run this turn when a Stop hook blocks for snapshot, when a [snapshot] advisory fires, or before /compact. Producer half of GAP-317.
+description: Capture a mid-session fidelity snapshot for RevealFleet sessions, keyed to a harness-neutral session id (AGENT_SESSION_ID, then REVEALUI_SESSION_ID, then CLAUDE_CODE_SESSION_ID). Assembles mechanical state and authors the five sections checkpoint consumes, writing under ~/.local/share/revealui/coordination/snapshots/$SID.md (GAP-469). Also promotes durable feedback/rule-class lessons to the memory directory. Exposed as /snapshot. MUST run this turn when a Stop hook blocks for snapshot, when a [snapshot] advisory fires, or before /compact. Producer half of GAP-317.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:

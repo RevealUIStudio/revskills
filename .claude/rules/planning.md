@@ -19,7 +19,7 @@ files are real and editable under the pre-tool-use holster allowlist (GAP-336).
 Sanctioned product plan paths:
 
 ```text
-~/revfleet/{revealui,revdev,revvault,revcon,revkit,revskills,revforge,agency}/docs/MASTER_PLAN.md
+~/revealfleet/{revealui,revdev,revvault,revcon,revkit,revskills,revforge,agency}/docs/MASTER_PLAN.md
 ```
 
 Notes:

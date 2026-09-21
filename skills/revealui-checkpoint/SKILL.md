@@ -1,6 +1,6 @@
 ---
 name: revealui-checkpoint
-description: Checkpoint checklist for RevFleet sessions. Validates the 6 coherent-tracking surfaces, inventories tracking state, writes a rolling handoff fragment + workboard log fragment, re-renders CURRENT-HANDOFF/workboard locally for read convenience, and commits ONLY append-only fragments (docs/handoffs/rolling + .revealui/workboard.d, with leftover adapter .claude/workboard.d read-through) per ADR 2026-07-23-jv-coordination-merge-model. Worktree-gated when a peer is live. Never commits derived CURRENT-HANDOFF.md or workboard.md. Never master-handoff regen or auto-merge with --admin.
+description: Checkpoint checklist for RevealFleet sessions. Validates the 6 coherent-tracking surfaces, inventories tracking state, writes a rolling handoff fragment + workboard log fragment, re-renders CURRENT-HANDOFF/workboard locally for read convenience, and commits ONLY append-only fragments (docs/handoffs/rolling + .revealui/workboard.d, with leftover adapter .claude/workboard.d read-through) per ADR 2026-07-23-jv-coordination-merge-model. Worktree-gated when a peer is live. Never commits derived CURRENT-HANDOFF.md or workboard.md. Never master-handoff regen or auto-merge with --admin.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
@@ -128,7 +128,7 @@ if [ -f "$BRANCHES_JSON" ] && command -v jq >/dev/null 2>&1; then
 fi
 ```
 
-### 3b. Open PRs across RevFleet repos
+### 3b. Open PRs across RevealFleet repos
 ```bash
 for repo in revealui revealui-jv revvault revdev revforge revkit revskills revcon; do
   count="$(gh pr list --repo RevealUIStudio/$repo --state open --json number 2>/dev/null | jq 'length' 2>/dev/null)"

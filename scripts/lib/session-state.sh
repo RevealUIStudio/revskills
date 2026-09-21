@@ -296,7 +296,7 @@ ss_active_repo() {
     printf '%s\n' "$REVEALUI_CRASHED_REPO"
     return 0
   fi
-  # 2. CWD is inside RevFleet — infer the enclosing repo.
+  # 2. CWD is inside RevealFleet — infer the enclosing repo.
   case "$PWD" in
     "$REVEALFLEET_ROOT"/*|"$REVFLEET_ROOT"/*) git -C "$PWD" rev-parse --show-toplevel 2>/dev/null && return 0 ;;
   esac

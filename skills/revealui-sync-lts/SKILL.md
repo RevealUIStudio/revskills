@@ -32,7 +32,7 @@ The original skill body follows for historical reference.
 
 ---
 
-Sync RevFleet repos to the LTS drive. LTS mode is declared per-repo at `.claude/lts-mode` (values: `bundle` or `mirror`). If absent, refuse to sync and prompt user to declare.
+Sync RevealFleet repos to the LTS drive. LTS mode is declared per-repo at `.claude/lts-mode` (values: `bundle` or `mirror`). If absent, refuse to sync and prompt user to declare.
 
 Load helpers:
 ```bash
@@ -54,7 +54,7 @@ Load helpers:
 ## Steps
 
 1. **Discover LTS mount**: `mount | grep /mnt/e` — fail if not mounted.
-2. **For each RevFleet repo** (iterate `$REVEALFLEET_ROOT/*/` excluding dotfiles):
+2. **For each RevealFleet repo** (iterate `$REVEALFLEET_ROOT/*/` excluding dotfiles):
    - Skip if not a git repo.
    - Read `<repo>/.claude/lts-mode`. If missing, print `unconfigured: <repo>` and continue.
    - If `bundle`: create dated bundle, prune old, verify via `cd /mnt/e/professional/<RepoName> && git bundle verify <file>`.

@@ -40,7 +40,7 @@ test_ss_revealfleet_root_pin_wins() {
   unset REVEALFLEET_ROOT
 }
 
-test_ss_revfleet_root_alias_still_works() {
+test_ss_revealfleet_root_alias_still_works() {
   local tmp
   tmp="$(make_sandbox)/legacy-alias"
   mkdir -p "$tmp"

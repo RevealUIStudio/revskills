@@ -7,7 +7,7 @@
 # leaks still fail CI.
 #
 # Why this file exists: some skills in this repo are Studio-internal helpers
-# that intentionally target the RevFleet filesystem layout. They are
+# that intentionally target the RevealFleet filesystem layout. They are
 # not generically installable — the README makes this explicit. Every
 # entry below must have a real reason; "convenience" is not one.
 
