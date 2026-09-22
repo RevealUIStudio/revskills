@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash
 metadata:
   author: RevealUI Studio
-  version: "0.3.0"
+  version: "0.3.1"
   website: https://revealui.com
 ---
 

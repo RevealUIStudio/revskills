@@ -11,7 +11,7 @@ license: MIT
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.1.0"
+  version: "0.1.1"
   website: https://revealui.com
   related:
     - exhaustive-audit
