@@ -2,10 +2,10 @@
 
 ## Fleet plan (canonical cross-product)
 
-Fleet-level cross-cutting plans, lanes, gaps, and free surfaces live in the
-internal coordination hub (private). Day-to-day free surfaces: hub
-`docs/TRACKER.md`. Do not invent a second fleet plan inside a public product
-repo.
+Fleet-level cross-cutting plans, lanes, gaps, and free surfaces live on the
+Studio private TRACKER (not in public product repos). Day-to-day free surfaces:
+`docs/TRACKER.md` in that private planning tree. Do not invent a second fleet
+plan inside a public product repo.
 
 Session plan files in `~/.claude/plans/` are ephemeral scratch — do not treat as
 durable, and do not promote them into a repo's `docs/`.
@@ -26,7 +26,7 @@ Notes:
 
 - **revealui** keeps a **retired public stub** at that path (2026-07-16). The
   stub is still editable so it stays an honest pointer; it is not the plan of
-  record. Fleet planning for RevealUI lives in the hub.
+  record. Fleet planning for RevealUI lives on the Studio private TRACKER.
 - **Other product repos** (revvault, revkit, revcon, …) keep live product-scoped
   plans. Edit them when product reality changes; do not fork fleet TRACKER work
   into them.
