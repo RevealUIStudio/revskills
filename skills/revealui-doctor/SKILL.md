@@ -1,6 +1,6 @@
 ---
 name: revealui-doctor
-description: Health check for RevFleet Studio workflow across equal adapters (Claude + Grok at minimum). Verifies hook/rules homes, skill preconditions, git integrity, workboard freshness, daemon status, MCP configs, env leaks, toolchain, and disaster-recovery snapshot state.
+description: Health check for RevealFleet Studio workflow across equal adapters (Claude + Grok at minimum). Verifies hook/rules homes, skill preconditions, git integrity, workboard freshness, daemon status, MCP configs, env leaks, toolchain, and disaster-recovery snapshot state.
 license: MIT
 allowed-tools: Bash, Read, Glob, Grep
 metadata:
@@ -57,7 +57,7 @@ Additionally, for each present command/skill root (`~/.claude/commands`, `~/.gro
 - Assert each referenced script exists. Report missing.
 - Flag any `~/suite/` references as stale (retired 2026-05-07 → `$REVEALFLEET_ROOT/`).
 
-## 4. Git integrity (RevFleet repos)
+## 4. Git integrity (RevealFleet repos)
 
 For each repo in `$REVEALFLEET_ROOT/revealui` and `$JV_REPO`:
 ```bash
@@ -89,7 +89,7 @@ Flag any stale `~/projects/RevealUI` path.
 
 ## 9. Git-tracked env files
 
-In both RevFleet repos: `git ls-files '*.env*'`. SAFE vs REVIEW classification as before (allowlist from repo security gate; do not hardcode).
+In both RevealFleet repos: `git ls-files '*.env*'`. SAFE vs REVIEW classification as before (allowlist from repo security gate; do not hardcode).
 
 ## 10. Settings JSON validity
 

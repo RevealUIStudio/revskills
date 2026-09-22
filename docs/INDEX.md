@@ -16,4 +16,4 @@ Curated [Agent Skills](https://agentskills.io) for equal adapters (Claude Code, 
 
 ## Fleet coordination
 
-Part of [RevFleet](https://github.com/RevealUIStudio). Cross-fleet coordination, planning, and lane tracking live in the private agent hub — not in this public repo.
+Part of [RevealFleet](https://github.com/RevealUIStudio). Cross-fleet coordination, planning, and lane tracking live in the private agent hub — not in this public repo.

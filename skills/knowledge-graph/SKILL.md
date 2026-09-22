@@ -23,7 +23,7 @@ maps and blast-radius views.
 
 The fleet knowledge graph is a bi-temporal, content-addressed graph of every
 repo, package, file, exported symbol, dependency edge, db table, route,
-skill, rule, hook, gap, lane, ADR, and agent discovery in revfleet. It is
+skill, rule, hook, gap, lane, ADR, and agent discovery in RevealFleet. It is
 searchable by hybrid retrieval (vector + full-text + graph traversal) and
 every fact carries provenance back to the episode that produced it.
 
