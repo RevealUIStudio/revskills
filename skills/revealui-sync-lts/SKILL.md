@@ -10,7 +10,7 @@ license: MIT
 allowed-tools: Bash, Read
 metadata:
   author: RevealUI Studio
-  version: "0.3.0"
+  version: "0.3.1"
   website: https://revealui.com
   deprecated: true
   deprecated-at: "2026-07-02"

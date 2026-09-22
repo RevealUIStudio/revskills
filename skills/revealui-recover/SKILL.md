@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Grep, Glob
 metadata:
   author: RevealUI Studio
-  version: "0.4.0"
+  version: "0.4.1"
   website: https://revealui.com
 ---
 
