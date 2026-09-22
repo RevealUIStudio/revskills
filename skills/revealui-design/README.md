@@ -32,7 +32,7 @@ This design system was distilled from the RevealUI monorepo. Canonical tokens ar
 | `packages/tokens/src/tokens.css` (revealui repo) | Canonical OKLCH token source — read via `@revealui/tokens/design-context/` |
 | Marketing site `apps/marketing/app/` | NavBar, Footer, GetStarted; landing spine: Hero (receipt motif), Problem (capability stack), Demo (`ProductFrame`), Primitives, Proof, PricingTeaser |
 | Admin app `apps/admin/src/` | shadcn-style Button/Card/Input components, `scrap*` Tailwind palette |
-| llms.txt | Product positioning, tier names, suite ("RevFleet") |
+| llms.txt | Product positioning, tier names, suite ("RevealFleet") |
 | GitHub repo | https://github.com/RevealUIStudio/revealui — public OSS source |
 | Marketing | https://revealui.com |
 | Docs | https://docs.revealui.com |

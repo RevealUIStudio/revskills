@@ -148,7 +148,7 @@ Enforcement: only harnesses that honor `allowed-tools` restrict tools; others ig
 
 | Pack | Skills | Assumptions |
 |---|---|---|
-| **Public / OSS** | next, tailwind, drizzle, electric, yjs, mcp, multi-agent-memory, grok-bot-checkpoint, vitest, security, exhaustive-audit, redundancy-scan, knowledge-graph, revealui-design | No RevFleet layout required |
+| **Public / OSS** | next, tailwind, drizzle, electric, yjs, mcp, multi-agent-memory, grok-bot-checkpoint, vitest, security, exhaustive-audit, redundancy-scan, knowledge-graph, revealui-design | No RevealFleet layout required |
 | **Studio workflow** | revealui-checkpoint, snapshot, doctor, recover, ops, skills-test, sync-rules, sync-lts (deprecated), design-status, tracker, revvault-resolve | `$REVEALFLEET_ROOT`, `.jv`, revvault, RevDev — **layout**, not "Claude only" |
 
 Studio skills must still be **vendor-agnostic** across Claude / Grok / equal adapters (GAP-469+).

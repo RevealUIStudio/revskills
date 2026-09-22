@@ -93,4 +93,4 @@ create `.env.dev` / `.env.production` as a second scheme.
 
 - `revvault/docs/STREAM-SAFE.md` (inject vs vault-private print)
 - `revealui/docs/SECRETS.md` + `revealui/scripts/sync/secret-paths.ts`
-- `security-hardening` (generic apps; one-line RevFleet pointer)
+- `security-hardening` (generic apps; one-line RevealFleet pointer)
