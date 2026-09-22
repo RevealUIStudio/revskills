@@ -9,7 +9,7 @@ license: MIT
 allowed-tools: Bash, Read
 metadata:
   author: RevealUI Studio
-  version: "0.3.1"
+  version: "0.4.0"
   website: https://revealui.com
   related:
     - revealui-checkpoint
@@ -30,6 +30,18 @@ Agents **never** tell the owner to run `node scripts/…` or systemd recipes.
 If something is deferred (daemon down, license FREE), report that in one line
 and keep going with the file TRACKER board — do not invent workarounds that
 require owner shell steps.
+
+`/next` is this board only. “What now?”, “what should we do now?”, and
+“what should we do next?” are the shared status line, not `/next` alone:
+
+```bash
+node "$JV_REPO/scripts/handoff-status.js"
+node "$JV_REPO/scripts/tracker.js" sync
+```
+
+Lead with the handoff classes (done, owner-gated merge lines, agent-doable).
+Then print the free surfaces. Do not auto-claim. Do not start handoff work
+from this status line — continuing it is `/pickup`.
 
 ## What agents run (silently)
 
@@ -53,7 +65,8 @@ Soft-project / goals overlay never fail the session
 |---------|------------|
 | SessionStart | Already calls `tracker-session-check` → `sync` |
 | After editing gap / lane / initiative YAML | Run `sync` before wrap-up |
-| Owner asks free surfaces / roadmap / goals | Run `sync`, answer from output |
+| Owner asks free surfaces / roadmap / goals / `/next` | Run `sync`, answer from output |
+| Owner asks “what now?” / “what should we do now?” / “what should we do next?” | `handoff-status.js`, then `sync`. Do not auto-claim. Do not start `/pickup` work |
 | Daemon/license deferred | Note once; use TRACKER.md free surfaces |
 
 ## Commands (agents only — not owner paste)

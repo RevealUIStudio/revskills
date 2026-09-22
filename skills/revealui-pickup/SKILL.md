@@ -10,7 +10,7 @@ license: MIT
 allowed-tools: Bash, Read, Grep
 metadata:
   author: RevealUI Studio
-  version: "0.1.1"
+  version: "0.2.0"
   website: https://revealui.com
   related:
     - revealui-checkpoint
@@ -56,17 +56,17 @@ ADR 2026-08-26-session-launch-record. Do not guess a product.
 ## Step 2 — Re-verify (mandatory)
 
 Fragments go stale the moment the owner merges. Do not trust prose.
-
-For every PR number named in those sections:
+Classification is `handoff-status.js`, the same script the "what now?"
+status line uses. Do not re-implement `gh pr view` in the session.
 
 ```bash
-gh pr view <n> -R RevealUIStudio/<repo> --json state,mergedAt,mergeable,url,title
+node "$JV_REPO/scripts/handoff-status.js"
 ```
 
-Repo pin: `revealui#N` → `RevealUIStudio/revealui`. Planning-hub PRs (`jv#N`):
-`cd "$JV_REPO" && gh pr view N --json state,mergedAt,mergeable,url,title`.
-Other fleet product names as their GitHub repos. If the fragment omits the
-repo, `gh pr view` the likely product first.
+`done` is merged or closed. `owner-gated` is an open pull request whose
+remaining line is an owner merge, or a pull request named only under
+Owner-gated. `agent-doable` is an open pull request whose ordered-next
+line still says to clear, fix, push, or re-run CI.
 
 Also confirm named worktrees/branches still exist:
 
@@ -93,9 +93,9 @@ command, including `--worktree=`). That is Ordered next item 1. Then:
 1. If any `agent-doable` remains after Launch: do it this session. Worktree
    from `origin/test` in the product named by Launch. Do not dirty-switch a
    shared checkout.
-2. Else if only `owner-gated` remains: list owner one-liners (`gh pr merge …`
-   with `-R owner/repo`). When the owner says "merged", re-verify with `gh`
-   and continue Step 4 / next recommended item; do not stop for another prompt.
+2. Else if only `owner-gated` remains: list the script's `gh pr merge`
+   lines, then run Step 6. Do not merge. When the owner says "merged",
+   re-run `handoff-status.js` and continue Step 4.
 3. Else (checkpoint exhausted): Step 6.
 
 Never merge, force-push, add gate labels, or edit a stranded `.jv` checkout
@@ -111,15 +111,19 @@ Doing:       <agent-doable item 1 | owner-gated wait | tracker fallthrough>
 Owner-gated: <commands or none>
 ```
 
-Then execute the **Doing** line (or stop on owner-gated).
+Then execute the **Doing** line. On owner-gated, print the merge lines and Step 6. Do not merge.
 
-## Step 6 — Fallthrough (checkpoint clear)
+## Step 6 — Board under the handoff
+
+Same entry as `/next`. `sync` refreshes the board and the goals overlay.
+`tracker.js next` does not.
 
 ```bash
-node "$JV_REPO/scripts/tracker.js" next
+node "$JV_REPO/scripts/tracker.js" sync
 ```
 
-Print free surfaces. Do **not** auto-claim a gap. Wait for the owner to pick.
+Print free surfaces under the handoff board. Do **not** auto-claim a gap.
+Wait for the owner to pick.
 
 ## Do not
 
