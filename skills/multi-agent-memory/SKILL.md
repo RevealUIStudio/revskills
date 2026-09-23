@@ -190,6 +190,15 @@ All memory is scoped by coordination session ID. When agents start a shared task
 3. Shape subscriptions filter by session ID
 4. Reconciliation processes one session at a time
 
+## Session order
+
+Same shape as the control layer. A session names the native store first, then the vendor.
+
+1. Knowledge graph (`revealui.memory.v1`) is the durable product memory.
+2. The vendor adapter is a pointer. Grok `[memory]`, Claude `~/.claude` memory files, and any other vendor home do not become a second durable store.
+3. `revealui-harnesses session adapter <vendor>` prints that order and does not query the graph.
+4. An operator who wants the read passes `--memory`. That calls `queryDurableMemory` and continues if the graph is down. Session hooks do not pass `--memory`.
+
 ## Durable vs working vs session facts
 
 Keep these names distinct. Do not proxy `memory_publish_fact` into

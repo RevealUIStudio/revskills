@@ -7,9 +7,14 @@
  * hook is the force path so compaction never runs on an empty snapshot:
  *
  *   stop       — Grok Stop gate. When real occupancy is at/above the snapshot
- *                gate (auto-compact threshold minus headroom) and this session
+ *                gate (compaction_at_tokens minus 40_000 tokens) and this session
  *                has no agent-authored $SID.md, block the turn so the agent
  *                MUST run /snapshot before the next prompt can auto-compact.
+ *                The token threshold is read from ~/.grok/config.toml
+ *                (compaction_at_tokens, else auto_compact_threshold_percent of
+ *                the context window). Default 160_000 on a 500_000 window,
+ *                so the gate is 120_000 tokens. A percent floor must not sit
+ *                above that compact line.
  *                Grok UserPromptSubmit stdout is discarded, so the Claude
  *                track-session advisory never reaches the Grok model.
  *
@@ -25,7 +30,8 @@
  * Fail-open: never throw, never block compaction, never invent a session id.
  *
  * Env (tests):
- *   REVEALUI_COORD_ROOT, REVEALUI_SNAPSHOT_GATE_PCT, GROK_HOME, HOME
+ *   REVEALUI_COORD_ROOT, REVEALUI_SNAPSHOT_GATE_PCT, REVEALUI_AUTO_COMPACT_TOKENS,
+ *   REVEALUI_AUTO_COMPACT_PCT, GROK_HOME, HOME
  */
 "use strict";
 
@@ -39,10 +45,50 @@ const GROK_HOME = process.env.GROK_HOME || path.join(HOME, ".grok");
 const COORD_ROOT =
   process.env.REVEALUI_COORD_ROOT ||
   path.join(HOME, ".local", "share", "revealui", "coordination");
-const DEFAULT_COMPACT_PCT = 85;
-const DEFAULT_HEADROOM_PCT = 25;
-const MIN_GATE_PCT = 50;
+const DEFAULT_WINDOW = 500000;
+// Last resort only. The authored numbers live in
+// revealui packages/harnesses/src/token-budget.ts.
+const DEFAULT_COMPACT_TOKENS = 160000;
+const DEFAULT_HEADROOM_TOKENS = 40000;
 const MECHANICAL_ORIGIN = "precompact-mechanical";
+
+function loadBudgetReader() {
+  const candidates = [
+    path.join(__dirname, "lib", "read-token-budget.js"),
+    path.join(__dirname, "read-token-budget.js"),
+  ];
+  for (const file of candidates) {
+    try {
+      if (fs.existsSync(file)) return require(file);
+    } catch {
+      /* next candidate */
+    }
+  }
+  return null;
+}
+
+let budgetMemo;
+function controlBudget() {
+  if (budgetMemo !== undefined) return budgetMemo;
+  const reader = loadBudgetReader();
+  if (!reader) {
+    budgetMemo = null;
+    return budgetMemo;
+  }
+  try {
+    budgetMemo = reader.readTokenBudget();
+  } catch {
+    budgetMemo = null;
+  }
+  return budgetMemo;
+}
+
+function positiveBudget(field, fallback) {
+  const budget = controlBudget();
+  const n = budget && Number(budget[field]);
+  if (Number.isFinite(n) && n > 0) return n;
+  return fallback;
+}
 
 function readStdin() {
   try {
@@ -131,26 +177,66 @@ function hasAgentAuthoredSnapshot(sid) {
   return parsed.fields.origin !== MECHANICAL_ORIGIN;
 }
 
-function parseCompactThreshold() {
-  const envN = Number(process.env.REVEALUI_AUTO_COMPACT_PCT);
-  if (Number.isFinite(envN) && envN > 0 && envN <= 100) return envN;
+function readGrokConfigNumbers() {
+  const out = { tokens: null, pct: null };
   try {
     const toml = fs.readFileSync(path.join(GROK_HOME, "config.toml"), "utf8");
-    const m = toml.match(/auto_compact_threshold_percent\s*=\s*(\d+)/);
-    if (m) {
-      const n = Number(m[1]);
-      if (Number.isFinite(n) && n > 0 && n <= 100) return n;
+    const tm = toml.match(/compaction_at_tokens\s*=\s*(\d+)/);
+    if (tm) {
+      const n = Number(tm[1]);
+      if (Number.isFinite(n) && n > 0) out.tokens = n;
+    }
+    const pm = toml.match(/auto_compact_threshold_percent\s*=\s*(\d+)/);
+    if (pm) {
+      const n = Number(pm[1]);
+      if (Number.isFinite(n) && n > 0 && n <= 100) out.pct = n;
     }
   } catch {
-    /* use default */
+    /* use defaults */
   }
-  return DEFAULT_COMPACT_PCT;
+  return out;
 }
 
-function snapshotGatePct() {
+function parseCompactTokens(windowTokens) {
+  const envTok = Number(process.env.REVEALUI_AUTO_COMPACT_TOKENS);
+  if (Number.isFinite(envTok) && envTok > 0) return envTok;
+  const win = windowTokens > 0 ? windowTokens : DEFAULT_WINDOW;
+  const cfg = readGrokConfigNumbers();
+  let pct = cfg.pct;
+  const envPct = Number(process.env.REVEALUI_AUTO_COMPACT_PCT);
+  if (Number.isFinite(envPct) && envPct > 0 && envPct <= 100) pct = envPct;
+  const fromBudget = positiveBudget("compactionAtTokens", 0);
+  if (fromBudget > 0 && cfg.tokens == null) {
+    cfg.tokens = fromBudget;
+  }
+  if (cfg.tokens != null) {
+    if (pct != null) {
+      const fromPct = Math.round((pct / 100) * win);
+      const slack = Math.max(1000, Math.round(win * 0.01));
+      if (Math.abs(fromPct - cfg.tokens) > slack) {
+        process.stderr.write(
+          `[snapshot-before-compact] config drift: compaction_at_tokens=${cfg.tokens} ` +
+            `but auto_compact_threshold_percent=${pct} is ${fromPct} tokens on a ${win} window. ` +
+            `Using compaction_at_tokens.\n`,
+        );
+      }
+    }
+    return cfg.tokens;
+  }
+  if (pct != null) return Math.round((pct / 100) * win);
+  return DEFAULT_COMPACT_TOKENS;
+}
+
+function snapshotGatePct(windowTokens) {
   const envN = Number(process.env.REVEALUI_SNAPSHOT_GATE_PCT);
   if (Number.isFinite(envN) && envN > 0 && envN <= 100) return envN;
-  return Math.max(MIN_GATE_PCT, parseCompactThreshold() - DEFAULT_HEADROOM_PCT);
+  const win = windowTokens > 0 ? windowTokens : positiveBudget("contextWindowTokens", DEFAULT_WINDOW);
+  const compactAt = parseCompactTokens(win);
+  const headroom = positiveBudget("snapshotHeadroomTokens", DEFAULT_HEADROOM_TOKENS);
+  const compactPct = Math.min(100, Math.max(1, Math.round((compactAt / win) * 100)));
+  let gate = Math.round((Math.max(1, compactAt - headroom) / win) * 100);
+  if (gate >= compactPct) gate = Math.max(1, compactPct - 1);
+  return Math.min(99, Math.max(1, gate));
 }
 
 function contextWindowTokens(signals) {
@@ -158,7 +244,7 @@ function contextWindowTokens(signals) {
   if (Number.isFinite(envN) && envN > 0) return envN;
   const fromSignals = Number(signals && signals.contextWindowTokens);
   if (Number.isFinite(fromSignals) && fromSignals > 0) return fromSignals;
-  return 500000;
+  return positiveBudget("contextWindowTokens", DEFAULT_WINDOW);
 }
 
 function findSessionDir(sid, payload) {
@@ -322,20 +408,32 @@ function runStop(payload, sid) {
     process.stderr.write(`[snapshot-before-compact] stop allow (agent snapshot ${sid})\n`);
     return 0;
   }
-  const occ = occupancyFromDir(findSessionDir(sid, payload));
-  const gate = snapshotGatePct();
+  const dir = findSessionDir(sid, payload);
+  let signals = null;
+  try {
+    const signalsPath = dir ? path.join(dir, "signals.json") : "";
+    if (signalsPath && fs.existsSync(signalsPath)) {
+      signals = JSON.parse(fs.readFileSync(signalsPath, "utf8"));
+    }
+  } catch {
+    signals = null;
+  }
+  const occ = occupancyFromDir(dir);
+  const windowTokens = contextWindowTokens(signals);
+  const gate = snapshotGatePct(windowTokens);
+  const compactAt = parseCompactTokens(windowTokens);
   if (occ == null) {
     process.stderr.write("[snapshot-before-compact] stop skip (occupancy unknown)\n");
     return 0;
   }
   if (occ < gate) {
     process.stderr.write(
-      `[snapshot-before-compact] stop allow (occupancy ${occ}% < gate ${gate}%)\n`,
+      `[snapshot-before-compact] stop allow (occupancy ${occ}% < gate ${gate}%; compact at ${compactAt} tokens)\n`,
     );
     return 0;
   }
   const reason =
-    `BLOCKED: context occupancy ${occ}% (gate ${gate}%; auto-compact follows). ` +
+    `BLOCKED: context occupancy ${occ}% (gate ${gate}%; auto-compact at ${compactAt} tokens follows). ` +
     `Compaction will destroy session fidelity for /checkpoint. ` +
     `Run the revealui-snapshot skill NOW this turn — do not continue other work. ` +
     `Follow ~/revealfleet/revskills/skills/revealui-snapshot/SKILL.md and write the ` +

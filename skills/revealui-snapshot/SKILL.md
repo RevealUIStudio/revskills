@@ -16,6 +16,8 @@ Capture a session snapshot **while fidelity is high** — **before context compa
 1. A Stop hook blocks with `BLOCKED: context occupancy … Run the revealui-snapshot skill NOW`
 2. A `[snapshot]` advisory from `track-session.js` (Claude UserPromptSubmit; Grok discards that stdout)
 3. The user runs `/compact`, or auto-compact is about to run
+
+The compact line is the control-layer token budget (`token-economy`, authored in `packages/harnesses/src/token-budget.ts`). Grok's `~/.grok/config.toml` is written from that file. Do not invent a second threshold. The Stop reason names the token count in force.
 4. The current snapshot file has `origin: precompact-mechanical` (last-ditch hook capture — replace it with a real authoring)
 
 The five sections are a hook-can't-author artifact: **you** assemble mechanical state and author the narrative. The file is keyed to the resolved session id (`ss_session_id`), so a peer's snapshot is structurally unreachable at consume time. Vendor env vars (e.g. `CLAUDE_CODE_SESSION_ID`) are **aliases**, not the only key (GAP-469).
@@ -24,7 +26,7 @@ Compaction path (do not weaken):
 
 | Layer | Who | When | What |
 |-------|-----|------|------|
-| Force | `scripts/snapshot-before-compact.js` on **Stop** (Grok) | occupancy ≥ gate (auto-compact % minus 25, floor 50) and no agent-authored `$SID.md` | Blocks the turn until this skill writes the file |
+| Force | `scripts/snapshot-before-compact.js` on **Stop** (Grok) | occupancy ≥ gate (`snapshotHeadroomTokens` before `compactionAtTokens` in the control-layer token budget) and no agent-authored `$SID.md` | Blocks the turn until this skill writes the file |
 | Nudge | `track-session.js` `[snapshot]` (Claude) | heuristic occupancy ≥ `snapshot` threshold | Advisory every prompt until the agent file exists (Grok ignores this stdout) |
 | Last-ditch | same script on **PreCompact** | compact is already firing and no agent file | Writes `$SID.md` with `origin: precompact-mechanical` so checkpoint is not empty |
 
