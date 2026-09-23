@@ -37,6 +37,8 @@ Rolling handoff **read surface** per `~/.claude/rules/model-allocation.md` §Ses
 
 A session snapshot is captured **before context compaction** by the `/snapshot` skill (Grok Stop-gate at the occupancy gate; Claude `[snapshot]` advisory; PreCompact mechanical last-ditch). When one exists it is the PRIMARY source for the narrative sections in Step 4 — more trustworthy than reconstructing from now-deep or already-compacted session memory.
 
+The gate tracks the control-layer token budget (`token-economy`, authored in `packages/harnesses/src/token-budget.ts`). RevKit writes that budget into `~/.grok/config.toml` (`compaction_at_tokens` and `auto_compact_threshold_percent`). The Stop gate fires `snapshotHeadroomTokens` before compact. A checkpoint whose snapshot says `origin: precompact-mechanical` means compact won the race; say so in the fragment.
+
 Resolve it by **this session's id, never by mtime** — a peer's snapshot must be structurally unreachable (GAP-317 + GAP-469). Session id and paths come from `session-state.sh` (neutral SSOT under `~/.local/share/revealui/coordination/`, with read-through of the legacy Claude adapter path).
 
 **Load order (GAP-342 residual):** prefer the filesystem SSOT when present; if the file is missing, best-effort hydrate from daemon `session.snapshot.get` by the same id into the neutral write path (`ss_snapshot_load_path`). Never mtime, never another session's file.

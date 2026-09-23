@@ -143,7 +143,9 @@ ephemeral, while a `kg_add_episode` call with `episodeType: "agent-fact"`
 becomes a permanent, queryable graph fact with full provenance. Product
 mode stamps `source` and actor DID from the session principal — do not
 pass `"source": "claude-session"`; the client field is ignored. See
-`multi-agent-memory` for the durable vs working vs session table.
+`multi-agent-memory` for the session order and the durable vs working vs session table.
+Session start names this graph first and does not auto-query it. `--memory` on
+`session adapter` is the opt-in read.
 
 ```json
 {
