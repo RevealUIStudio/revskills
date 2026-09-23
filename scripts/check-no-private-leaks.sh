@@ -77,16 +77,14 @@ EXCLUDE_FILES=(
 #   - settings.local.json: a basename exclusion would silently allow an
 #     accidentally-committed local settings file (a likely place for
 #     team_/prj_/$HOME/credential leaks) to bypass this gate entirely.
-#     Consuming repos must keep `.claude/` in .gitignore so the file
-#     never lands in a checkout.
+#     An untracked gitignored copy is skipped below. A tracked copy is
+#     still scanned.
 #
 #   - .leakignore: excluding the allowlist file means any private path
 #     or credential pasted into an entry or reason comment is never
 #     examined, even though the file ships in the public repo. Now
 #     scanned — keep .leakignore entries to path-globs + tags only.
-#
-# Local pre-push false-positives in either case are intentional: they
-# signal a configuration gap to fix, not a scanner bug.
+
 
 if ! command -v grep >/dev/null 2>&1; then
   echo "[leak-check] error: grep not found on PATH" >&2
@@ -147,6 +145,25 @@ is_ignored() {
   return 1
 }
 
+
+# Skip a hit only when the file is gitignored AND untracked. A tracked
+# file is public even if a later gitignore rule would match it. When git
+# is missing or this directory is not a work tree, scan everything.
+git_filter_ready=0
+if command -v git >/dev/null 2>&1 && git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git_filter_ready=1
+fi
+
+skip_untracked_ignored() {
+  local path="$1"
+  [[ "$git_filter_ready" -eq 1 ]] || return 1
+  git -C "$REPO_ROOT" check-ignore -q -- "$path" || return 1
+  if git -C "$REPO_ROOT" ls-files --error-unmatch -- "$path" >/dev/null 2>&1; then
+    return 1
+  fi
+  return 0
+}
+
 violations=0
 json_entries=()
 
@@ -172,6 +189,9 @@ for entry in "${PATTERNS[@]}"; do
     # like `frontend/src/foo.ts` failed to match `./frontend/src/foo.ts`.
     rel_path="${file#$REPO_ROOT/}"
     rel_path="${rel_path#./}"
+    if skip_untracked_ignored "$rel_path"; then
+      continue
+    fi
     if is_ignored "$rel_path" "$tag"; then
       continue
     fi
