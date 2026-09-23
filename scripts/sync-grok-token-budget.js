@@ -14,6 +14,7 @@
 "use strict";
 
 const fs = require("fs");
+const path = require("path");
 
 function fail(message) {
   process.stderr.write(`sync-grok-token-budget: ${message}\n`);
@@ -103,12 +104,16 @@ function main() {
     fail("usage: sync-grok-token-budget.js <token-budget.json> <config.toml>");
   }
   const budget = loadBudget(budgetFile);
-  const existing = fs.existsSync(configFile) ? fs.readFileSync(configFile, "utf8") : "";
+  let existing = "";
+  try {
+    existing = fs.readFileSync(configFile, "utf8");
+  } catch (err) {
+    if (!err || err.code !== "ENOENT") throw err;
+  }
   const next = applyBudget(existing, budget);
-  fs.mkdirSync(require("path").dirname(configFile), { recursive: true });
-  if (next !== (existing.endsWith("\n") || existing === "" ? existing : `${existing}\n`)) {
-    fs.writeFileSync(configFile, next);
-  } else if (!fs.existsSync(configFile)) {
+  fs.mkdirSync(path.dirname(configFile), { recursive: true });
+  const normalized = existing.endsWith("\n") || existing === "" ? existing : `${existing}\n`;
+  if (next !== normalized) {
     fs.writeFileSync(configFile, next);
   }
   process.stdout.write(
