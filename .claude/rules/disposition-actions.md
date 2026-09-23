@@ -43,6 +43,19 @@ Stop at the open PR. List it under owner actions with the exact one-line
 command that clears it. Do not re-send a blocked command, do not reword it,
 and do not accomplish it through another tool.
 
+## Owner-action `gh` form (all sessions, all harnesses)
+
+Prefer short `-R owner/repo` over long `--repo`. Always pin the repo so the
+command works from any cwd. Prefer unquoted label values when the label has no
+spaces. Canonical clearance example:
+
+```bash
+gh pr edit 2482 -R RevealUIStudio/revealui --add-label sec-review:approved
+```
+
+Same shape for merge/view/checks. Hooks that print clearance commands already
+use `-R`; agent wrap-ups and skills must match.
+
 ## Reducing friction the sanctioned way
 
 - The project owner names dispositions in the prompt when delegating them.

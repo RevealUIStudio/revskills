@@ -12,7 +12,7 @@ license: MIT
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.2.0"
+  version: "0.2.1"
   website: https://revealui.com
   related:
     - knowledge-graph
