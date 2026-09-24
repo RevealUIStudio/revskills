@@ -239,6 +239,60 @@ test_stop_allows_small_chat_history_without_signals() {
   fi
 }
 
+test_stop_gate_follows_compaction_at_tokens() {
+  local tmp sid sess
+  tmp="$(make_sandbox)"
+  sid="sbc-tokens-block"
+  sess="$tmp/grok/sessions/enc"
+  mkdir -p "$sess/$sid" "$tmp/grok"
+  # 150k / 500k = 30%. Compact at 160k, headroom 40k → gate 120k = 24%.
+  printf '%s\n' '{"contextTokensUsed":150000,"contextWindowTokens":500000,"contextWindowUsage":30}' \
+    >"$sess/$sid/signals.json"
+  printf '%s\n' '[session]
+auto_compact_threshold_percent = 32
+
+[model."grok-4.7"]
+compaction_at_tokens = 160000
+' >"$tmp/grok/config.toml"
+  local out
+  out="$(
+    _sbc stop "{\"hookEventName\":\"Stop\",\"sessionId\":\"$sid\",\"reason\":\"end_turn\"}" \
+      HOME="$tmp" \
+      GROK_HOME="$tmp/grok" \
+      REVEALUI_COORD_ROOT="$tmp/coord"
+  )"
+  assert_contains "token threshold Stop-blocks above the 120k gate" '"decision":"block"' "$out"
+  assert_contains "block names the configured compact token count" "160000 tokens" "$out"
+}
+
+test_stop_gate_allows_below_token_headroom() {
+  local tmp sid sess
+  tmp="$(make_sandbox)"
+  sid="sbc-tokens-low"
+  sess="$tmp/grok/sessions/enc"
+  mkdir -p "$sess/$sid" "$tmp/grok"
+  printf '%s\n' '{"contextTokensUsed":50000,"contextWindowTokens":500000,"contextWindowUsage":10}' \
+    >"$sess/$sid/signals.json"
+  printf '%s\n' '[session]
+auto_compact_threshold_percent = 32
+
+[model."grok-4.7"]
+compaction_at_tokens = 160000
+' >"$tmp/grok/config.toml"
+  local out
+  out="$(
+    _sbc stop "{\"hookEventName\":\"Stop\",\"sessionId\":\"$sid\",\"reason\":\"end_turn\"}" \
+      HOME="$tmp" \
+      GROK_HOME="$tmp/grok" \
+      REVEALUI_COORD_ROOT="$tmp/coord" 2>&1
+  )"
+  if [[ "$out" == *'"decision":"block"'* ]]; then
+    fail "occupancy under the 120k gate must not Stop-block" "$out"
+  else
+    pass "occupancy under the token headroom allows stop"
+  fi
+}
+
 test_unknown_mode_fail_open() {
   local tmp
   tmp="$(make_sandbox)"

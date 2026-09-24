@@ -32,7 +32,9 @@ If Claude home is missing: do **not** fail the whole doctor — continue with Gr
 ## 1. Hook syntax
 
 **Claude:** `node --check` on every `~/.claude/hooks/*.js` when the dir exists. List failures. Confirm `settings.json` registers `PreCompact` → `snapshot-before-compact.js` (last-ditch mechanical capture).  
-**Grok:** list `~/.grok/hooks/*.json` when present; confirm JSON parses (`python3 -m json.tool` or `jq`). FAIL on invalid JSON. Required for snapshot-before-compact: `pre-compact.json` and `stop-snapshot.json` (or equivalent PreCompact + Stop entries) pointing at `snapshot-before-compact.js`. WARN if either event is missing — Grok auto-compacts at 85% and discards UserPromptSubmit stdout, so without these hooks checkpoints lose pre-compact fidelity.
+**Grok:** list `~/.grok/hooks/*.json` when present; confirm JSON parses (`python3 -m json.tool` or `jq`). FAIL on invalid JSON. Required for snapshot-before-compact: `pre-compact.json` and `stop-snapshot.json` (or equivalent PreCompact + Stop entries) pointing at `snapshot-before-compact.js`. WARN if either event is missing — Grok discards UserPromptSubmit stdout, so without these hooks checkpoints lose pre-compact fidelity. Required for the output cap: `cap-tool-output.json` with a PostToolUse entry pointing at `cap-tool-output.js`. FAIL if it is missing.
+
+**Compact sync:** the authored numbers are `revealui/packages/harnesses/src/token-budget.ts`, materialized to `.revealui/adapters/grok/token-budget.json` and copied to `~/.local/share/revealui/hooks/token-budget.json`. FAIL if `~/.grok/config.toml` disagrees with that JSON: each `models[]` entry's `compaction_at_tokens` must equal `compactionAtTokens`, and `auto_compact_threshold_percent` must equal `autoCompactThresholdPercent` (derived from tokens / window, not stored as a second constant). FAIL if `cap-tool-output.json` is missing. A gate still described as 85% minus 25 with a floor of 50 is stale. Do not compare this budget to Claude `context-thresholds.json` (that file is a pressure score).
 
 ## 2. Rules directories
 
