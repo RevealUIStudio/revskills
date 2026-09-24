@@ -84,6 +84,8 @@ Portable session close-out. Does not require RevealFleet. Studio/RevealFleet ses
 
 These skills assume RevealFleet layout (`$REVEALFLEET_ROOT/`, private planning hub, RevVault, RevDev RPC daemon). They are **equal-adapter** Studio skills (Claude, Grok, …), not Claude-only products. Canonical copies live here; Studio machines may symlink into vendor command homes.
 
+Three planes: product runtime, operator laptop, Studio daemon. `bin/rfloop` is operator-only: a PR/CI operator disk state machine only (P0 stub; no LLM; auto-merge locked). It is not the fleet brain or the product AgentRuntime. Prefer `rfloop`; `bin/revloop` is a rename shim.
+
 | Skill | Description |
 |-------|-------------|
 | [revealui-recover](skills/revealui-recover/) | Diagnose and recover from crashed/interrupted Studio sessions (Claude + Grok markers) |
