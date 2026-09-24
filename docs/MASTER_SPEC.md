@@ -1,14 +1,15 @@
 ---
 type: master-spec
 repo: revskills
-last-updated: 2026-09-17
+last-updated: 2026-09-24
 owner: RevealUI Studio
 staleness-status: FRESH
 ---
 
 # RevSkills — Master Spec
 
-**Last Updated:** 2026-09-17  
+**Last Updated:** 2026-09-24
+
 **Status:** Pre-1.0 per skill — surface stable; **29** skills under `skills/`  
 **Repo:** [RevealUIStudio/revskills](https://github.com/RevealUIStudio/revskills)
 
@@ -183,6 +184,10 @@ MIT — everything in this repo.
 | **RevVault, RevForge, RevKit** | Independent — skills stay markdown |
 
 ---
+
+## Agent-loop planes
+
+Product runtime, operator laptop, and Studio daemon are three planes. `rfloop` is operator-only: a PR/CI disk state machine (P0 stub; no LLM; auto-merge locked), not the product AgentRuntime. Prefer `rfloop`; `revloop` is a rename shim (`bin/revloop`).
 
 ## See also
 

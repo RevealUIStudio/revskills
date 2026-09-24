@@ -20,12 +20,16 @@ fi
 REVFLEET_ROOT="${REVFLEET_ROOT:-$REVEALFLEET_ROOT}"
 REVEALUI_REPO="${REVEALUI_REPO:-$REVEALFLEET_ROOT/revealui}"
 JV_REPO="${JV_REPO:-$REVEALFLEET_ROOT/.jv}"
-# Rendered workboard (derived). Fragments write to $JV_REPO/.revealui/workboard.d
-# (vendor-neutral). .claude/workboard.md is the current render target until sweep
-# cutover; do not treat .claude as the product home.
-WORKBOARD="${WORKBOARD:-$JV_REPO/.claude/workboard.md}"
+# Write SSOT is .revealui before any vendor home.
+#   fragments: $JV_REPO/.revealui/workboard.d
+#   neutral rendered board: $JV_REPO/.revealui/workboard.md (derived local view)
+# $JV_REPO/.claude/workboard.md is adapter render only.
+# ~/.claude/rules is adapter attach only, not the policy home.
 WORKBOARD_D_NEUTRAL="${WORKBOARD_D_NEUTRAL:-$JV_REPO/.revealui/workboard.d}"
 WORKBOARD_D_LEGACY="${WORKBOARD_D_LEGACY:-$JV_REPO/.claude/workboard.d}"
+WORKBOARD_NEUTRAL="${WORKBOARD_NEUTRAL:-$JV_REPO/.revealui/workboard.md}"
+WORKBOARD_ADAPTER_CLAUDE="${WORKBOARD_ADAPTER_CLAUDE:-$JV_REPO/.claude/workboard.md}"
+WORKBOARD="${WORKBOARD:-$WORKBOARD_NEUTRAL}"
 DAEMON_SOCKET="${REVEALUI_SOCKET:-${DAEMON_SOCKET:-$HOME/.local/share/revealui/harness.sock}}"
 
 # Neutral coordination root (SSOT). Claude/Grok homes may hold legacy copies.
@@ -320,15 +324,31 @@ ss_revvault_alive() {
   revvault list >/dev/null 2>&1
 }
 
+# Read path: neutral board when present, else the Claude adapter render.
+# The adapter file is never the write SSOT.
+ss_workboard_read_path() {
+  if [ -n "${WORKBOARD:-}" ] && [ -f "$WORKBOARD" ]; then
+    printf '%s\n' "$WORKBOARD"
+    return 0
+  fi
+  if [ -n "${WORKBOARD_ADAPTER_CLAUDE:-}" ] && [ -f "$WORKBOARD_ADAPTER_CLAUDE" ] \
+    && [ "${WORKBOARD_ADAPTER_CLAUDE}" != "${WORKBOARD:-}" ]; then
+    printf '%s\n' "$WORKBOARD_ADAPTER_CLAUDE"
+    return 0
+  fi
+  printf 'workboard missing: %s\n' "${WORKBOARD:-$WORKBOARD_NEUTRAL}" >&2
+  return 1
+}
+
 ss_workboard_recent() {
-  local identity="${1:-}" n="${2:-20}"
+  local identity="${1:-}" n="${2:-20}" board
   # Validate n is numeric
   [[ "$n" =~ ^[0-9]+$ ]] || { printf 'ss_workboard_recent: n must be numeric, got: %s\n' "$n" >&2; return 1; }
-  [ -f "$WORKBOARD" ] || { printf 'workboard missing: %s\n' "$WORKBOARD" >&2; return 1; }
+  board="$(ss_workboard_read_path)" || return 1
   if [ -n "$identity" ] && [ "$identity" != "stagehand" ]; then
-    grep -E "\] ${identity}(-[0-9]+)?:" "$WORKBOARD" | tail -n "$n"
+    grep -E "\] ${identity}(-[0-9]+)?:" "$board" | tail -n "$n"
   else
-    sed -n '/^## Log/,/^## /p' "$WORKBOARD" | grep -E '^- \[' | head -n "$n"
+    sed -n '/^## Log/,/^## /p' "$board" | grep -E '^- \[' | head -n "$n"
   fi
 }
 

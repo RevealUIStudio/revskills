@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash
 metadata:
   author: RevealUI Studio
-  version: "0.2.0"
+  version: "0.2.1"
   website: https://revealui.com
   related:
     - revealui-cleanup
@@ -13,7 +13,9 @@ metadata:
     - revealui-checkpoint
 ---
 
-Thin CLI shim onto the `.jv` operational-workflow-layer runner (`workflow-run.js`, design contract at `docs/gap-specs/GAP-314-operational-workflow-layer-design.md` §4) — exposed as `/ops`. This skill delegates entirely to the runner; it does not reimplement workflow execution, step logic, or safety classification.
+Thin CLI shim onto the `.jv` operational-workflow-layer runner (`workflow-run.js`, design contract at `docs/gap-specs/GAP-314-operational-workflow-layer-design.md` §4), exposed as `/ops`. This skill delegates entirely to the runner; it does not reimplement workflow execution, step logic, or safety classification.
+
+`rfloop` is a PR/CI operator disk state machine only (P0 stub; no LLM; auto-merge locked). It is not the fleet brain or the product AgentRuntime. Prefer `rfloop`; `revloop` is a rename shim. This skill is not `rfloop`.
 
 Load helpers:
 ```bash
@@ -56,4 +58,5 @@ Pass `--dry-run`, `--fix`, `--yes` straight through — the runner defines what 
 
 - Do NOT invoke a workflow's underlying step commands directly through this skill — always go through `workflow-run.js` so safety classification applies. The individual commands remain directly invocable outside this skill (that's Tier 2, the escape hatch); this skill is Tier 3, the named-chain path.
 - Do NOT pass `--fix`/`--yes` without telling the user which gated step(s) it will unlock.
-- Do NOT attempt to run an `owner-only` step's printed command through another tool on the runner's behalf — hand it to the owner verbatim, as printed.
+- Do NOT attempt to run an `owner-only` step's printed command through another tool on the runner's behalf. Hand it to the owner verbatim, as printed.
+- Do NOT treat `rfloop` / `revloop` as this runner or as product AgentRuntime. `rfloop` is operator-only (P0 stub; no LLM; auto-merge locked).
