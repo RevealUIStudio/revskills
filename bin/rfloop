@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# rfloop is a PR/CI operator disk state machine only (P0 stub; no LLM; auto-merge locked).
+# It is not the fleet brain / product AgentRuntime.
+#
+# Job lock 2026-09-24. Prefer this name. revloop is a rename shim.
+# Operator laptop plane only. Not product runtime. Not the Studio daemon.
+# This entrypoint records that boundary. It does not call a model, does not
+# merge, and does not implement a loop runner. Do not grow a fleet brain here.
+set -euo pipefail
+
+printf '%s\n' 'rfloop: P0 stub. PR/CI operator disk state machine only. No LLM. Auto-merge locked. Not the fleet brain or product AgentRuntime.' >&2
+exit 2

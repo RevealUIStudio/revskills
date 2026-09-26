@@ -343,6 +343,67 @@ MD
   _ss_clear_session_env
 }
 
+_ss_unset_workboard_pins() {
+  unset WORKBOARD WORKBOARD_NEUTRAL WORKBOARD_ADAPTER_CLAUDE
+  unset WORKBOARD_D_NEUTRAL WORKBOARD_D_LEGACY JV_REPO
+}
+
+test_ss_workboard_default_is_neutral() {
+  local tmp
+  tmp="$(make_sandbox)"
+  _ss_unset_workboard_pins
+  export REVEALFLEET_ROOT="$tmp/fleet"
+  export JV_REPO="$tmp/jv"
+  # shellcheck disable=SC1091
+  . "$REPO_ROOT/scripts/lib/session-state.sh"
+  assert_eq "$tmp/jv/.revealui/workboard.md" "$WORKBOARD" "default board is the neutral .revealui render"
+  assert_eq "$tmp/jv/.revealui/workboard.d" "$WORKBOARD_D_NEUTRAL" "fragment write SSOT is .revealui/workboard.d"
+  assert_eq "$tmp/jv/.claude/workboard.md" "$WORKBOARD_ADAPTER_CLAUDE" "claude board stays an adapter path"
+  _ss_unset_workboard_pins
+  unset REVEALFLEET_ROOT
+}
+
+test_ss_workboard_recent_prefers_neutral_over_adapter() {
+  local tmp line
+  tmp="$(make_sandbox)"
+  _ss_unset_workboard_pins
+  export REVEALFLEET_ROOT="$tmp/fleet"
+  export JV_REPO="$tmp/jv"
+  mkdir -p "$tmp/jv/.revealui" "$tmp/jv/.claude"
+  printf '%s\n' '## Log' '- [2026-09-24 00:00] stagehand: [CHECKPOINT] neutral-board' '## Next' \
+    >"$tmp/jv/.revealui/workboard.md"
+  printf '%s\n' '## Log' '- [2026-09-24 00:00] stagehand: [CHECKPOINT] adapter-board' '## Next' \
+    >"$tmp/jv/.claude/workboard.md"
+  # shellcheck disable=SC1091
+  . "$REPO_ROOT/scripts/lib/session-state.sh"
+  line="$(ss_workboard_recent "" 5)"
+  assert_contains "recent log reads the neutral board" "neutral-board" "$line"
+  if [[ "$line" == *adapter-board* ]]; then
+    fail "recent log must not prefer the Claude adapter render" "$line"
+  else
+    pass "recent log ignores the adapter render when the neutral board exists"
+  fi
+  _ss_unset_workboard_pins
+  unset REVEALFLEET_ROOT
+}
+
+test_ss_workboard_recent_falls_back_to_adapter_render() {
+  local tmp line
+  tmp="$(make_sandbox)"
+  _ss_unset_workboard_pins
+  export REVEALFLEET_ROOT="$tmp/fleet"
+  export JV_REPO="$tmp/jv"
+  mkdir -p "$tmp/jv/.claude"
+  printf '%s\n' '## Log' '- [2026-09-24 00:00] stagehand: [CHECKPOINT] adapter-only' '## Next' \
+    >"$tmp/jv/.claude/workboard.md"
+  # shellcheck disable=SC1091
+  . "$REPO_ROOT/scripts/lib/session-state.sh"
+  line="$(ss_workboard_recent "" 5)"
+  assert_contains "recent log falls back to the adapter render" "adapter-only" "$line"
+  _ss_unset_workboard_pins
+  unset REVEALFLEET_ROOT
+}
+
 test_ss_snapshot_load_path_empty_without_file_or_daemon() {
   _ss_load
   local tmp sid got

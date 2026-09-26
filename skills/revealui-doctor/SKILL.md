@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Glob, Grep
 metadata:
   author: RevealUI Studio
-  version: "0.4.2"
+  version: "0.4.3"
   website: https://revealui.com
 ---
 
@@ -70,7 +70,7 @@ Empty objects = WSL crash damage. Report loudly.
 
 ## 5. Workboard freshness
 
-Parse `$WORKBOARD` (`$JV_REPO/.claude/workboard.md`). In `## Log`, flag `[CRASHED]` entries older than 24h.
+Parse `$WORKBOARD` (neutral `$JV_REPO/.revealui/workboard.md`; if that file is absent, the Claude adapter render `$JV_REPO/.claude/workboard.md`). In `## Log`, flag `[CRASHED]` entries older than 24h. The adapter file and `~/.claude/rules/` are not the policy home. Write SSOT for board fragments is `$JV_REPO/.revealui/workboard.d`.
 
 ## 6. Events log size
 

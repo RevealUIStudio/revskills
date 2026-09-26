@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# revloop is a rename shim. Prefer rfloop.
+# rfloop is a PR/CI operator disk state machine only (P0 stub; no LLM; auto-merge locked).
+# It is not the fleet brain / product AgentRuntime.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$here/rfloop" "$@"
