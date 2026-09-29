@@ -299,6 +299,7 @@ ss_snapshot_load_path() {
     sid="$(ss_session_id 2>/dev/null)" || true
   fi
   [ -n "$sid" ] || return 0
+  ss_valid_session_id "$sid" || return 0
 
   local existing
   existing="$(ss_snapshot_path "$sid" 2>/dev/null)" || true
