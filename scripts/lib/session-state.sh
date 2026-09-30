@@ -68,12 +68,20 @@ ss_identity() {
 #
 # Order (first non-empty wins):
 #   1. AGENT_SESSION_ID / REVEALUI_SESSION_ID (explicit override)
-#   2. Vendor env aliases: CLAUDE_CODE_SESSION_ID, GROK_SESSION_ID
+#   2. Native aliases: CODEX_THREAD_ID (preferred), CODEX_SESSION_ID,
+#      CLAUDE_CODE_SESSION_ID, GROK_SESSION_ID
 #   3. PPID stamp files written by SessionStart (scripts/stamp-session-id.sh)
-#   4. Grok ~/.grok/active_sessions.json matched by ancestor PID (or sole cwd)
+#   4. Grok ~/.grok/active_sessions.json matched by nearest ancestor PID only
 #
 # Snapshot write requires a value. Checkpoint consume may be empty (memory).
 # ---------------------------------------------------------------------------
+
+# IDs become filenames. Reject invalid authoritative values rather than falling
+# through to a peer's discovery entry. Keep parity with the hook's safe IDs.
+ss_valid_session_id() {
+  local sid="${1:-}"
+  [[ ${#sid} -le 128 && "$sid" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+}
 
 # Collect ancestor PIDs of a process (inclusive), space-separated. Arg: start pid.
 ss_ancestor_pids() {
@@ -95,8 +103,8 @@ ss_session_id_from_pid_stamps() {
   # shellcheck disable=SC2046
   for pid in $(ss_ancestor_pids "$$"); do
     if [ -f "$root/$pid" ] && [ -s "$root/$pid" ]; then
-      sid="$(head -1 "$root/$pid" | tr -d '[:space:]')"
-      if [ -n "$sid" ]; then
+      sid="$(head -1 "$root/$pid")"
+      if ss_valid_session_id "$sid"; then
         printf '%s\n' "$sid"
         return 0
       fi
@@ -105,21 +113,22 @@ ss_session_id_from_pid_stamps() {
   return 1
 }
 
-# Grok active_sessions.json: match ancestor PID, else sole open session for $PWD.
+# Grok active_sessions.json: nearest process-bound match only. Sharing a cwd
+# proves nothing about session ownership, even when the registry has one row.
 ss_session_id_from_grok_active() {
   local active="${GROK_ACTIVE_SESSIONS:-$HOME/.grok/active_sessions.json}"
   [ -f "$active" ] || return 1
   command -v python3 >/dev/null 2>&1 || return 1
   # shellcheck disable=SC2086
-  python3 - "$active" "$$" "${PWD:-}" <<'PY'
-import json, sys
+  python3 - "$active" "$$" <<'PY'
+import json, re, sys
 
-path, start_s, cwd = sys.argv[1], sys.argv[2], sys.argv[3]
+path, start_s = sys.argv[1], sys.argv[2]
 start = int(start_s)
-pids = set()
+pids = []
 pid = start
 for _ in range(40):
-    pids.add(pid)
+    pids.append(pid)
     try:
         with open(f"/proc/{pid}/status", encoding="utf-8") as fh:
             ppid = None
@@ -140,41 +149,39 @@ except (OSError, json.JSONDecodeError):
 if not isinstance(sessions, list):
     sys.exit(1)
 
-for s in sessions:
-    try:
-        if int(s.get("pid", -1)) in pids and s.get("session_id"):
-            print(s["session_id"])
-            sys.exit(0)
-    except (TypeError, ValueError):
-        continue
-
-# Sole open session for this cwd (safe when only one Grok in the workspace)
-cands = [s for s in sessions if s.get("cwd") == cwd and s.get("session_id")]
-if len(cands) == 1:
-    print(cands[0]["session_id"])
-    sys.exit(0)
+for pid in pids:
+    matches = set()
+    for s in sessions:
+        if not isinstance(s, dict):
+            continue
+        try:
+            if int(s.get("pid", -1)) != pid:
+                continue
+        except (TypeError, ValueError):
+            continue
+        sid = s.get("session_id")
+        if not isinstance(sid, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", sid):
+            sys.exit(1)
+        matches.add(sid)
+    if len(matches) > 1:
+        sys.exit(1)
+    if matches:
+        print(matches.pop())
+        sys.exit(0)
 sys.exit(1)
 PY
 }
 
 ss_session_id() {
-  if [ -n "${AGENT_SESSION_ID:-}" ]; then
-    printf '%s\n' "$AGENT_SESSION_ID"
-    return 0
-  fi
-  if [ -n "${REVEALUI_SESSION_ID:-}" ]; then
-    printf '%s\n' "$REVEALUI_SESSION_ID"
-    return 0
-  fi
-  if [ -n "${CLAUDE_CODE_SESSION_ID:-}" ]; then
-    printf '%s\n' "$CLAUDE_CODE_SESSION_ID"
-    return 0
-  fi
-  if [ -n "${GROK_SESSION_ID:-}" ]; then
-    printf '%s\n' "$GROK_SESSION_ID"
-    return 0
-  fi
-  local sid
+  local sid name
+  for name in AGENT_SESSION_ID REVEALUI_SESSION_ID CODEX_THREAD_ID CODEX_SESSION_ID CLAUDE_CODE_SESSION_ID GROK_SESSION_ID; do
+    sid="${!name:-}"
+    if [ -n "$sid" ]; then
+      ss_valid_session_id "$sid" || return 1
+      printf '%s\n' "$sid"
+      return 0
+    fi
+  done
   sid="$(ss_session_id_from_pid_stamps 2>/dev/null)" && {
     printf '%s\n' "$sid"
     return 0
@@ -232,7 +239,7 @@ ss_snapshot_path() {
   if [ -z "$sid" ]; then
     sid="$(ss_session_id 2>/dev/null)" || return 1
   fi
-  [ -n "$sid" ] || return 1
+  ss_valid_session_id "$sid" || return 1
 
   local candidates=(
     "$REVEALUI_COORD_ROOT/snapshots/$sid.md"
@@ -254,7 +261,7 @@ ss_snapshot_write_path() {
   if [ -z "$sid" ]; then
     sid="$(ss_session_id 2>/dev/null)" || return 1
   fi
-  [ -n "$sid" ] || return 1
+  ss_valid_session_id "$sid" || return 1
   ss_ensure_coord_dirs
   printf '%s\n' "$REVEALUI_COORD_ROOT/snapshots/$sid.md"
 }
