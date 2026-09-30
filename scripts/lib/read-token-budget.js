@@ -18,7 +18,6 @@ function candidatePaths() {
   const explicit = process.env.REVEALUI_TOKEN_BUDGET_JSON;
   const fleet =
     process.env.REVEALFLEET_ROOT ||
-    process.env.REVFLEET_ROOT ||
     path.join(home, "revealfleet");
   const paths = [
     explicit,
