@@ -43,6 +43,6 @@ The lane + remediation spec own **program prioritization** and multi-PR DAG. Thi
 
 ## Output hygiene
 
-- Store runs under `REVFLEET_ARCHIVE/audits/` (fleet shared archive), not inside product git.
+- Store runs under `REVEALFLEET_ARCHIVE/audits/` (fleet shared archive), not inside product git.
 - Promote only accidental clusters to tracked work units.
 - Public PRs never cite private planning paths.

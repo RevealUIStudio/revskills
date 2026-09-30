@@ -14,7 +14,119 @@ _ss_load() {
 
 _ss_clear_session_env() {
   unset AGENT_SESSION_ID REVEALUI_SESSION_ID CLAUDE_CODE_SESSION_ID GROK_SESSION_ID
+  unset CODEX_THREAD_ID CODEX_SESSION_ID
   unset REVEALUI_IDENTITY AGENT_ROLE CLAUDE_AGENT_ROLE GROK_ACTIVE_SESSIONS
+}
+
+test_ss_codex_native_identity_precedes_peer_discovery() {
+  _ss_load
+  _ss_clear_session_env
+  local tmp
+  tmp="$(make_sandbox)"
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  export GROK_ACTIVE_SESSIONS="$tmp/active.json"
+  mkdir -p "$tmp/coord/snapshots"
+  printf '[{"session_id":"peer-grok","pid":999999999,"cwd":"%s"}]\n' "$PWD" > "$tmp/active.json"
+  printf '# own\n' > "$tmp/coord/snapshots/codex-thread.md"
+  printf '# peer\n' > "$tmp/coord/snapshots/peer-grok.md"
+  export CODEX_THREAD_ID="codex-thread" CODEX_SESSION_ID="codex-process"
+  assert_eq "codex-thread" "$(ss_session_id)" "Codex thread is the native continuity identity"
+  assert_eq "$tmp/coord/snapshots/codex-thread.md" "$(ss_snapshot_path)" "Codex resolves its own snapshot despite sole peer cwd"
+  unset CODEX_THREAD_ID
+  assert_eq "codex-process" "$(ss_session_id)" "Codex session alias works without thread alias"
+  _ss_clear_session_env
+  unset REVEALUI_COORD_ROOT
+}
+
+test_ss_invalid_load_id_never_queries_daemon() {
+  (
+    _ss_load
+    _ss_clear_session_env
+    local tmp sid got
+    local failures_before="$TEST_FAIL"
+    tmp="$(make_sandbox)"
+    export REVEALUI_COORD_ROOT="$tmp/coord"
+    ss_daemon_alive() { return 0; }
+    ss_daemon_snapshot_get() { printf '%s\n' "$1" >> "$tmp/queried"; return 1; }
+    for sid in '../../foreign' '..' '/absolute' $'line\nbreak' '-option'; do
+      got="$(ss_snapshot_load_path "$sid")"
+      assert_eq '' "$got" 'unsafe load id has no snapshot'
+    done
+    assert_exit 'unsafe load ids never query daemon' 1 -- test -e "$tmp/queried"
+    (( TEST_FAIL == failures_before ))
+  )
+  assert_eq 0 "$?" 'daemon identity boundary rejects unsafe ids'
+}
+
+test_ss_cwd_alone_never_identifies_a_session() {
+  _ss_load
+  _ss_clear_session_env
+  local tmp
+  tmp="$(make_sandbox)"
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  export GROK_ACTIVE_SESSIONS="$tmp/active.json"
+  printf '[{"session_id":"peer-grok","pid":999999999,"cwd":"%s"}]\n' "$PWD" > "$tmp/active.json"
+  assert_exit "same cwd is not session identity" 1 -- ss_session_id
+  _ss_clear_session_env
+  unset REVEALUI_COORD_ROOT
+}
+
+test_ss_ambiguous_grok_pid_does_not_choose_registry_order() {
+  _ss_load
+  _ss_clear_session_env
+  local tmp
+  tmp="$(make_sandbox)"
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  export GROK_ACTIVE_SESSIONS="$tmp/active.json"
+  printf '[{"session_id":"first","pid":%s},{"session_id":"second","pid":%s}]\n' "$$" "$$" > "$tmp/active.json"
+  assert_exit "conflicting identities for one process fail closed" 1 -- ss_session_id
+  _ss_clear_session_env
+  unset REVEALUI_COORD_ROOT
+}
+
+test_ss_unsafe_session_ids_cannot_read_or_write_snapshots() {
+  _ss_load
+  _ss_clear_session_env
+  local tmp sid
+  tmp="$(make_sandbox)"
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  export GROK_ACTIVE_SESSIONS="$tmp/missing.json"
+  mkdir -p "$tmp/coord/snapshots"
+  printf '# foreign\n' > "$tmp/foreign.md"
+  for sid in '../../foreign' '..' '/absolute' $'line\nbreak' '-option'; do
+    export AGENT_SESSION_ID="$sid"
+    assert_exit "unsafe native session id rejected" 1 -- ss_session_id
+    assert_exit "unsafe explicit snapshot read id rejected" 1 -- ss_snapshot_path "$sid"
+    assert_exit "unsafe explicit snapshot write id rejected" 1 -- ss_snapshot_write_path "$sid"
+  done
+  assert_eq '# foreign' "$(cat "$tmp/foreign.md")" "foreign snapshot unchanged"
+  _ss_clear_session_env
+  unset REVEALUI_COORD_ROOT
+}
+
+test_ss_concurrent_adapters_resolve_only_their_snapshots() {
+  _ss_load
+  _ss_clear_session_env
+  local tmp codex_pid grok_pid
+  tmp="$(make_sandbox)"
+  mkdir -p "$tmp/coord/snapshots"
+  printf '# codex\n' > "$tmp/coord/snapshots/parallel-codex.md"
+  printf '# grok\n' > "$tmp/coord/snapshots/parallel-grok.md"
+  env REVEALUI_COORD_ROOT="$tmp/coord" CODEX_THREAD_ID="parallel-codex" GROK_ACTIVE_SESSIONS="$tmp/none.json" \
+    bash -c '. "$1"; ss_snapshot_path' _ "$REPO_ROOT/scripts/lib/session-state.sh" > "$tmp/codex-result" &
+  codex_pid=$!
+  env REVEALUI_COORD_ROOT="$tmp/coord" GROK_SESSION_ID="parallel-grok" GROK_ACTIVE_SESSIONS="$tmp/none.json" \
+    bash -c '. "$1"; ss_snapshot_path' _ "$REPO_ROOT/scripts/lib/session-state.sh" > "$tmp/grok-result" &
+  grok_pid=$!
+  if wait "$codex_pid" && wait "$grok_pid"; then
+    pass "concurrent adapter resolvers succeed"
+  else
+    fail "concurrent adapter resolvers failed"
+  fi
+  assert_eq "$tmp/coord/snapshots/parallel-codex.md" "$(cat "$tmp/codex-result")" "concurrent Codex selects its own snapshot"
+  assert_eq "$tmp/coord/snapshots/parallel-grok.md" "$(cat "$tmp/grok-result")" "concurrent Grok selects its own snapshot"
+  assert_eq '# grok' "$(cat "$tmp/coord/snapshots/parallel-grok.md")" "peer snapshot not consumed or changed"
+  _ss_clear_session_env
 }
 
 test_ss_home_hijack_does_not_become_fleet_root() {
@@ -23,7 +135,7 @@ test_ss_home_hijack_does_not_become_fleet_root() {
   evil="$tmp/evil"
   mkdir -p "$evil/revealfleet"
   assert_exit "unset pin + HOME hijack does not source" 1 -- \
-    env -u REVEALFLEET_ROOT -u REVFLEET_ROOT HOME="$evil" \
+    env -u REVEALFLEET_ROOT HOME="$evil" \
     bash -c '. "$1"' _ "$REPO_ROOT/scripts/lib/session-state.sh"
   assert_contains "fail-closed names the pin" "REVEALFLEET_ROOT is unset" "$LAST_OUTPUT"
 }
@@ -32,7 +144,6 @@ test_ss_revealfleet_root_pin_wins() {
   local tmp
   tmp="$(make_sandbox)/fleet"
   mkdir -p "$tmp"
-  unset REVFLEET_ROOT
   export REVEALFLEET_ROOT="$tmp"
   # shellcheck disable=SC1091
   . "$REPO_ROOT/scripts/lib/session-state.sh"
@@ -40,17 +151,6 @@ test_ss_revealfleet_root_pin_wins() {
   unset REVEALFLEET_ROOT
 }
 
-test_ss_revealfleet_root_alias_still_works() {
-  local tmp
-  tmp="$(make_sandbox)/legacy-alias"
-  mkdir -p "$tmp"
-  unset REVEALFLEET_ROOT
-  export REVFLEET_ROOT="$tmp"
-  # shellcheck disable=SC1091
-  . "$REPO_ROOT/scripts/lib/session-state.sh"
-  assert_eq "$tmp" "$REVEALFLEET_ROOT" "REVFLEET_ROOT alias fills the pin"
-  unset REVEALFLEET_ROOT REVFLEET_ROOT
-}
 
 test_ss_session_id_prefers_agent_session_id() {
   _ss_load
