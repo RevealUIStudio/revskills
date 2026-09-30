@@ -5,7 +5,7 @@
  * Modes:
  *   --self-test     Verify W1/W4/W5 scripts exist + coverage-status accepts C3
  *                   statuses. Always safe for CI (no archive required).
- *   --coverage      Require REVFLEET_ARCHIVE/audits/<run> (or --run) and fail
+ *   --coverage      Require REVEALFLEET_ARCHIVE/audits/<run> (or --run) and fail
  *                   unless coverage-status exits 0 on fleet+homes manifests.
  *
  * Usage:
@@ -69,11 +69,11 @@ function selfTest() {
 
 function coverageCheck(runId) {
   const archive =
-    process.env.REVFLEET_ARCHIVE || path.join(process.env.HOME || "", "revealfleet/archive/cold");
+    process.env.REVEALFLEET_ARCHIVE || path.join(process.env.HOME || "", "revealfleet/archive/cold");
   const runDir = path.join(archive, "audits", runId);
   if (!fs.existsSync(runDir)) {
     throw new Error(
-      `coverage run not found: ${runDir} (set REVFLEET_ARCHIVE or skip --coverage in CI without archive)`,
+      `coverage run not found: ${runDir} (set REVEALFLEET_ARCHIVE or skip --coverage in CI without archive)`,
     );
   }
   const main = path.join(runDir, "manifest.jsonl");

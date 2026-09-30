@@ -62,8 +62,8 @@ Do not put private planning-repo paths in config committed to this package.
 Prefer the fleet shared archive (not product git):
 
 ```bash
-export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$REVEALFLEET_ROOT/archive/cold}"
-OUT="$REVFLEET_ARCHIVE/audits/$(date -u +%Y-%m-%d)-redundancy-<scope>"
+export REVEALFLEET_ARCHIVE="${REVEALFLEET_ARCHIVE:-$REVEALFLEET_ROOT/archive/cold}"
+OUT="$REVEALFLEET_ARCHIVE/audits/$(date -u +%Y-%m-%d)-redundancy-<scope>"
 ```
 
 ```text
@@ -80,8 +80,8 @@ $OUT/
 
 ```bash
 SKILL="$REVEALFLEET_ROOT/revskills/skills/redundancy-scan"
-export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$REVEALFLEET_ROOT/archive/cold}"
-OUT="$REVFLEET_ARCHIVE/audits/$(date -u +%Y-%m-%d)-redundancy-revealui"
+export REVEALFLEET_ARCHIVE="${REVEALFLEET_ARCHIVE:-$REVEALFLEET_ROOT/archive/cold}"
+OUT="$REVEALFLEET_ARCHIVE/audits/$(date -u +%Y-%m-%d)-redundancy-revealui"
 mkdir -p "$OUT"
 
 node "$SKILL/scripts/run-scan.js" \
@@ -97,7 +97,7 @@ node "$SKILL/scripts/run-scan.js" \
 node "$SKILL/scripts/run-scan.js" \
   --root "$REVEALFLEET_ROOT" \
   --fleet \
-  --out-dir "$REVFLEET_ARCHIVE/audits/$(date -u +%Y-%m-%d)-redundancy-fleet"
+  --out-dir "$REVEALFLEET_ARCHIVE/audits/$(date -u +%Y-%m-%d)-redundancy-fleet"
 ```
 
 Skips hidden directories, `archive/`, `tmp/`, `docs/`, `scripts/`, `worktrees/`, and `*-wt` sibling folders. Nested `tmp`/`worktrees` dirs are also in `defaults.json` excludeDirNames.

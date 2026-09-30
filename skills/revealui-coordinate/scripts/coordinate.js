@@ -20,7 +20,6 @@ const HOME = process.env.HOME || os.homedir();
 const GROK_HOME = process.env.GROK_HOME || path.join(HOME, ".grok");
 const FLEET =
   process.env.REVEALFLEET_ROOT ||
-  process.env.REVFLEET_ROOT ||
   path.join(HOME, "revealfleet");
 const JV = process.env.JV_REPO || path.join(FLEET, ".jv");
 

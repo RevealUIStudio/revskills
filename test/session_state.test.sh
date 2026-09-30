@@ -43,6 +43,7 @@ test_ss_invalid_load_id_never_queries_daemon() {
     _ss_load
     _ss_clear_session_env
     local tmp sid got
+    local failures_before="$TEST_FAIL"
     tmp="$(make_sandbox)"
     export REVEALUI_COORD_ROOT="$tmp/coord"
     ss_daemon_alive() { return 0; }
@@ -52,7 +53,7 @@ test_ss_invalid_load_id_never_queries_daemon() {
       assert_eq '' "$got" 'unsafe load id has no snapshot'
     done
     assert_exit 'unsafe load ids never query daemon' 1 -- test -e "$tmp/queried"
-    (( TEST_FAIL == 0 ))
+    (( TEST_FAIL == failures_before ))
   )
   assert_eq 0 "$?" 'daemon identity boundary rejects unsafe ids'
 }
@@ -134,7 +135,7 @@ test_ss_home_hijack_does_not_become_fleet_root() {
   evil="$tmp/evil"
   mkdir -p "$evil/revealfleet"
   assert_exit "unset pin + HOME hijack does not source" 1 -- \
-    env -u REVEALFLEET_ROOT -u REVFLEET_ROOT HOME="$evil" \
+    env -u REVEALFLEET_ROOT HOME="$evil" \
     bash -c '. "$1"' _ "$REPO_ROOT/scripts/lib/session-state.sh"
   assert_contains "fail-closed names the pin" "REVEALFLEET_ROOT is unset" "$LAST_OUTPUT"
 }
@@ -143,7 +144,6 @@ test_ss_revealfleet_root_pin_wins() {
   local tmp
   tmp="$(make_sandbox)/fleet"
   mkdir -p "$tmp"
-  unset REVFLEET_ROOT
   export REVEALFLEET_ROOT="$tmp"
   # shellcheck disable=SC1091
   . "$REPO_ROOT/scripts/lib/session-state.sh"
@@ -151,17 +151,6 @@ test_ss_revealfleet_root_pin_wins() {
   unset REVEALFLEET_ROOT
 }
 
-test_ss_revealfleet_root_alias_still_works() {
-  local tmp
-  tmp="$(make_sandbox)/legacy-alias"
-  mkdir -p "$tmp"
-  unset REVEALFLEET_ROOT
-  export REVFLEET_ROOT="$tmp"
-  # shellcheck disable=SC1091
-  . "$REPO_ROOT/scripts/lib/session-state.sh"
-  assert_eq "$tmp" "$REVEALFLEET_ROOT" "REVFLEET_ROOT alias fills the pin"
-  unset REVEALFLEET_ROOT REVFLEET_ROOT
-}
 
 test_ss_session_id_prefers_agent_session_id() {
   _ss_load

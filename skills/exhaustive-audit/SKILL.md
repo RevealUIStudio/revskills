@@ -70,8 +70,8 @@ Default run root (writable operator dir; prefer fleet shared archive):
 
 ```bash
 # Fleet shared cold store (not inside product git). See $REVEALFLEET_ROOT/archive/cold/README.md
-export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$REVEALFLEET_ROOT/archive/cold}"
-export AUDIT_RUN_ROOT="${AUDIT_RUN_ROOT:-$REVFLEET_ARCHIVE/audits}"
+export REVEALFLEET_ARCHIVE="${REVEALFLEET_ARCHIVE:-$REVEALFLEET_ROOT/archive/cold}"
+export AUDIT_RUN_ROOT="${AUDIT_RUN_ROOT:-$REVEALFLEET_ARCHIVE/audits}"
 RUN_ROOT="$AUDIT_RUN_ROOT/$(date -u +%Y-%m-%d)-<slug>"
 ```
 
@@ -90,7 +90,7 @@ All under `$REVEALFLEET_ROOT/revskills/skills/exhaustive-audit/scripts/`:
 
 ```bash
 SKILL="$REVEALFLEET_ROOT/revskills/skills/exhaustive-audit"
-export REVFLEET_ARCHIVE="${REVFLEET_ARCHIVE:-$REVEALFLEET_ROOT/archive/cold}"
+export REVEALFLEET_ARCHIVE="${REVEALFLEET_ARCHIVE:-$REVEALFLEET_ROOT/archive/cold}"
 node "$SKILL/scripts/open-run.js" --root "$REVEALFLEET_ROOT" --fleet --slug fleet-p0
 # or one repo:
 node "$SKILL/scripts/open-run.js" --root "$REVEALFLEET_ROOT/revealui" --slug revealui
@@ -349,5 +349,5 @@ Phase 0 may finish in one session. Calling it exhaustive is a contract violation
 ```bash
 node skills/exhaustive-audit/scripts/md-truth-check.js --self-test
 # operator:
-# REVFLEET_ARCHIVE=$REVEALFLEET_ROOT/archive/cold node …/md-truth-check.js --coverage
+# REVEALFLEET_ARCHIVE=$REVEALFLEET_ROOT/archive/cold node …/md-truth-check.js --coverage
 ```

@@ -36,3 +36,15 @@ test_leak_scan_accepts_clean_content() {
   assert_exit "leak-scan accepts content with no private paths" 0 \
     -- bash "$REPO_ROOT/scripts/check-no-private-leaks.sh" "$sandbox"
 }
+
+test_leak_scan_confines_literal_private_roots() {
+  local sandbox root_name
+  sandbox="$(make_sandbox)"
+  for root_name in revealfleet historical-fleet renamed-fleet; do
+    printf 'see ~/%s/.jv/docs/file.md\n' "$root_name" > "$sandbox/notes.md"
+    assert_exit "private named roots rejected" 1 -- bash "$REPO_ROOT/scripts/check-no-private-leaks.sh" "$sandbox"
+    assert_contains "private-root failure tag" 'LEAK:private-jv-repo' "$LAST_OUTPUT"
+  done
+  printf '%s\n' '$REVEALFLEET_ROOT/.jv/docs' '$root/.jv/docs' '~/renamed-fleet/public/docs' > "$sandbox/notes.md"
+  assert_exit "parameterized and public paths remain valid" 0 -- bash "$REPO_ROOT/scripts/check-no-private-leaks.sh" "$sandbox"
+}

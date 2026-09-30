@@ -7,17 +7,12 @@
 # Launch with rfg so REVEALFLEET_ROOT is the bootstrap pin.
 # Claude-home copy paths (if any) are adapters, not the SSOT.
 
-# Canonical env is REVEALFLEET_ROOT. REVFLEET_ROOT is a deprecated alias.
+# REVEALFLEET_ROOT is the required canonical bootstrap pin.
 # Never default to $HOME/revealfleet (HOME hijack). Fail closed if unset.
 if [ -z "${REVEALFLEET_ROOT:-}" ]; then
-  if [ -n "${REVFLEET_ROOT:-}" ]; then
-    REVEALFLEET_ROOT="$REVFLEET_ROOT"
-  else
-    printf '%s\n' "session-state: REVEALFLEET_ROOT is unset. Launch with rfg (bootstrap pin). Never default to \$HOME/revealfleet." >&2
-    return 1 2>/dev/null || exit 1
-  fi
+  printf '%s\n' "session-state: REVEALFLEET_ROOT is unset. Launch with rfg (bootstrap pin). Never default to \$HOME/revealfleet." >&2
+  return 1 2>/dev/null || exit 1
 fi
-REVFLEET_ROOT="${REVFLEET_ROOT:-$REVEALFLEET_ROOT}"
 REVEALUI_REPO="${REVEALUI_REPO:-$REVEALFLEET_ROOT/revealui}"
 JV_REPO="${JV_REPO:-$REVEALFLEET_ROOT/.jv}"
 # Write SSOT is .revealui before any vendor home.
@@ -309,7 +304,7 @@ ss_active_repo() {
   fi
   # 2. CWD is inside RevealFleet — infer the enclosing repo.
   case "$PWD" in
-    "$REVEALFLEET_ROOT"/*|"$REVFLEET_ROOT"/*) git -C "$PWD" rev-parse --show-toplevel 2>/dev/null && return 0 ;;
+    "$REVEALFLEET_ROOT"/*) git -C "$PWD" rev-parse --show-toplevel 2>/dev/null && return 0 ;;
   esac
   # 3. Fall back to the canonical primary repo.
   printf '%s\n' "$REVEALUI_REPO"
