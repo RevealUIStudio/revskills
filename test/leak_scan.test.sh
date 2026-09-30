@@ -45,6 +45,6 @@ test_leak_scan_confines_literal_private_roots() {
     assert_exit "private named roots rejected" 1 -- bash "$REPO_ROOT/scripts/check-no-private-leaks.sh" "$sandbox"
     assert_contains "private-root failure tag" 'LEAK:private-jv-repo' "$LAST_OUTPUT"
   done
-  printf '%s\n' '$REVEALFLEET_ROOT/.jv/docs' '$root/.jv/docs' '~/renamed-fleet/public/docs' > "$sandbox/notes.md"
+  printf '%s\n%s\n%s/renamed-fleet/public/docs\n' '$REVEALFLEET_ROOT/.jv/docs' '$root/.jv/docs' '~' > "$sandbox/notes.md"
   assert_exit "parameterized and public paths remain valid" 0 -- bash "$REPO_ROOT/scripts/check-no-private-leaks.sh" "$sandbox"
 }
