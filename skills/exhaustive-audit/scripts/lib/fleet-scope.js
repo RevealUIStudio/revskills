@@ -10,10 +10,12 @@
 const DEFAULT_FLEET_REPOS = [
   ".jv",
   "agency",
+  "docs",
   "demo-offline-sync",
   "revcon",
   "revdev",
   "revealui",
+  "revmind",
   "revforge",
   "revkit",
   "revskills",

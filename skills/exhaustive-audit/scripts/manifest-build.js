@@ -12,6 +12,7 @@
  *   node manifest-build.js --root ~/revealfleet --fleet --exclude-defaults --out /path/manifest.jsonl
  *   node manifest-build.js --root ~/revealfleet --fleet --include-archive --out /path/manifest.jsonl
  *   node manifest-build.js --root . --exclude-defaults --exclude '.pgdata/**'
+ *   node manifest-build.js --root ~/revealfleet --fleet --ext .md,.mdx --out /path/manifest.jsonl
  */
 "use strict";
 
@@ -53,6 +54,7 @@ function parseArgs(argv) {
     fleet: false,
     includeArchive: false,
     repos: [],
+    ext: [],
   };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
@@ -68,6 +70,12 @@ function parseArgs(argv) {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
+    } else if (a === "--ext") {
+      out.ext = String(argv[++i] || "")
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)
+        .map((s) => (s.startsWith(".") ? s : `.${s}`));
     } else if (a === "--help" || a === "-h") out.help = true;
   }
   return out;
@@ -75,7 +83,7 @@ function parseArgs(argv) {
 
 function usage() {
   process.stderr.write(
-    "Usage: node manifest-build.js --root <dir> --out <manifest.jsonl> [--exclude-defaults] [--exclude name]... [--fleet] [--include-archive] [--repos a,b]\n",
+    "Usage: node manifest-build.js --root <dir> --out <manifest.jsonl> [--exclude-defaults] [--exclude name]... [--fleet] [--include-archive] [--repos a,b] [--ext .md,.mdx]\n",
   );
 }
 
@@ -128,7 +136,7 @@ function isProbablyBinary(buf) {
   return false;
 }
 
-function walk(rootAbs, relBase, excludeSet, records, repo) {
+function walk(rootAbs, relBase, excludeSet, records, repo, extAllow) {
   let entries;
   try {
     entries = fs.readdirSync(rootAbs, { withFileTypes: true });
@@ -140,10 +148,11 @@ function walk(rootAbs, relBase, excludeSet, records, repo) {
     const name = ent.name;
     if (ent.isDirectory()) {
       if (shouldSkipDir(name, excludeSet)) continue;
-      walk(path.join(rootAbs, name), path.join(relBase, name), excludeSet, records, repo);
+      walk(path.join(rootAbs, name), path.join(relBase, name), excludeSet, records, repo, extAllow);
       continue;
     }
     if (!ent.isFile()) continue;
+    if (extAllow && !extAllow.has(path.extname(name).toLowerCase())) continue;
     const abs = path.join(rootAbs, name);
     const rel = path.join(relBase, name).split(path.sep).join("/");
     let buf;
@@ -196,6 +205,7 @@ function main() {
 
   const records = [];
   const walked = [];
+  const extAllow = args.ext.length > 0 ? new Set(args.ext) : null;
   if (args.fleet) {
     const allow = resolveFleetAllowlist({
       repos: args.repos,
@@ -206,12 +216,12 @@ function main() {
       if (!ent.isDirectory()) continue;
       if (!shouldWalkFleetChild(ent.name, allow)) continue;
       walked.push(ent.name);
-      walk(path.join(rootAbs, ent.name), ent.name, excludeSet, records, ent.name);
+      walk(path.join(rootAbs, ent.name), ent.name, excludeSet, records, ent.name, extAllow);
     }
   } else {
     const repo = path.basename(rootAbs);
     walked.push(repo);
-    walk(rootAbs, "", excludeSet, records, repo);
+    walk(rootAbs, "", excludeSet, records, repo, extAllow);
   }
 
   records.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
@@ -238,6 +248,7 @@ function main() {
         totalBytes,
         fleet: Boolean(args.fleet),
         repos: walked,
+        ext: extAllow ? [...extAllow] : null,
         exclude: [...excludeSet],
       },
       null,

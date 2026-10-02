@@ -8,7 +8,8 @@ make_fake_fleet() {
   local root
   root="$(make_sandbox)"
   mkdir -p "$root/agency/app" "$root/revealui/src" "$root/archive/cold" \
-    "$root/tmp" "$root/scripts" "$root/.jv/docs" "$root/wt-skip/x"
+    "$root/tmp" "$root/scripts" "$root/.jv/docs" "$root/wt-skip/x" \
+    "$root/docs/walk" "$root/revmind/notes"
   printf 'agency\n' >"$root/agency/app/App.tsx"
   printf 'revealui\nline2\n' >"$root/revealui/src/index.ts"
   printf 'should-not-inventory\n' >"$root/archive/cold/DUMP.md"
@@ -16,6 +17,10 @@ make_fake_fleet() {
   printf 'leftover\n' >"$root/scripts/one.sh"
   printf 'plan\n' >"$root/.jv/docs/TRACKER.md"
   printf 'wt\n' >"$root/wt-skip/x/n.txt"
+  printf 'fleet-doc\n' >"$root/docs/walk/note.md"
+  printf 'not-md\n' >"$root/docs/walk/note.txt"
+  printf 'mind\n' >"$root/revmind/notes/README.md"
+  printf 'code\n' >"$root/revmind/notes/main.ts"
   printf '%s\n' "$root"
 }
 
@@ -44,7 +49,31 @@ test_fleet_skips_archive_tmp_scripts() {
     fail "fleet manifest includes .jv" "missing .jv path"
     return
   fi
+  if ! grep -q '"docs/walk/note.md"' "$out" || ! grep -q '"revmind/notes/README.md"' "$out"; then
+    fail "fleet manifest includes root docs and revmind" "missing default fleet paths"
+    return
+  fi
   pass "fleet manifest excludes archive/tmp/scripts and includes products"
+}
+
+test_md_truth_manifest_is_markdown_only() {
+  local fleet run
+  fleet="$(make_fake_fleet)"
+  run="$(make_sandbox)/run"
+  node "$SKILL/open-run.js" --root "$fleet" --fleet --slug md --out "$run" --mode md-truth >/dev/null
+  for expected in '"docs/walk/note.md"' '"revmind/notes/README.md"'; do
+    if ! grep -q "$expected" "$run/manifest.jsonl"; then
+      fail "md-truth manifest includes $expected" "expected markdown path is missing"
+      return
+    fi
+  done
+  for excluded in '"docs/walk/note.txt"' '"agency/app/App.tsx"' '"revmind/notes/main.ts"'; do
+    if grep -q "$excluded" "$run/manifest.jsonl"; then
+      fail "md-truth manifest excludes $excluded" "non-markdown path was inventoried"
+      return
+    fi
+  done
+  pass "md-truth manifest inventories markdown only across default fleet scope"
 }
 
 test_include_archive_opts_in() {

@@ -207,6 +207,7 @@ function main() {
   if (args.fleet) manifestArgs.push("--fleet");
   if (args.includeArchive) manifestArgs.push("--include-archive");
   if (args.repos.length) manifestArgs.push("--repos", args.repos.join(","));
+  if (args.mode === "md-truth") manifestArgs.push("--ext", ".md,.mdx");
 
   runNode(path.join(HERE, "manifest-build.js"), manifestArgs);
 

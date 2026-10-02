@@ -12,7 +12,7 @@ license: MIT
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.2.1"
+  version: "0.2.2"
   website: https://revealui.com
   related:
     - knowledge-graph
@@ -100,7 +100,7 @@ node "$SKILL/scripts/coverage-status.js" \
   --mode code
 ```
 
-Fleet `--fleet` walks only `DEFAULT_FLEET_REPOS` in `scripts/lib/fleet-scope.js`. It skips `archive/`, `tmp/`, `scripts/`, hidden dirs except `.jv`, and worktree-style names. Cold archive is opt-in: `--include-archive`. Override the allowlist with `--repos a,b`.
+Fleet `--fleet` walks only `DEFAULT_FLEET_REPOS` in `scripts/lib/fleet-scope.js`, including `revmind` and fleet-root `docs/`. It skips `archive/`, `tmp/`, `scripts/`, hidden dirs except `.jv`, and worktree-style names. Cold archive is opt-in: `--include-archive`. Override the allowlist with `--repos a,b`. `--mode md-truth` inventories `*.md` and `*.mdx` only.
 
 ## Multi-session protocol
 
@@ -305,6 +305,24 @@ Phase 0 may finish in one session. Calling it exhaustive is a contract violation
 | Shard read (many files) | `explore` read-only or full agent; one shard per agent |
 | Security shards | Prefer security-aware model; mark `severity` carefully |
 | Final synthesis | Senior pass over findings.jsonl only (not re-read whole tree) |
+
+When the active harness can select a model for each subagent, route by task
+class instead of using one model for every shard. For the current Codex model
+family, use Luna for bounded mechanical inventory, receipt consolidation, and
+CI status collection; Sol for disjoint source-reading shards and low-ambiguity
+owning fixes after the design is settled; Astra for ambiguous security design,
+cross-repository synthesis, and independent review of sensitive changes. Keep
+the independent reviewer on a separate agent/session from the author. If a
+task finds an unexpected trust boundary, concurrency invariant, or design
+choice, stop the low-cost assignment and escalate that task to Astra. Model
+selection never changes the coverage, evidence, or review bar.
+
+The coordinator must pass the selected model explicitly when spawning an agent
+and record the requested model, task class, and actual agent/model identity in
+the shard report. If the harness cannot pin or report a model, say so in the
+receipt and keep the same review requirements; do not claim automatic model
+routing occurred. These names are a Codex routing profile, not fleet-wide
+provider requirements.
 
 ## Related skills
 
