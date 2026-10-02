@@ -37,6 +37,19 @@ test_leak_scan_accepts_clean_content() {
     -- bash "$REPO_ROOT/scripts/check-no-private-leaks.sh" "$sandbox"
 }
 
+test_leak_scan_rejects_incomplete_scan() {
+  local sandbox
+  sandbox="$(make_sandbox)"
+  mkdir -p "$sandbox/bin"
+  printf '#!/bin/sh\nexit 2\n' > "$sandbox/bin/grep"
+  chmod +x "$sandbox/bin/grep"
+  printf 'public documentation\n' > "$sandbox/notes.md"
+  assert_exit "leak-scan rejects incomplete scans" 2 \
+    -- env PATH="$sandbox/bin:$PATH" bash "$REPO_ROOT/scripts/check-no-private-leaks.sh" "$sandbox/notes.md"
+  assert_contains "failure output identifies incomplete scan" \
+    "could not complete" "$LAST_OUTPUT"
+}
+
 test_leak_scan_confines_literal_private_roots() {
   local sandbox root_name
   sandbox="$(make_sandbox)"

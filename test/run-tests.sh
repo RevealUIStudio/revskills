@@ -34,6 +34,14 @@ for suite in "$TEST_DIR"/*.test.sh; do
   done <<< "$new_fns"
 done
 
+echo "== claim-shard-concurrency.test.cjs =="
+found_any=1
+if node "$TEST_DIR/claim-shard-concurrency.test.cjs"; then
+  pass "concurrent shard transitions preserve all plan updates"
+else
+  fail "concurrent shard transitions preserve all plan updates" "concurrency test failed"
+fi
+
 if [[ "$found_any" -eq 0 ]]; then
   echo "no test_* functions found" >&2
   exit 2

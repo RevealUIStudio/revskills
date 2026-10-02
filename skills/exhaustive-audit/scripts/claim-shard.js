@@ -79,6 +79,42 @@ function writeClaimExclusive(filePath, body, agent) {
   fs.writeFileSync(filePath, body);
 }
 
+// All claim-state mutations share one run lock. Without it, two agents can
+// read the same plan and overwrite one another's completion updates.
+function lockRun(run) {
+  const lock = path.join(run, ".shards.lock");
+  const deadline = Date.now() + 10000;
+  for (;;) {
+    try {
+      fs.mkdirSync(lock);
+      process.once("exit", () => {
+        try {
+          fs.rmdirSync(lock);
+        } catch (err) {
+          if (err.code !== "ENOENT") throw err;
+        }
+      });
+      return;
+    } catch (err) {
+      if (err.code !== "EEXIST") throw err;
+      if (Date.now() >= deadline) {
+        throw new Error(`Timed out waiting for ${lock}; inspect the run lock before recovery`);
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+    }
+  }
+}
+
+function savePlan(shardsPath, plan) {
+  const temp = `${shardsPath}.${process.pid}.tmp`;
+  try {
+    fs.writeFileSync(temp, JSON.stringify(plan, null, 2) + "\n", { flag: "wx" });
+    fs.renameSync(temp, shardsPath);
+  } finally {
+    unlinkIfPresent(temp);
+  }
+}
+
 function main() {
   const args = parseArgs(process.argv);
   if (args.help || !args.run || !args.shard) {
@@ -97,6 +133,11 @@ function main() {
   }
 
   const run = path.resolve(args.run);
+  if (!/^[A-Za-z0-9_-]+$/.test(args.shard) ||
+      (args.agent && !/^[A-Za-z0-9_./-]+$/.test(args.agent))) {
+    throw new Error("Invalid shard or agent identifier");
+  }
+  lockRun(run);
   const shardsPath = path.join(run, "shards.json");
   let planRaw;
   try {
@@ -125,7 +166,7 @@ function main() {
     shard.status = "open";
     delete shard.claimedBy;
     delete shard.claimedAt;
-    fs.writeFileSync(shardsPath, JSON.stringify(plan, null, 2) + "\n");
+    savePlan(shardsPath, plan);
     process.stdout.write(`released ${args.shard}\n`);
     return;
   }
@@ -134,6 +175,10 @@ function main() {
     if (shard.status === "done" && shard.completedBy === args.agent) {
       process.stdout.write(`already complete ${args.shard} by ${args.agent}\n`);
       return;
+    }
+    if (shard.status === "done") {
+      process.stderr.write(`claim-shard: ${args.shard} already completed by another agent\n`);
+      process.exit(2);
     }
     if (shard.status === "claimed" && shard.claimedBy && shard.claimedBy !== args.agent) {
       process.stderr.write(
@@ -150,7 +195,7 @@ function main() {
     shard.status = "done";
     shard.completedBy = args.agent;
     shard.completedAt = now;
-    fs.writeFileSync(shardsPath, JSON.stringify(plan, null, 2) + "\n");
+    savePlan(shardsPath, plan);
     process.stdout.write(`completed ${args.shard} by ${args.agent}\n`);
     return;
   }
@@ -193,7 +238,7 @@ function main() {
     throw err;
   }
 
-  fs.writeFileSync(shardsPath, JSON.stringify(plan, null, 2) + "\n");
+  savePlan(shardsPath, plan);
   process.stdout.write(`claimed ${args.shard} by ${args.agent} (${shard.files} files)\n`);
 }
 
