@@ -140,6 +140,31 @@ test_manifest_builder_refuses_corrupted_snapshot() {
   fi
 }
 
+test_manifest_builder_refuses_snapshot_symlink() {
+  local root manifest snapshot replacement rc
+  root="$(make_sandbox)"
+  manifest="$(make_sandbox)/manifest.jsonl"
+  printf 'source\n' >"$root/one.ts"
+  node "$SKILL/manifest-build.js" --root "$root" --out "$manifest" >/dev/null
+  snapshot="$(node -e '
+    const fs = require("fs");
+    const path = require("path");
+    const row = JSON.parse(fs.readFileSync(process.argv[1], "utf8").trim());
+    process.stdout.write(path.resolve(path.dirname(process.argv[1]), row.snapshot));
+  ' "$manifest")"
+  replacement="$root/replacement"
+  printf 'source\n' >"$replacement"
+  rm "$snapshot"
+  ln -s "$replacement" "$snapshot"
+  rc=0
+  node "$SKILL/manifest-build.js" --root "$root" --out "$manifest" >/dev/null 2>&1 || rc=$?
+  if [[ "$rc" -ne 0 ]]; then
+    pass "manifest builder refuses a linked existing snapshot"
+  else
+    fail "manifest builder refuses a linked existing snapshot" "linked snapshot was accepted"
+  fi
+}
+
 test_include_archive_opts_in() {
   local fleet out
   fleet="$(make_fake_fleet)"

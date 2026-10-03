@@ -147,11 +147,17 @@ function saveSnapshot(buf, sha256, snapshotDir) {
     fs.writeFileSync(file, buf, { flag: "wx", mode: 0o600 });
   } catch (err) {
     if (err.code !== "EEXIST") throw err;
-    const stat = fs.lstatSync(file);
-    if (!stat.isFile()) throw new Error(`manifest-build: snapshot is not a regular file: ${file}`);
-    const existing = fs.readFileSync(file);
-    if (crypto.createHash("sha256").update(existing).digest("hex") !== sha256) {
-      throw new Error(`manifest-build: snapshot hash mismatch: ${file}`);
+    const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+    try {
+      if (!fs.fstatSync(fd).isFile()) {
+        throw new Error(`manifest-build: snapshot is not a regular file: ${file}`);
+      }
+      const existing = fs.readFileSync(fd);
+      if (crypto.createHash("sha256").update(existing).digest("hex") !== sha256) {
+        throw new Error(`manifest-build: snapshot hash mismatch: ${file}`);
+      }
+    } finally {
+      fs.closeSync(fd);
     }
   }
   return file;
