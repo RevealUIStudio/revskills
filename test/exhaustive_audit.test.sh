@@ -76,6 +76,70 @@ test_md_truth_manifest_is_markdown_only() {
   pass "md-truth manifest inventories markdown only across default fleet scope"
 }
 
+test_open_run_retains_exact_source_after_worktree_drift() {
+  local root run snapshot
+  root="$(make_sandbox)"
+  run="$(make_sandbox)/run"
+  mkdir -p "$root/src"
+  printf 'original source\n' >"$root/src/changed.ts"
+  node "$SKILL/open-run.js" --root "$root" --slug drift --out "$run" >/dev/null
+  snapshot="$(node -e '
+    const fs = require("fs");
+    const path = require("path");
+    const row = JSON.parse(fs.readFileSync(process.argv[1], "utf8").trim());
+    if (!row.snapshot) process.exit(2);
+    process.stdout.write(path.resolve(path.dirname(process.argv[1]), row.snapshot));
+  ' "$run/manifest.jsonl")"
+  printf 'changed later\n' >"$root/src/changed.ts"
+  assert_eq "original source" "$(cat "$snapshot")" "open-run preserves exact manifest content after source drift"
+  local snapshot_mode
+  snapshot_mode="$(stat -c %a "$snapshot")"
+  assert_eq "600" "$snapshot_mode" "manifest source snapshots are private"
+  local hash_match
+  hash_match="$(node -e '
+    const fs = require("fs");
+    const crypto = require("crypto");
+    const row = JSON.parse(fs.readFileSync(process.argv[1], "utf8").trim());
+    const actual = crypto.createHash("sha256").update(fs.readFileSync(process.argv[2])).digest("hex");
+    process.stdout.write(String(actual === row.sha256));
+  ' "$run/manifest.jsonl" "$snapshot")"
+  assert_eq "true" "$hash_match" "snapshot SHA-256 matches its manifest row"
+}
+
+test_manifest_builder_does_not_inventory_its_own_snapshot_store() {
+  local root manifest rows
+  root="$(make_sandbox)"
+  manifest="$root/manifest.jsonl"
+  mkdir -p "$root/src"
+  printf 'source\n' >"$root/src/one.ts"
+  node "$SKILL/manifest-build.js" --root "$root" --out "$manifest" >/dev/null
+  node "$SKILL/manifest-build.js" --root "$root" --out "$manifest" >/dev/null
+  rows="$(wc -l <"$manifest" | tr -d ' ')"
+  assert_eq "1" "$rows" "manifest rerun excludes its own output and source snapshots"
+}
+
+test_manifest_builder_refuses_corrupted_snapshot() {
+  local root manifest snapshot rc
+  root="$(make_sandbox)"
+  manifest="$(make_sandbox)/manifest.jsonl"
+  printf 'source\n' >"$root/one.ts"
+  node "$SKILL/manifest-build.js" --root "$root" --out "$manifest" >/dev/null
+  snapshot="$(node -e '
+    const fs = require("fs");
+    const path = require("path");
+    const row = JSON.parse(fs.readFileSync(process.argv[1], "utf8").trim());
+    process.stdout.write(path.resolve(path.dirname(process.argv[1]), row.snapshot));
+  ' "$manifest")"
+  printf 'corrupt\n' >"$snapshot"
+  rc=0
+  node "$SKILL/manifest-build.js" --root "$root" --out "$manifest" >/dev/null 2>&1 || rc=$?
+  if [[ "$rc" -ne 0 ]]; then
+    pass "manifest builder refuses a corrupted existing snapshot"
+  else
+    fail "manifest builder refuses a corrupted existing snapshot" "corrupted snapshot was accepted"
+  fi
+}
+
 test_include_archive_opts_in() {
   local fleet out
   fleet="$(make_fake_fleet)"
