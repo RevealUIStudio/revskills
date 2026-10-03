@@ -54,6 +54,7 @@ Pick one run root (prefer an operator-private audits directory):
 <run-root>/
   AUDIT-RUN.yml              # run metadata + scope + status
   manifest.jsonl             # one JSON object per path (machine)
+  source/sha256/             # exact content snapshots for manifest hashes
   shards.json                # partition plan
   claims/                    # per-shard claim files
   ledger/
@@ -148,6 +149,9 @@ For each path in the shard (from `shards.json` / claim file):
 
 1. `Read` the **entire** file (paginate with offset/limit if large; cover all lines).
 2. Verify `line_count` matches manifest (or re-count and record drift as finding).
+   If the worktree has changed, read the manifest row's `snapshot` path from the
+   run root and verify its SHA-256 before crediting the pinned content. New runs
+   opened with `open-run.js` retain these snapshots with private file permissions.
 3. Classify findings (see taxonomy below).
 4. Append coverage record:
 
