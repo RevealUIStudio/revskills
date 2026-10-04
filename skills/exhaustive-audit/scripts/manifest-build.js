@@ -13,6 +13,7 @@
  *   node manifest-build.js --root ~/revealfleet --fleet --include-archive --out /path/manifest.jsonl
  *   node manifest-build.js --root . --exclude-defaults --exclude '.pgdata/**'
  *   node manifest-build.js --root ~/revealfleet --fleet --ext .md,.mdx --out /path/manifest.jsonl
+ *   node manifest-build.js --root ~/revealfleet --out /path/manifest.jsonl --snapshot-dir /path/source/sha256
  */
 "use strict";
 
@@ -55,11 +56,13 @@ function parseArgs(argv) {
     includeArchive: false,
     repos: [],
     ext: [],
+    snapshotDir: null,
   };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--root") out.root = argv[++i];
     else if (a === "--out") out.out = argv[++i];
+    else if (a === "--snapshot-dir") out.snapshotDir = argv[++i];
     else if (a === "--exclude-defaults") out.excludeDefaults = true;
     else if (a === "--exclude") out.exclude.push(argv[++i]);
     else if (a === "--fleet") out.fleet = true;
@@ -83,7 +86,7 @@ function parseArgs(argv) {
 
 function usage() {
   process.stderr.write(
-    "Usage: node manifest-build.js --root <dir> --out <manifest.jsonl> [--exclude-defaults] [--exclude name]... [--fleet] [--include-archive] [--repos a,b] [--ext .md,.mdx]\n",
+    "Usage: node manifest-build.js --root <dir> --out <manifest.jsonl> [--snapshot-dir <dir>] [--exclude-defaults] [--exclude name]... [--fleet] [--include-archive] [--repos a,b] [--ext .md,.mdx]\n",
   );
 }
 
@@ -136,7 +139,31 @@ function isProbablyBinary(buf) {
   return false;
 }
 
-function walk(rootAbs, relBase, excludeSet, records, repo, extAllow) {
+function saveSnapshot(buf, sha256, snapshotDir) {
+  const dir = path.join(snapshotDir, sha256.slice(0, 2));
+  const file = path.join(dir, sha256);
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  try {
+    fs.writeFileSync(file, buf, { flag: "wx", mode: 0o600 });
+  } catch (err) {
+    if (err.code !== "EEXIST") throw err;
+    const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+    try {
+      if (!fs.fstatSync(fd).isFile()) {
+        throw new Error(`manifest-build: snapshot is not a regular file: ${file}`);
+      }
+      const existing = fs.readFileSync(fd);
+      if (crypto.createHash("sha256").update(existing).digest("hex") !== sha256) {
+        throw new Error(`manifest-build: snapshot hash mismatch: ${file}`);
+      }
+    } finally {
+      fs.closeSync(fd);
+    }
+  }
+  return file;
+}
+
+function walk(rootAbs, relBase, excludeSet, records, repo, extAllow, snapshotDir, manifestDir, outAbs) {
   let entries;
   try {
     entries = fs.readdirSync(rootAbs, { withFileTypes: true });
@@ -148,12 +175,15 @@ function walk(rootAbs, relBase, excludeSet, records, repo, extAllow) {
     const name = ent.name;
     if (ent.isDirectory()) {
       if (shouldSkipDir(name, excludeSet)) continue;
-      walk(path.join(rootAbs, name), path.join(relBase, name), excludeSet, records, repo, extAllow);
+      const child = path.join(rootAbs, name);
+      if (child === snapshotDir) continue;
+      walk(child, path.join(relBase, name), excludeSet, records, repo, extAllow, snapshotDir, manifestDir, outAbs);
       continue;
     }
     if (!ent.isFile()) continue;
     if (extAllow && !extAllow.has(path.extname(name).toLowerCase())) continue;
     const abs = path.join(rootAbs, name);
+    if (abs === outAbs) continue;
     const rel = path.join(relBase, name).split(path.sep).join("/");
     let buf;
     try {
@@ -169,6 +199,7 @@ function walk(rootAbs, relBase, excludeSet, records, repo, extAllow) {
       continue;
     }
     const sha256 = crypto.createHash("sha256").update(buf).digest("hex");
+    const snapshot = path.relative(manifestDir, saveSnapshot(buf, sha256, snapshotDir)).split(path.sep).join("/");
     const ext = path.extname(name).toLowerCase();
     const binary = isProbablyBinary(buf);
     const lines = binary ? null : countLines(buf);
@@ -178,6 +209,7 @@ function walk(rootAbs, relBase, excludeSet, records, repo, extAllow) {
       bytes: buf.length,
       lines,
       sha256,
+      snapshot,
       ext,
       kind: binary ? "binary" : classify(rel, ext),
       binary,
@@ -206,6 +238,9 @@ function main() {
   const records = [];
   const walked = [];
   const extAllow = args.ext.length > 0 ? new Set(args.ext) : null;
+  const outAbs = path.resolve(args.out);
+  const manifestDir = path.dirname(outAbs);
+  const snapshotDir = path.resolve(args.snapshotDir || path.join(manifestDir, "source", "sha256"));
   if (args.fleet) {
     const allow = resolveFleetAllowlist({
       repos: args.repos,
@@ -216,18 +251,17 @@ function main() {
       if (!ent.isDirectory()) continue;
       if (!shouldWalkFleetChild(ent.name, allow)) continue;
       walked.push(ent.name);
-      walk(path.join(rootAbs, ent.name), ent.name, excludeSet, records, ent.name, extAllow);
+      walk(path.join(rootAbs, ent.name), ent.name, excludeSet, records, ent.name, extAllow, snapshotDir, manifestDir, outAbs);
     }
   } else {
     const repo = path.basename(rootAbs);
     walked.push(repo);
-    walk(rootAbs, "", excludeSet, records, repo, extAllow);
+    walk(rootAbs, "", excludeSet, records, repo, extAllow, snapshotDir, manifestDir, outAbs);
   }
 
   records.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 
   fs.mkdirSync(path.dirname(path.resolve(args.out)), { recursive: true });
-  const outAbs = path.resolve(args.out);
   const fd = fs.openSync(outAbs, "w");
   let totalLines = 0;
   let totalBytes = 0;
@@ -249,6 +283,7 @@ function main() {
         fleet: Boolean(args.fleet),
         repos: walked,
         ext: extAllow ? [...extAllow] : null,
+        snapshotDir,
         exclude: [...excludeSet],
       },
       null,

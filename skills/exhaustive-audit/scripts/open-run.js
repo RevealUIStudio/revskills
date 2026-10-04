@@ -107,6 +107,7 @@ function writeAuditRunYml(file, meta) {
     ``,
     `artifacts:`,
     `  manifest: manifest.jsonl`,
+    `  source_snapshots: source/sha256`,
     `  shards: shards.json`,
     `  coverage: ledger/coverage.jsonl`,
     `  findings: ledger/findings.jsonl`,
@@ -116,6 +117,7 @@ function writeAuditRunYml(file, meta) {
     ``,
     `notes: |`,
     `  Opened by open-run.js. Completeness = coverage-status.js --mode ${meta.mode} exit 0.`,
+    `  Every readable manifest row has an exact SHA-256 source snapshot under source/sha256.`,
     `  Phase 0 product assessment lives in reports/assessment.md and is not line coverage.`,
     ``,
   ].join("\n");
@@ -186,22 +188,14 @@ function main() {
 
   const opened = new Date().toISOString();
   const id = `audit-${opened.slice(0, 10)}-${args.slug}`;
-  writeAuditRunYml(path.join(runRoot, "AUDIT-RUN.yml"), {
-    id,
-    opened,
-    openedBy: process.env.USER || "agent",
-    mode: args.mode,
-    fleet: Boolean(args.fleet),
-    includeArchive: Boolean(args.includeArchive),
-    roots,
-    pins,
-  });
 
   const manifestArgs = [
     "--root",
     rootAbs,
     "--out",
     path.join(runRoot, "manifest.jsonl"),
+    "--snapshot-dir",
+    path.join(runRoot, "source", "sha256"),
     "--exclude-defaults",
   ];
   if (args.fleet) manifestArgs.push("--fleet");
@@ -221,6 +215,19 @@ function main() {
   ];
   if (args.fleet) shardArgs.push("--by-repo");
   runNode(path.join(HERE, "shard-plan.js"), shardArgs);
+
+  // Publish the run marker only after both artifacts are complete. A failed
+  // snapshot or shard build can then be retried without a false open run.
+  writeAuditRunYml(path.join(runRoot, "AUDIT-RUN.yml"), {
+    id,
+    opened,
+    openedBy: process.env.USER || "agent",
+    mode: args.mode,
+    fleet: Boolean(args.fleet),
+    includeArchive: Boolean(args.includeArchive),
+    roots,
+    pins,
+  });
 
   process.stdout.write(
     JSON.stringify(
