@@ -8,7 +8,9 @@
  * --mode md-truth: those plus GAP-407 C3 statuses
  *
  * Code mode refuses verified without a full lines_read span, and finding
- * without finding_ids. Optional --check-hash compares sha256 to the manifest.
+ * without finding_ids. Optional --check-hash requires manifest and declared
+ * receipt hashes to match (read_sha256 preferred, legacy sha256 supported).
+ * This compares declarations; it cannot independently prove a content read.
  *
  * Usage:
  *   node coverage-status.js --manifest m.jsonl --ledger coverage.jsonl
@@ -126,23 +128,41 @@ function main() {
 
     if (
       typeof m.lines === "number" &&
-      Array.isArray(cov.lines_read) &&
-      cov.lines_read.length === 2
+      cov.status !== "blocked" &&
+      Object.hasOwn(cov, "lines_read")
     ) {
-      const [a, b] = cov.lines_read;
-      const span = b - a + 1;
-      if (span < m.lines && cov.status !== "blocked") {
+      const read = cov.lines_read;
+      // Empty text uses [0, 0]; nonempty text must match both manifest bounds.
+      // Binary manifests have lines=null and do not claim text-line coverage.
+      if (
+        !Number.isInteger(m.lines) || m.lines < 0 ||
+        !Array.isArray(read) || read.length !== 2 ||
+        !read.every(Number.isInteger) ||
+        read[0] !== (m.lines === 0 ? 0 : 1) || read[1] !== m.lines
+      ) {
         nonTerminal.push({
           path: p,
-          status: `line-gap manifest=${m.lines} read_span=${span}`,
+          status: `line-gap manifest=${m.lines} lines_read=${JSON.stringify(read)}`,
         });
         continue;
       }
     }
 
-    if (args.checkHash && m.sha256 && cov.sha256 && cov.sha256 !== m.sha256) {
-      nonTerminal.push({ path: p, status: "sha256-mismatch" });
-      continue;
+    if (args.checkHash) {
+      const readHash = Object.hasOwn(cov, "read_sha256")
+        ? cov.read_sha256 : cov.sha256;
+      if (typeof m.sha256 !== "string" || !m.sha256.trim()) {
+        nonTerminal.push({ path: p, status: "manifest-sha256-missing" });
+        continue;
+      }
+      if (typeof readHash !== "string" || !readHash.trim()) {
+        nonTerminal.push({ path: p, status: "ledger-sha256-missing" });
+        continue;
+      }
+      if (readHash !== m.sha256) {
+        nonTerminal.push({ path: p, status: "sha256-mismatch" });
+        continue;
+      }
     }
 
     counts[cov.status] = (counts[cov.status] || 0) + 1;
