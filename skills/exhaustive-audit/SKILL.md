@@ -161,13 +161,26 @@ For each path in the shard (from `shards.json` / claim file):
   "status": "verified",
   "lines_read": [1, 240],
   "manifest_lines": 240,
-  "sha256": "<from manifest or recompute>",
+  "sha256": "<recomputed from the content read>",
   "agent": "grok-audit-3",
   "session": "…",
   "ts": "2026-07-22T18:00:00Z",
   "notes": ""
 }
 ```
+
+For text files, a supplied `lines_read` must be exactly `[1, manifest.lines]`,
+with integer bounds. Empty text (`lines: 0`) permits omission or `[0, 0]`;
+binary manifests use `lines: null`. A `blocked` row may record a partial read.
+Code-mode `verified` rows for nonempty text require the full span.
+
+With `--check-hash`, both the manifest hash and declared read hash must be
+nonempty strings and match. The validator uses `read_sha256` when that field
+is present, otherwise the legacy `sha256` receipt field. An invalid explicit
+`read_sha256` cannot fall back to `sha256`. Compute the receipt hash from the
+content read; copying the manifest hash does not establish read provenance.
+The flag compares declared hashes and cannot independently prove that the
+auditor read the content.
 
 Statuses:
 
