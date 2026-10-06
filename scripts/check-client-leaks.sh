@@ -3,7 +3,7 @@
 #
 # Scans the repo for any reference to a specific RevealUI Studio client,
 # prospect, or warm-intro contact. Customer/prospect names belong in the
-# private internal repo only — never in this public surface, ever.
+# private internal repo only. Never in this public surface.
 #
 # Exit 0 on clean. Exit 1 on any violation. Exit 2 on tool/setup error.
 #
@@ -15,11 +15,12 @@
 # CI wiring: .github/workflows/check-client-leaks.yml
 # REQUIRED status check on `test` and `main` branch protection.
 #
-# Adding a new client / prospect / contact:
-#   Append one line to PATTERNS below (format: tag|literal-string|reason).
-#   Then open a PR; CI will refuse to merge any tracked file that contains
-#   the name, today and forever. There is no .leakignore for this scanner —
-#   the property must be unconditional.
+# Pattern source, one line each (format: tag|literal-string|reason):
+#   CLIENT_LEAK_PATTERNS                 required in CI (org Actions secret)
+#   .client-name-watchlist.local         optional gitignored fallback locally
+# Add the line to the CLIENT_LEAK_PATTERNS org secret. Never to a committed
+# file. There is no .leakignore for this scanner. The property must be
+# unconditional once a pattern source is present.
 
 set -uo pipefail
 
@@ -35,45 +36,62 @@ for _path in "${SCAN_PATHS[@]}"; do
 done
 unset _path
 
-# --- Patterns: tag | literal-string | reason ---
-#
 # REGEX-CONFIG-BOUNDARY: the strings consumed by grep -F (fixed strings),
-# so each pattern is a literal substring — no metacharacter handling.
+# so each pattern is a literal substring. No metacharacter handling.
 # No regex authored.
-#
-# To add a new client / prospect, append a line. Coverage MUST land in
-# the same PR that introduces them to the operator's pipeline.
-PATTERNS=(
-  # --- Allevia Technology (Tier-6 first customer; owner directive 2026-05-21:
-  #     no public Allevia anywhere; internal coordination repo OK; never
-  #     public repos. See the project_allevia_internal_only memory entry.)
-  "client-allevia|Allevia|customer name (Allevia)"
-  "client-allevia-lower|allevia|customer slug (allevia)"
-  "client-alleviafleet|AlleviaFleet|customer brand instance (AlleviaFleet)"
-  "client-alleviaforge|AlleviaForge|customer brand instance (AlleviaForge, superseded by *Fleet)"
-  "client-allevia-host|allevia.tech|customer domain (allevia.tech)"
-  # --- Warm-intro contact chain — these are the human introduction path
-  #     and must never appear in public material per memory
-  #     feedback_warm_intro_dont_bypass + project_allevia_contacts
-  "prospect-stefan|Stefan Wilson|prospect contact (Stefan Wilson, customer CEO)"
-  "prospect-daniel-name|Daniel B. Jones|prospect warm-intro contact (Daniel B. Jones)"
-  "prospect-daniel-handle|dbjones23|prospect warm-intro email handle (dbjones23)"
-  # --- Other internal ventures the operator does not publicly associate with
-  #     this org (paused or undisclosed)
-  "venture-biotix|Biotix Wellness|paused internal venture (Biotix Wellness)"
-  "venture-biotix-lower|biotix-wellness|paused internal venture (slug form)"
-)
+
+in_ci=0
+if [[ "${CI:-}" == "true" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  in_ci=1
+fi
+
+pattern_raw=""
+if [[ -n "${CLIENT_LEAK_PATTERNS:-}" && -n "${CLIENT_LEAK_PATTERNS//[[:space:]]/}" ]]; then
+  pattern_raw="$CLIENT_LEAK_PATTERNS"
+elif [[ "$in_ci" -eq 1 ]]; then
+  echo "[client-leak] error: CLIENT_LEAK_PATTERNS is empty or unset. CI must provide the org Actions secret CLIENT_LEAK_PATTERNS. Refusing to pass." >&2
+  exit 2
+elif [[ -f "$REPO_ROOT/.client-name-watchlist.local" ]]; then
+  pattern_raw="$(<"$REPO_ROOT/.client-name-watchlist.local")"
+else
+  echo "[client-leak] warning: CLIENT_LEAK_PATTERNS is unset and .client-name-watchlist.local is missing. Refusing to report a pass." >&2
+  exit 2
+fi
+
+PATTERNS=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+  line="${line%$'\r'}"
+  trimmed="${line#"${line%%[![:space:]]*}"}"
+  trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+  case "$trimmed" in
+    ''|'#'*) continue ;;
+  esac
+  if [[ "$trimmed" != *"|"*"|"* ]]; then
+    echo "[client-leak] error: a pattern line is not tag|literal|reason. Refusing to scan." >&2
+    exit 2
+  fi
+  tag="${trimmed%%|*}"
+  rest="${trimmed#*|}"
+  literal="${rest%%|*}"
+  if [[ -z "$tag" || -z "$literal" ]]; then
+    echo "[client-leak] error: a pattern line has an empty tag or literal. Refusing to scan." >&2
+    exit 2
+  fi
+  PATTERNS+=("$trimmed")
+done <<< "$pattern_raw"
+unset line trimmed tag rest literal pattern_raw
+
+if (( ${#PATTERNS[@]} == 0 )); then
+  echo "[client-leak] error: CLIENT_LEAK_PATTERNS produced no pattern lines. Refusing to scan." >&2
+  exit 2
+fi
 
 # Directories / file globs to skip
 EXCLUDE_DIRS=(node_modules .git dist build .next .turbo .pnpm coverage target .direnv .nyc_output playwright-report test-results)
 EXCLUDE_FILES=(
   pnpm-lock.yaml package-lock.json yarn.lock Cargo.lock
-  check-client-leaks.sh
-  # Companion gitleaks rule file. By design it carries the same names
-  # as detection keywords (boundary-config per the no-regex rule's
-  # third-party-config exception); the bash scanner must NOT count
-  # those keywords as violations of itself. Scanner-self-pattern.
-  .gitleaks.issues.toml
+  # Gitignored local pattern source. It holds the literal list on purpose.
+  .client-name-watchlist.local
   CHANGELOG.md
   '*.png' '*.jpg' '*.jpeg' '*.gif' '*.webp' '*.pdf' '*.zip' '*.tar.gz' '*.tgz'
   '*.ico' '*.woff' '*.woff2' '*.ttf' '*.otf'
@@ -123,7 +141,7 @@ for entry in "${PATTERNS[@]}"; do
         json_entries+=("{\"tag\":\"$tag\",\"file\":\"$file\",\"line\":$line,\"reason\":\"$sreason\",\"content\":\"$safe\"}")
       fi
     else
-      printf '[CLIENT-LEAK:%s] %s:%s — %s\n  → %s\n' "$tag" "$file" "$line" "$reason" "$content"
+      printf '[CLIENT-LEAK:%s] %s:%s - %s\n  -> %s\n' "$tag" "$file" "$line" "$reason" "$content"
     fi
     violations=$((violations+1))
   done < <(grep -rFIn "${grep_excludes[@]}" -- "$pattern" "${SCAN_PATHS[@]}" 2>/dev/null || true)
@@ -136,18 +154,18 @@ fi
 if (( violations > 0 )); then
   if [[ -z "${LEAK_JSON:-}" ]]; then
     echo "" >&2
-    echo "[client-leak] FAIL — $violations violation(s)." >&2
+    echo "[client-leak] FAIL - $violations violation(s)." >&2
     echo "" >&2
     echo "Customer / prospect names must NEVER appear in this public-facing repo." >&2
     echo "Move the content to the private internal repo (or genericize with a" >&2
     echo "placeholder like 'Acme Corp' / 'acme' / 'first customer')." >&2
     echo "" >&2
     echo "If a new client onboards and their name needs scanner coverage, add" >&2
-    echo "the pattern lines to scripts/check-client-leaks.sh PATTERNS array in" >&2
-    echo "the same PR." >&2
+    echo "the line to the CLIENT_LEAK_PATTERNS org Actions secret. Never add it" >&2
+    echo "to a committed file." >&2
   fi
   exit 1
 fi
 
-[[ -z "${LEAK_JSON:-}" ]] && echo "[client-leak] OK — no client/prospect names detected across: ${SCAN_PATHS[*]}"
+[[ -z "${LEAK_JSON:-}" ]] && echo "[client-leak] OK - no client/prospect names detected across: ${SCAN_PATHS[*]}"
 exit 0
