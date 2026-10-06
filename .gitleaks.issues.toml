@@ -83,34 +83,14 @@ regex = '''\b[A-Za-z0-9._%+-]+@(gmail|hotmail|yahoo|outlook|protonmail|icloud)\.
 keywords = ["@gmail.com", "@hotmail.com", "@yahoo.com", "@outlook.com", "@protonmail.com", "@icloud.com"]
 tags = ["pii", "boundary-config"]
 
-# --- Client / prospect / warm-intro names ---
-#
-# Companion to scripts/check-client-leaks.sh which enforces the same names
-# on tracked repo content. Owner directive 2026-05-21: no public mention
-# anywhere outside the private revealui-jv repo. When a new client onboards,
-# extend both this rule's keywords AND the bash scanner's PATTERNS array
-# in the same PR.
-
-[[rules]]
-id = "revealui-client-allevia"
-description = "Allevia / AlleviaFleet / AlleviaForge / allevia.tech — first Tier-6 customer; internal-only per owner directive"
-regex = '''(?i)\b(allevia(?:fleet|forge)?|allevia\.tech)\b'''
-keywords = ["Allevia", "allevia", "AlleviaFleet", "AlleviaForge", "allevia.tech"]
-tags = ["client", "boundary-config"]
-
-[[rules]]
-id = "revealui-prospect-warm-intro-chain"
-description = "Stefan Wilson / Daniel B. Jones / dbjones23 — warm-intro contact chain for the first customer; surfacing publicly violates feedback_warm_intro_dont_bypass + project_allevia_contacts"
-regex = '''(Stefan Wilson|Daniel B\. Jones|dbjones23)'''
-keywords = ["Stefan Wilson", "Daniel B. Jones", "dbjones23"]
-tags = ["prospect", "boundary-config"]
-
-[[rules]]
-id = "revealui-paused-ventures"
-description = "Biotix Wellness — paused internal venture not publicly associated with this org"
-regex = '''(?i)\bbiotix(?:[ -]?wellness)?\b'''
-keywords = ["Biotix", "biotix", "Biotix Wellness", "biotix-wellness"]
-tags = ["venture", "boundary-config"]
+# Client / prospect / contact name rules are intentionally absent.
+# The pinned issue-leak-scan reusable workflow checks this file out from
+# the default branch and has no secret input, so name keywords cannot be
+# committed here or generated inside that workflow. Tracked-file coverage
+# lives in scripts/check-client-leaks.sh, which loads the org Actions
+# secret CLIENT_LEAK_PATTERNS at runtime (local fallback:
+# .client-name-watchlist.local). Add a line to that secret. Never to a
+# committed file. Non-name rules in this file stay as written.
 
 [allowlist]
 description = "Public email addresses + canonical zero/null/placeholder values"

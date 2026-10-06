@@ -3,6 +3,9 @@ name: Issue + PR Body Leak Scan
 # Thin caller — logic in org-shared reusable workflow:
 #   RevealUIStudio/.github/.github/workflows/issue-leak-scan-reusable.yml
 # Requires .gitleaks.issues.toml on this repo's default branch.
+# Name rules are not in that file. The pinned reusable workflow has no
+# secret input, so it cannot load CLIENT_LEAK_PATTERNS. Tracked-file name
+# coverage is scripts/check-client-leaks.sh via that org Actions secret.
 
 on:
   issues:

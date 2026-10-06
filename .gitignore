@@ -6,6 +6,10 @@ node_modules/
 .env
 .env.*
 
+# Local client/prospect pattern list for scripts/check-client-leaks.sh.
+# Never commit. CI reads the org Actions secret CLIENT_LEAK_PATTERNS instead.
+.client-name-watchlist.local
+
 # Materialized rules tracked (GAP-372 copy-mode); local Claude state stays ignored.
 .claude/*
 !.claude/rules/
