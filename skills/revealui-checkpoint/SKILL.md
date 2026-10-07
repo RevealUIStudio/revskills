@@ -5,7 +5,7 @@ license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.17.0"
+  version: "0.17.1"
   website: https://revealui.com
 ---
 
@@ -14,6 +14,16 @@ commits remain in their owning repositories; this skill records their exact head
 validation and publication in the existing rolling-handoff/workboard fragment store.
 A saved checkpoint can contain open PRs, controller dependencies or known blockers.
 It does not grant merge authority or require unrelated peer work to be clean.
+
+## Execution capability assessment
+
+A checkpoint that saves files and source commits needs the calling harness's
+actual file, shell and Git capabilities. The native `skills.invoke` reporting
+contract does not provide Write/Edit or commit/push authority. Assess it as a
+partial reporting pass with those limitations, and report artifacts as unverified
+until persistence is observed. Do not label that invoke fully suitable for saving
+work, widen its tools, or infer saved files from generated narrative. Use the
+already-authorized calling harness for the actual preservation steps below.
 
 ## Scope and preservation contract
 
