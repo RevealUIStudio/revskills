@@ -134,7 +134,7 @@ Capture PASS, FAIL, WARN, UNAVAILABLE or NOT-APPLICABLE per check. Missing tools
 
 ### 2a. Doc locations
 ```bash
-cd "$JV_ROOT" && "$REVEALUI_REPO/node_modules/.bin/tsx" scripts/doc-locations-check.ts --quiet
+cd "$JV_ROOT" && node scripts/doc-locations-check.mjs --quiet
 ```
 Exit 0 = clean. Exit 1 = drift (e.g., handoffs at `docs/handoffs/` top-level, lane plan missing).
 
