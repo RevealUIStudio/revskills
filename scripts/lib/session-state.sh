@@ -37,25 +37,20 @@ REVEALUI_COORD_LEGACY_CLAUDE="${REVEALUI_COORD_LEGACY_CLAUDE:-$HOME/.claude/coor
 # ---------------------------------------------------------------------------
 
 ss_identity() {
-  if [ -n "${REVEALUI_IDENTITY:-}" ]; then
-    printf '%s\n' "$REVEALUI_IDENTITY"
-    return 0
-  fi
-  if [ -n "${AGENT_ROLE:-}" ]; then
-    printf '%s\n' "$AGENT_ROLE"
-    return 0
-  fi
-  if [ -n "${CLAUDE_AGENT_ROLE:-}" ]; then
-    printf '%s\n' "$CLAUDE_AGENT_ROLE"
-    return 0
-  fi
-  local cache
-  cache="$(ls -t /tmp/revealui-session-*.id 2>/dev/null | head -1)"
-  if [ -n "$cache" ] && [ -s "$cache" ]; then
-    head -1 "$cache"
-    return 0
-  fi
-  printf 'stagehand\n'
+  local name identity sid
+  for name in REVEALUI_IDENTITY AGENT_ROLE CLAUDE_AGENT_ROLE; do
+    identity="${!name:-}"
+    if [ -n "$identity" ]; then
+      ss_valid_session_id "$identity" || return 1
+      [ "$identity" != "stagehand" ] || return 1
+      printf '%s\n' "$identity"
+      return 0
+    fi
+  done
+  # A validated session id is a safe unique fallback for harnesses that have
+  # no role. The old most-recent /tmp identity cache could belong to a peer.
+  sid="$(ss_session_id 2>/dev/null)" || return 1
+  printf 'session-%s\n' "$sid"
 }
 
 # ---------------------------------------------------------------------------
@@ -263,31 +258,32 @@ ss_snapshot_write_path() {
 
 # ---------------------------------------------------------------------------
 # Peer / live harness detection (GAP-469)
-# PEER LIVE when count of interactive equal-harness processes > 1.
-# Patterns are bounded; prefer jv-single-writer-check when available.
+# Advisory count of interactive equal-harness processes. Checkpoint safety
+# never depends on it: subagents can share a process, and a peer can start
+# after the scan. Checkpoint always writes from an isolated worktree.
 # ---------------------------------------------------------------------------
 
-ss_live_harness_peers() {
+ss_count_live_harnesses() {
   local count=0
-  local line
-  # Interactive-ish agent CLIs. Exclude pipes, greps, and headless -p style.
-  while IFS= read -r line; do
-    # Skip the scanner itself and any grep/pgrep wrapper line (*grep* also matches pgrep).
-    case "$line" in
-      *grep*) continue ;;
+  local comm argv1 rest
+  # Match the kernel command name, not a substring of full command lines:
+  # shell wrappers can mention Codex or another harness in their arguments.
+  while read -r comm _ argv1 rest; do
+    case "${comm:-}" in
+      claude|grok|opencode|codex|codex-cli|cursor-agent) ;;
+      cursor) [ "${argv1:-}" = "agent" ] || continue ;;
+      *) continue ;;
     esac
-    # Skip headless one-shots commonly flagged with " -p " (Claude print mode).
-    case "$line" in
-      *' -p '*|*' --print'*) continue ;;
+    case "${argv1:-}" in
+      -p|--print|exec|app-server) continue ;;
     esac
     count=$((count + 1))
-  done < <(
-    # shellcheck disable=SC2009
-    ps -eo args= 2>/dev/null | grep -E \
-      '(^|/)(claude|grok|opencode)( |$)|cursor agent|cursor-agent' \
-      || true
-  )
+  done
   printf '%s\n' "$count"
+}
+
+ss_live_harness_peers() {
+  ps -eo comm=,args= 2>/dev/null | ss_count_live_harnesses
 }
 
 # ---------------------------------------------------------------------------

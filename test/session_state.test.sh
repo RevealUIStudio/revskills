@@ -202,6 +202,59 @@ test_ss_identity_prefers_neutral() {
   _ss_clear_session_env
 }
 
+test_ss_identity_uses_validated_session_not_recent_peer_cache() {
+  _ss_load
+  _ss_clear_session_env
+  local tmp derived
+  tmp="$(make_sandbox)"
+  export REVEALUI_COORD_ROOT="$tmp/coord"
+  export GROK_ACTIVE_SESSIONS="$tmp/no-such-active-sessions.json"
+  export CODEX_THREAD_ID="codex-thread-42"
+  assert_eq "session-codex-thread-42" "$(ss_identity)" "Codex session id supplies unique identity"
+  CODEX_THREAD_ID="$(printf 'a%.0s' {1..128})"
+  export CODEX_THREAD_ID
+  derived="$(ss_identity)"
+  assert_eq "136" "${#derived}" "maximum native session id yields 136-character derived identity"
+  unset CODEX_THREAD_ID
+  export REVEALUI_IDENTITY="stagehand"
+  if ss_identity >/dev/null 2>&1; then
+    fail "legacy stagehand fallback must not become an active identity"
+  else
+    pass "legacy stagehand fallback is rejected as active identity"
+  fi
+  unset REVEALUI_IDENTITY
+  mkdir -p "$tmp/coord/harness-sessions/by-pid"
+  printf '%s\n' 'stamped-session-7' >"$tmp/coord/harness-sessions/by-pid/$$"
+  assert_eq "session-stamped-session-7" "$(ss_identity)" "launcher PID stamp supplies unique identity"
+  rm "$tmp/coord/harness-sessions/by-pid/$$"
+  if ss_identity >/dev/null 2>&1; then
+    fail "identity must fail closed without a validated role or session id"
+  else
+    pass "identity cannot borrow a most-recent peer cache or generic fallback"
+  fi
+  _ss_clear_session_env
+  unset REVEALUI_COORD_ROOT GROK_ACTIVE_SESSIONS
+}
+
+test_ss_identity_accepts_known_harness_roles_and_rejects_unsafe_values() {
+  _ss_load
+  _ss_clear_session_env
+  local role
+  for role in conductor agent-extension-2 agent-edit-3 agent-system-4 revealui-studio revealui-console developer-user; do
+    export REVEALUI_IDENTITY="$role"
+    assert_eq "$role" "$(ss_identity)" "known harness role $role remains valid"
+  done
+  for role in 'role/name' 'role name' '-bad' stagehand; do
+    export REVEALUI_IDENTITY="$role"
+    if ss_identity >/dev/null 2>&1; then
+      fail "unsafe identity $role must fail closed"
+    else
+      pass "unsafe identity $role fails closed"
+    fi
+  done
+  _ss_clear_session_env
+}
+
 test_ss_snapshot_write_and_resolve() {
   _ss_load
   local tmp write_path got
@@ -242,6 +295,27 @@ test_ss_live_harness_peers_is_numeric() {
   else
     fail "ss_live_harness_peers not numeric: $n"
   fi
+}
+
+test_ss_count_live_harnesses_includes_codex_without_shell_false_positives() {
+  _ss_load
+  local processes count
+  processes="$(cat <<'EOF'
+bash /bin/bash -c codex checkpoint
+grep grep codex
+codex codex
+codex codex exec review
+codex codex app-server
+claude claude
+claude claude -p summarize
+grok grok
+opencode opencode
+cursor-agent cursor-agent
+cursor cursor agent
+EOF
+)"
+  count="$(printf '%s\n' "$processes" | ss_count_live_harnesses)"
+  assert_eq "6" "$count" "counts interactive Codex and equal harnesses without wrappers or headless runs"
 }
 
 test_ss_coord_paths() {

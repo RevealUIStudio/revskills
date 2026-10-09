@@ -1,15 +1,15 @@
 ---
 name: revealui-checkpoint
-description: Checkpoint checklist for RevealFleet sessions. Validates the 6 coherent-tracking surfaces, inventories tracking state, writes a rolling handoff fragment + workboard log fragment, re-renders CURRENT-HANDOFF and the neutral .revealui workboard locally for read convenience (.claude/workboard.md is adapter render only), and commits ONLY append-only fragments (docs/handoffs/rolling + .revealui/workboard.d, with leftover adapter .claude/workboard.d read-through) per ADR 2026-07-23-jv-coordination-merge-model. Worktree-gated when a peer is live. Never commits derived CURRENT-HANDOFF.md or workboard.md. Never master-handoff regen or auto-merge with --admin.
+description: Checkpoint checklist for revealfleet sessions. Validates the 6 coherent-tracking surfaces, inventories tracking state, writes a rolling handoff fragment + workboard log fragment in an isolated worktree, re-renders CURRENT-HANDOFF and the neutral .revealui workboard there for read convenience, and commits only the two exact fragments per ADR 2026-07-23-jv-coordination-merge-model. Never commits derived CURRENT-HANDOFF.md or workboard.md. Never master-handoff regen or auto-merge with --admin.
 license: MIT
 allowed-tools: Bash, Read, Write, Edit
 metadata:
   author: RevealUI Studio
-  version: "0.16.4"
+  version: "0.16.6"
   website: https://revealui.com
 ---
 
-Checkpoint orchestrator. Run before ending a meaningful session to ensure the next agent can pick up cleanly. Wires together the 6 coherent-tracking validators + 4 inventory surfaces + writes a **rolling handoff fragment** (`docs/handoffs/rolling/`) + a workboard log fragment (`.revealui/workboard.d/`), **renders** `$JV_REPO/docs/handoffs/CURRENT-HANDOFF.md` and the neutral `$JV_REPO/.revealui/workboard.md` **locally only** (read convenience), and **commits only append-only fragment paths** (ADR `2026-07-23-jv-coordination-merge-model` / jv#601). Concurrent sessions must not stack: unique fragment filenames merge without rewriting shared derived files. Then reports CHECKPOINT-READY + emits the archive-readiness next-agent prompt.
+Checkpoint orchestrator. Run before ending a meaningful session to ensure the next agent can pick up cleanly. Wires together the 6 coherent-tracking validators + 4 inventory surfaces + writes a **rolling handoff fragment** (`docs/handoffs/rolling/`) + a workboard log fragment (`.revealui/workboard.d/`) from an isolated worktree, **renders** CURRENT-HANDOFF and the neutral workboard there for read convenience, and **commits only the two exact fragment files** (ADR `2026-07-23-jv-coordination-merge-model` / jv#601). Concurrent sessions use separate worktrees; unique fragment filenames merge without rewriting shared derived files. Then reports CHECKPOINT-READY + emits the archive-readiness next-agent prompt.
 
 This skill is human/agent handoff. It is not `rfloop`. rfloop is a PR/CI operator disk state machine only (P0 stub; no LLM; auto-merge locked). It is not the fleet brain or the product AgentRuntime. Prefer `rfloop`; `revloop` is a rename shim.
 
@@ -23,7 +23,14 @@ Load helpers:
 ## Step 1 — Resolve context
 
 ```bash
-IDENTITY="$(ss_identity)"
+IDENTITY="$(ss_identity)" || {
+  echo "checkpoint: no validated harness identity or session id; stop before writing fragments" >&2
+  exit 1
+}
+SID="$(ss_session_id)" || {
+  echo "checkpoint: no validated session id; stop before writing fragments" >&2
+  exit 1
+}
 REPO="$(ss_active_repo)"
 JV_ROOT="$JV_REPO"
 # Write SSOT (session-state defaults). Do not point these at a vendor path.
@@ -33,11 +40,11 @@ WORKBOARD="${WORKBOARD_NEUTRAL:-$JV_ROOT/.revealui/workboard.md}"
 WORKBOARD_ADAPTER="${WORKBOARD_ADAPTER_CLAUDE:-$JV_ROOT/.claude/workboard.md}"
 ISO_DATE="$(date -u +%Y-%m-%d)"
 ISO_DATETIME="$(date -u +%Y-%m-%dT%H:%MZ)"
-# Rolling handoff render. Durable bytes are the rolling fragments.
-CURRENT_HANDOFF="$JV_ROOT/docs/handoffs/CURRENT-HANDOFF.md"
+# The shared render may be stale; Step 5b sets CURRENT_HANDOFF to its isolated render.
+SHARED_HANDOFF="$JV_ROOT/docs/handoffs/CURRENT-HANDOFF.md"
 ```
 
-Rolling handoff **read surface** (rendered): `$JV_REPO/docs/handoffs/CURRENT-HANDOFF.md`. **Durable write surface:** `docs/handoffs/rolling/<ISO>-<id>.md` only. `~/.claude/rules/model-allocation.md` may restate the handoff loop; that file is adapter attach, not policy. Every session adds a fragment rather than creating a dated handoff file. Renderer caps history (`--max`, default 12); optional `--gc` archives rolling fragments older than 7d (Step 4b). Workboard durable writes go to `$WORKBOARD_D` (`.revealui/workboard.d`). The neutral render is `$WORKBOARD` (`.revealui/workboard.md`). `$WORKBOARD_ADAPTER` (`.claude/workboard.md`) is adapter render only.
+Rolling handoff **read surface** (rendered): the checkpoint worktree's `docs/handoffs/CURRENT-HANDOFF.md`. **Durable write surface:** `docs/handoffs/rolling/<ISO>-<id>.md` only. `~/.claude/rules/model-allocation.md` may restate the handoff loop; that file is adapter attach, not policy. Every session adds a fragment rather than creating a dated handoff file. Renderer caps history (`--max`, default 12); optional `--gc` archives rolling fragments older than 7d (Step 4b). Workboard durable writes go to the worktree's `.revealui/workboard.d`. Neutral and adapter renders remain local, derived views.
 
 ## Step 1b — Load the auto-checkpoint snapshot (fidelity source)
 
@@ -50,7 +57,6 @@ Resolve it by **this session's id, never by mtime** — a peer's snapshot must b
 **Load order (GAP-342 residual):** prefer the filesystem SSOT when present; if the file is missing, best-effort hydrate from daemon `session.snapshot.get` by the same id into the neutral write path (`ss_snapshot_load_path`). Never mtime, never another session's file.
 
 ```bash
-SID="$(ss_session_id 2>/dev/null || true)"
 SNAPSHOT=""
 if [ -n "$SID" ]; then
   # Prefers file SSOT; hydrates from daemon by id when file missing (soft-fail).
@@ -66,11 +72,11 @@ if [ -n "$SNAPSHOT" ]; then
     echo "WARNING: origin=precompact-mechanical — last-ditch hook capture, lower fidelity. Prefer an agent-authored /snapshot if one can still be written."
   fi
 else
-  echo "no snapshot for this session (${SID:-no-session-id}) — Step 4 falls back to session memory"
+  echo "no snapshot for this session ($SID) — Step 4 falls back to session memory"
 fi
 ```
 
-If `$SNAPSHOT` is set it is unambiguously THIS session's (the filename equals the resolved session id), so no content-matching guesswork is needed. READ it and use its five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 merge; they map onto the rolling file's sections. If frontmatter has `origin: precompact-mechanical`, say so in the fragment (lower fidelity; compaction fired before agent authoring). With no snapshot — occupancy never hit the gate, or `/snapshot` was not run, or no session id is set — Step 4 proceeds from session memory as before. Do **not** abort solely because `CLAUDE_CODE_SESSION_ID` is unset when another alias is present. Do NOT fall back to the most-recent file on disk; an unmatched id means no snapshot for this session.
+If `$SNAPSHOT` is set it is unambiguously THIS session's (the filename equals the resolved session id), so no content-matching guesswork is needed. READ it and use its five sections (Resume-From-Here, What-Shipped, Active-Constraints, Do-Not-Repeat, Open-Loose-Ends) as the spine of the Step 4 merge; they map onto the rolling file's sections. If frontmatter has `origin: precompact-mechanical`, say so in the fragment (lower fidelity; compaction fired before agent authoring). With no snapshot — occupancy never hit the gate or `/snapshot` was not run — Step 4 proceeds from session memory. Do **not** abort solely because `CLAUDE_CODE_SESSION_ID` is unset when another validated alias is present. Do NOT fall back to the most-recent file on disk; an unmatched id means no snapshot for this session.
 
 ## Step 2 — Run coherent-tracking validators
 
@@ -197,7 +203,7 @@ Live `/coordinate` is the manual skill. This step is the checkpoint slice only.
 
 ## Step 4 — Write rolling handoff fragment + local render
 
-**Contention-free path (2026-07-21, amended 2026-07-23):** do **not** hand-edit `$CURRENT_HANDOFF` when a peer may be live. Write a **new fragment** under `docs/handoffs/rolling/`, then render **locally** for the report/prompt. Sibling of workboard fragments (ADR 2026-07-04). **Do not commit the render** (ADR 2026-07-23-jv-coordination-merge-model; CI `Coord paths guard` fails PRs that edit `CURRENT-HANDOFF.md` / `workboard.md`).
+**Contention-free path (2026-07-21, amended 2026-07-23):** do **not** hand-edit `$SHARED_HANDOFF`. Write a **new fragment** under `docs/handoffs/rolling/` in the isolated worktree, then render there for the report/prompt. Sibling of workboard fragments (ADR 2026-07-04). **Do not commit the render** (ADR 2026-07-23-jv-coordination-merge-model; CI `Coord paths guard` fails PRs that edit `CURRENT-HANDOFF.md` / `workboard.md`).
 
 Compose the delta PRIMARILY from the Step 1b snapshot when present, supplemented by session memory + Step 2-3 results. With no snapshot, fall back to session memory.
 
@@ -243,15 +249,12 @@ HANDOFF_BODY="$(cat <<'EOF'
 - none | list id — title — durable target
 EOF
 )"
-printf '%s\n' "$HANDOFF_BODY" \
-  | node "$JV_ROOT/scripts/handoff-fragment.js" --id "$IDENTITY"
-# Local read convenience only — derived view, not a commit path:
-node "$JV_ROOT/scripts/handoff-render.js"
-# Optional GC of rolling fragments older than 7d:
-# node "$JV_ROOT/scripts/handoff-render.js" --gc
+# Step 5b writes the composed body to an isolated worktree and prints its
+# exact fragment path. Do not write this session's fragment in the shared
+# .jv checkout before the worktree exists.
 ```
 
-Never create a dated `docs/HANDOFF-YYYY-MM-DD-*.md` for the rolling train. Prefer session-specific truth in the **fragment** (unique path). After peers land, `git fetch` + re-render so `$CURRENT_HANDOFF` reflects all fragments.
+Never create a dated `docs/HANDOFF-YYYY-MM-DD-*.md` for the rolling train. Prefer session-specific truth in the **fragment** (unique path). A later checkpoint fetches `origin/test` into its own worktree and renders landed fragments there.
 
 ### 4b. Size control
 
@@ -264,116 +267,108 @@ Rolling history is capped by `handoff-render.js --max` (default 12 fragments). O
 - [YYYY-MM-DD HH:MM] <IDENTITY>: [CHECKPOINT] → rolling fragment only | tracking: <X pass / Y fail> | next: <one-line next action from §Ordered next actions>
 ```
 
-Step 5b writes it as a **fragment** (`.revealui/workboard.d/log/<ts>-<id>.md`, a new per-session file that can never collide with a peer) and re-renders the neutral `.revealui/workboard.md` **locally only**, in the correct checkout (main for SOLO, the worktree for PEER). A second render to `.claude/workboard.md` is adapter attach only. Set the volatile parts **as single-quoted literals** so a next-action containing backticks / `$(…)` / quotes is never command-substituted (`§Ordered next actions` holds exact commands + paths, which routinely use backticks):
+Step 5b writes it as a **fragment** (`.revealui/workboard.d/log/<ts>-<id>.md`, a new per-session file that can never collide with a peer) and re-renders the neutral `.revealui/workboard.md` **locally only**, in the isolated worktree. A second render to `.claude/workboard.md` is adapter attach only. Set the volatile parts **as single-quoted literals** so a next-action containing backticks / `$(…)` / quotes is never command-substituted (`§Ordered next actions` holds exact commands + paths, which routinely use backticks):
 ```bash
 TS="$(date -u '+%Y-%m-%d %H:%M')"
 TRACK='<X pass / Y fail>'
 NEXT='<one-line next action from §Ordered next actions>'   # single-quoted literal; a literal ' inside → close+reopen: '\''
 ```
-Step 5b assembles the line with `printf %s` (never re-evaluates) and pipes it to `workboard-fragment.js` on stdin. Because the log line is a fresh file (never an edit to the shared `workboard.md`), it sidesteps both the `rogue-workboard` hook and the dirty-file guard, so this step can never strand the checkout.
+Step 5b assembles the line with `printf` (never re-evaluates), passes it to the maintained `checkpoint-prepare.sh`, and writes a fresh workboard fragment in the isolated worktree. It never edits the shared `workboard.md` or stages a peer's dirty files.
 
-## Step 5b — Commit + converge the .jv delta (worktree-gated; **fragments only**)
+## Step 5b — Write and publish exact fragments from an isolated worktree
 
-DEFAULT: commit **append-only fragment paths only** and converge them to `origin/test`:
+Every harness uses the same path, including Codex. Process counts cannot prove
+exclusive ownership: subagents may share a process, and a peer may start after
+any check. The publication path treats the shared `.jv` checkout as a read
+surface; Step 3g's maintained live-claim refresh is separate. A checkpoint
+never switches the shared checkout's branch, fast-forwards it, stages its
+files, or commits in it.
+Always create a fresh worktree from the fetched `origin/test` ref. This works
+even when the shared checkout is dirty or diverged. Do not call the old
+`jv-single-writer-check.js --count` branch selector; that script has no count
+mode and is only an advisory warning.
 
-- `docs/handoffs/rolling/**`
-- `.revealui/workboard.d/**`
+Use the exact paths printed by the maintained fragment writers. A directory
+pathspec such as `git add docs/handoffs/rolling .revealui/workboard.d` can stage
+another session's untracked fragments. Derived renders are local read surfaces
+and never part of the commit. `--no-commit` performs the same isolated writes
+but leaves the worktree and its two untracked fragments for owner review.
 
-**Never stage** `docs/handoffs/CURRENT-HANDOFF.md`, `.revealui/workboard.md`, or `.claude/workboard.md` in a session checkpoint PR (derived renders; concurrent rewrites always conflict). Durable coordination bytes are `.revealui/workboard.d`. CI **Coord paths guard** fails derived board paths unless labeled `coord:allow-render-commit` (escape hatch only).
-
-Local render in Steps 4–5 remains required so the CHECKPOINT REPORT and next-agent prompt can read a fresh board; after `git fetch origin test`, re-run `handoff-render.js` / `workboard-sweep.js --render-only` to refresh derived views.
-
-Pass `--no-commit` to skip Step 5b and leave fragment writes UNSTAGED for owner review — then jump to Step 6 and list them under OUTSTANDING.
-
-**CRITICAL — never strand the main checkout.** A naive commit on the MAIN `.jv` checkout was the root cause of the 8-session checkpoint-merge divergence: it left the main checkout on a `chore/checkpoint-*` branch that later merged+deleted, so every subsequent checkpoint merged onto the dead branch and never converged. The fix is the `.jv` Single-Writer Discipline — when a peer is live, do the commit from a throwaway `$JV_REPO-wt/` worktree so the main checkout never moves.
-
-Determine the writer mode (count live interactive equal-harness sessions — Claude, Grok, Cursor agent, OpenCode — GAP-469):
 ```bash
-PEERS="$(node "$JV_ROOT/scripts/jv-single-writer-check.js" --count 2>/dev/null \
-  || ss_live_harness_peers)"
-STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-CMSG="/tmp/cmsg-ckpt-${STAMP}.txt"   # write the commit message here (Step 5b uses -F)
-```
-If `jv-single-writer-check.js` has no `--count` mode yet, `ss_live_harness_peers` is authoritative (not `pgrep claude` alone).
-
-Throughout: `core.fileMode=false` on every `.jv` commit; **explicit pathspec (fragments only)**
-`-- docs/handoffs/rolling .revealui/workboard.d`
-(NEVER stage `CURRENT-HANDOFF.md`, `workboard.md`, `tmp/`, or peer-WIP untracked);
-`-F "$CMSG"`; `--body-file` PR bodies; `--head`/`--base` explicit;
-**merge-COMMIT only, never squash** on `.jv` protecteds (repo squash disabled + label
-`merge:merge-commit` required by CI); add that label on the checkpoint PR;
-NO `--admin`/`--no-verify`/`--force-push`.
-
-**SOLO (`PEERS` ≤ 1)** — commit on the current `.jv` branch (fragments pathspec only):
-```bash
-cd "$JV_ROOT"
-BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
-# Step 4 already wrote handoff rolling fragment + local render. Workboard log:
-printf -- '- [%s] %s: [CHECKPOINT] → rolling fragment only | tracking: %s | next: %s\n' "$TS" "$IDENTITY" "$TRACK" "$NEXT" \
-  | node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY" --base "$WORKBOARD_D"
-# Neutral render (derived). Then adapter render. Commit neither.
-node "$JV_ROOT/scripts/workboard-sweep.js" --render-only \
-  --workboard "$WORKBOARD" --base "$WORKBOARD_D"
-node "$JV_ROOT/scripts/workboard-sweep.js" --render-only \
-  --workboard "$WORKBOARD_ADAPTER" --base "$WORKBOARD_D"
-# Fragments only — do not add CURRENT-HANDOFF.md or either workboard.md
-git add docs/handoffs/rolling .revealui/workboard.d
-git -c core.fileMode=false commit -F "$CMSG" -- \
-  docs/handoffs/rolling .revealui/workboard.d
-git push origin "HEAD:refs/heads/$BR"
-gh pr create --base test --head "$BR" --body-file "$CMSG"
-gh pr edit <n> --repo RevealUIStudio/revealui-jv --add-label "merge:merge-commit"
-# Stop here unless the owner named an in-session merge disposition.
-# Owner merge (merge-commit only; never squash):
-#   gh pr merge <n> --repo RevealUIStudio/revealui-jv --merge --delete-branch
-git fetch origin test && git merge --ff-only origin/test 2>/dev/null || true
-node "$JV_ROOT/scripts/handoff-render.js"   # refresh local derived view after land
-```
-
-**PEER LIVE (`PEERS` > 1)** — do NOT commit on the main checkout; use a dedicated worktree:
-```bash
-cd "$JV_ROOT"
-WT="$JV_REPO-wt/ckpt-${ISO_DATE}-$$"; BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
-# Prefer fragment-only dirty state (rolling/ + workboard.d). If CURRENT-HANDOFF.md
-# is dirty from a local render, leave it unstaged (or restore) — never commit it.
-git fetch origin test && git merge --ff-only origin/test
-git worktree add "$WT" -b "$BR" origin/test
-cd "$WT"
-# Re-write this session's fragments INTO the worktree:
-printf '%s\n' "$HANDOFF_BODY" \
-  | node "$JV_ROOT/scripts/handoff-fragment.js" --id "$IDENTITY" --base "$WT/docs/handoffs/rolling"
-node "$JV_ROOT/scripts/handoff-render.js" --base "$WT/docs/handoffs/rolling" --out "$WT/docs/handoffs/CURRENT-HANDOFF.md"
-printf -- '- [%s] %s: [CHECKPOINT] → rolling fragment only | tracking: %s | next: %s\n' "$TS" "$IDENTITY" "$TRACK" "$NEXT" \
-  | node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY" --base "$WT/.revealui/workboard.d"
-node "$JV_ROOT/scripts/workboard-sweep.js" --render-only \
+set -euo pipefail
+HANDOFF_INPUT="$(mktemp /tmp/revealfleet-checkpoint-handoff.XXXXXX)"
+WORKBOARD_INPUT="$(mktemp /tmp/revealfleet-checkpoint-workboard.XXXXXX)"
+printf '%s\n' "$HANDOFF_BODY" >"$HANDOFF_INPUT"
+printf -- '- [%s] %s: [CHECKPOINT] → rolling fragment only | tracking: %s | next: %s\n' \
+  "$TS" "$IDENTITY" "$TRACK" "$NEXT" >"$WORKBOARD_INPUT"
+# Set CHECKPOINT_NO_COMMIT=1 only for the skill's --no-commit invocation.
+PREP_ARGS=()
+if [ "${CHECKPOINT_NO_COMMIT:-0}" != 1 ]; then PREP_ARGS+=(--stage); fi
+if ! PREP_OUTPUT="$(bash "$REVEALFLEET_ROOT/revskills/scripts/checkpoint-prepare.sh" \
+  --jv-root "$JV_ROOT" --identity "$IDENTITY" \
+  --handoff-body-file "$HANDOFF_INPUT" \
+  --workboard-line-file "$WORKBOARD_INPUT" "${PREP_ARGS[@]}")"; then
+  rm -f "$HANDOFF_INPUT" "$WORKBOARD_INPUT"
+  exit 1
+fi
+rm -f "$HANDOFF_INPUT" "$WORKBOARD_INPUT"
+mapfile -t PREP_FIELDS <<< "$PREP_OUTPUT"
+[ "${#PREP_FIELDS[@]}" -eq 4 ] || { echo 'checkpoint: invalid prepare result' >&2; exit 1; }
+BR="${PREP_FIELDS[0]}"; WT="${PREP_FIELDS[1]}"
+HANDOFF_PATH="${PREP_FIELDS[2]}"; WORKBOARD_PATH="${PREP_FIELDS[3]}"
+HANDOFF_REL="${HANDOFF_PATH#"$WT"/}"
+WORKBOARD_REL="${WORKBOARD_PATH#"$WT"/}"
+CURRENT_HANDOFF="$WT/docs/handoffs/CURRENT-HANDOFF.md"
+node "$WT/scripts/handoff-render.js" --base "$WT/docs/handoffs/rolling" \
+  --out "$CURRENT_HANDOFF"
+node "$WT/scripts/workboard-sweep.js" --render-only \
   --workboard "$WT/.revealui/workboard.md" --base "$WT/.revealui/workboard.d"
-node "$JV_ROOT/scripts/workboard-sweep.js" --render-only \
+node "$WT/scripts/workboard-sweep.js" --render-only \
   --workboard "$WT/.claude/workboard.md" --base "$WT/.revealui/workboard.d"
-# Fragments only
-git add docs/handoffs/rolling .revealui/workboard.d
+```
+For `--no-commit`, stop here. Report `$WT`, `$HANDOFF_PATH`, and
+`$WORKBOARD_PATH` under OUTSTANDING. Do not archive the session snapshot until
+the fragments are committed and published. For the default path, compose a
+commit message and PR body in a file outside the worktree, then continue:
+
+```bash
+# CMSG is a unique, session-owned text file containing the reviewed commit
+# message and PR body. Never include security technique details.
+CMSG="$(mktemp /tmp/revealfleet-checkpoint-message.XXXXXX.txt)"
+# Write the actual message to $CMSG before continuing.
+cd "$WT"
+# The prepare helper staged only the two exact files in this fresh worktree.
+# Review those staged names and content before the real signed commit.
+git diff --cached --name-only
+git diff --cached --check
 git -c core.fileMode=false commit -F "$CMSG" -- \
-  docs/handoffs/rolling .revealui/workboard.d
+  "$HANDOFF_REL" "$WORKBOARD_REL"
 git push origin "HEAD:refs/heads/$BR"
-gh pr create --base test --head "$BR" --body-file "$CMSG"
-gh pr edit <n> --repo RevealUIStudio/revealui-jv --add-label "merge:merge-commit"
-# Owner disposes merge (do not self-merge without named in-session auth):
-#   gh pr merge <n> --repo RevealUIStudio/revealui-jv --merge --delete-branch
-cd "$JV_ROOT" && git worktree remove "$WT" 2>/dev/null || true
-git fetch origin test && git merge --ff-only origin/test 2>/dev/null || true
-node "$JV_ROOT/scripts/handoff-render.js"
+REPO_SLUG="$(cd "$WT" && gh repo view --json nameWithOwner --jq .nameWithOwner)"
+PR_URL="$(cd "$WT" && gh pr create --repo "$REPO_SLUG" --draft --base test \
+  --head "$BR" --body-file "$CMSG")"
+gh pr edit "$PR_URL" --repo "$REPO_SLUG" --add-label "merge:merge-commit"
+rm -f "$CMSG"
+# Stop here unless the owner named an in-session merge disposition.
 ```
 
-**Cleanup + failure handling.** On success the temp worktree is removed. Branch delete rides the owner merge (`--delete-branch`). On ANY failure — the initial converge is not a clean fast-forward, an unresolved `stash pop` conflict, or a push/merge error — DO NOT silently drop the delta: surface the stash ref (`git stash list`) or the worktree path, fall back to the `--no-commit` end state (writes left for the owner), and leave the main checkout on its original branch. Never leave the main checkout on a `chore/checkpoint-*` branch.
+The PR uses merge-commit disposition on `.jv`; never use `--admin`,
+`--no-verify`, squash, or force push. The owner handles merge. Keep the
+worktree registered in `git worktree list` until PR disposition, then retire
+it through the maintained cleanup-session workflow. On failure, report its
+path and preserve the authored delta. Do not silently swallow fetch, worktree,
+push, or PR errors. Do not refresh derived files in the shared checkout while
+it has another session's edits; the isolated render is the report's read view.
 
-## Step 5c — Prepare-for-exit verifier (read-only, runs after 5b converges)
+## Step 5c — Prepare-for-exit verifier (read-only, runs after 5b)
 
-Runs the seed `prepare-for-exit` workflow's read-only session-exit verifier ([GAP-314 §5]($JV_REPO/docs/gap-specs/GAP-314-operational-workflow-layer-design.md)) — 7 report-only checks. Capture output verbatim. Check 6 may still phrase "CURRENT-HANDOFF.md committed"; under fragments-only the durable artifact is `docs/handoffs/rolling/**` (and workboard.d). Treat check 6 as **PASS** when the rolling fragment is on `origin/test` even if the derived render was not committed. Optional follow-up: update `prepare-for-exit.js` wording to "handoff fragments committed".
+Runs the seed `prepare-for-exit` workflow's read-only session-exit verifier ([GAP-314 §5]($JV_REPO/docs/gap-specs/GAP-314-operational-workflow-layer-design.md)) — 7 report-only checks. Capture output verbatim. Check 6 may still phrase "CURRENT-HANDOFF.md committed"; under fragments-only the durable artifact is the two exact fragment files. A draft checkpoint PR is not yet on `origin/test`, so report that warning accurately. The owning `prepare-for-exit.js` wording still needs to describe fragment publication.
 
 ```bash
 node "$JV_ROOT/scripts/prepare-for-exit.js"
 ```
 
-Runs unconditionally, in both the default (5b committed) and `--no-commit` paths — under `--no-commit` its check 6 (handoff committed + pushed) is expected to WARN, which is informative, not a bug. Capture the full output verbatim; do not re-derive or re-implement its checks here. Exit code is always 0 (report-only, never blocks) — this step never changes the CHECKPOINT-READY verdict.
+Runs unconditionally, in both the default (5b published as a draft PR) and `--no-commit` paths. Check 6 may warn until the owner merges the fragments. Capture the full output verbatim; do not re-derive or re-implement its checks here. Exit code is always 0 (report-only, never blocks) — this step never changes the CHECKPOINT-READY verdict.
 
 Step 6 surfaces this output as the PREPARE-FOR-EXIT section of the CHECKPOINT REPORT.
 
@@ -395,7 +390,6 @@ Now that Step 4 folded this session's snapshot into the rolling handoff, retire 
 ss_ensure_coord_dirs
 SNAP_DIR="$(ss_snap_dir)"
 ARCH="$(ss_snap_archive_dir)"
-SID="$(ss_session_id 2>/dev/null || true)"
 # GC: sweep any active-dir snapshot older than 7 days into archive/ (bounded active dir)
 find "$SNAP_DIR" -maxdepth 1 -type f -name '*.md' -mtime +7 -exec mv {} "$ARCH/" \; -printf 'GC-archived stale snapshot: %f\n' 2>/dev/null || true
 # Also GC legacy Claude adapter active dir (read-through path; do not leave orphans)
@@ -430,7 +424,8 @@ Print this structured summary to the user (NOT just the assistant log — actual
 Handoff fragment:     <path under docs/handoffs/rolling/>
 Workboard fragment:   <path under .revealui/workboard.d/>
 Derived render:       local only (CURRENT-HANDOFF + workboard re-rendered; not committed)
-Commit:               <#N merged to .jv test | committed locally <branch> | --no-commit: left unstaged for owner>
+Worktree:             <path from Step 5b; cleanup after PR disposition>
+Commit:               <draft PR URL on exact branch | --no-commit: isolated worktree left for owner>
 
 TRACKING SURFACES (6)
   [PASS|FAIL]  doc-locations-check.ts
@@ -505,20 +500,24 @@ else
 fi
 ```
 
-Daemon notification is non-blocking. If it fails for any reason, the handoff is still valid: next session's SessionStart hook discovers it via filesystem — `session-start.js` / Grok SessionStart print the `[menu] CURRENT-HANDOFF` pointer (orientation only). Consume is `/pickup`. (The former Step 7.5 invoked a `session-note` skill that was never built; removed in 0.6.1.)
+Daemon notification is non-blocking. The isolated `$CURRENT_HANDOFF` is the
+current render while the PR is open; the shared `.jv` render may be stale until
+the fragments merge and a later render refreshes it. SessionStart's `[menu]
+CURRENT-HANDOFF` pointer is orientation only; it does not prove those draft
+fragments are present. Consume is `/pickup` plus live PR verification.
 
 ## Step 8 — Next session consume path (prompt LAST)
 
-**Primary:** new equal-adapter session, owner types `/pickup` (skill `revealui-pickup`). That skill reads CURRENT-HANDOFF, re-verifies with `gh`, and continues agent-doable work. Do not auto-run `/pickup` on SessionStart.
+**Primary:** new equal-adapter session, owner types `/pickup` (skill `revealui-pickup`). Give it `$CURRENT_HANDOFF` and the draft `$PR_URL` from Step 5b so it can read this checkpoint's isolated render and re-verify the PR with `gh`. Under `--no-commit`, give it `$WT` and both fragment paths instead of a PR URL. Do not auto-run `/pickup` on SessionStart.
 
 **Fallback** (skill missing, other adapter, chat closed): emit a copy-pasteable next-agent prompt. Archive-Readiness still requires the fenced block as the last output of this turn.
 
 Per fleet coordination rules: the fallback prompt must be droppable into a new session with no synthesis. Compose it with these 5 sections (in order):
 
-1. **First line** — `New session: /pickup. Session <session-id> read-first: $JV_REPO/docs/handoffs/CURRENT-HANDOFF.md`. The path is the absolute filesystem path to the rolling handoff file.
+1. **First line** — `New session: /pickup. Session <session-id> read-first: <absolute $CURRENT_HANDOFF>; draft PR: <PR_URL>`. Under `--no-commit`, replace the PR URL with `$WT` and the two fragment paths. The isolated render is the read-first file on this machine; the PR URL is the cross-machine recovery pointer.
 2. **TL;DR** — 1–2 sentences with the single most important next action. Mirror CURRENT-HANDOFF **## Launch** row 1 (exact `rfg`/`rfc` command). Do not re-summarize.
 3. **Ordered next-actions** — numbered list. Item 1 is that Launch command. Further items are the fragment's **Owner-gated** one-liners only (merge, deploy, promote, vault). Do not write a second plan. No "investigate X" / "decide Y". If the next-agent has to fill in `<paste prod URL here>` or guess a product, the convention has been violated.
-4. **Locked-posture reminder** — one line. HARDLINES: `core.fileMode=false` on every .jv commit; **fragments-only pathspec** (`rolling` + `workboard.d`, never derived CURRENT-HANDOFF/workboard); `-F /tmp/cmsg-*.txt`; `--body-file`; `--head`/`--base` explicit; `gh pr merge --merge` only on revealui-jv (label `merge:merge-commit`); no `--auto`/`--no-verify`/`--admin`/`--force-push`/`--squash`; audit-first; no authored regex; revvault-first secrets; durable-only.
+4. **Locked-posture reminder** — one line. HARDLINES: `core.fileMode=false` on every .jv commit; stage the **two exact fragment files** only, never derived CURRENT-HANDOFF/workboard; `-F "$CMSG"`; `--body-file`; `--head`/`--base` explicit; `gh pr merge --merge` only on revealui-jv (label `merge:merge-commit`); no `--auto`/`--no-verify`/`--admin`/`--force-push`/`--squash`; audit-first; no authored regex; revvault-first secrets; durable-only.
 5. **Owner-gated deferrals** — one short list of items the next agent must NOT auto-pick up without explicit owner sign-off.
 
 Emit the prompt wrapped in a single triple-backtick fenced code block. The block must be the LAST thing emitted in the turn — no commentary, no "and that's it" trailer, nothing.
@@ -527,12 +526,17 @@ If the Step 6 verdict is `CHECKPOINT-READY: NO`, the TL;DR must lead with `BLOCK
 
 If the session was a no-op (nothing shipped, no in-flight work), still emit the prompt — TL;DR reads `SESSION END — no follow-up required. Next agent starts fresh.` and NEXT ACTIONS list is empty (the section header still appears for symmetry).
 
-The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional Step 4 section). The chat emission is for immediate copy-paste; CURRENT-HANDOFF.md is for recovery if chat closes before paste.
+The Step 4 fragment may include the next-agent instructions in its optional
+§"Next-agent prompt" section. The PR URL exists only after Step 5b, so include
+it in the final chat prompt and report, not by amending the committed fragment.
+Another machine can fetch that draft PR and render its fragments. Under
+`--no-commit`, recovery remains local to the retained worktree until the
+owner publishes it.
 
 ## Do not
 
 - Do NOT emit ANY text or tool call after Step 8's fenced prompt block. The block is the last thing in the turn — the owner triple-clicks to select.
-- Do NOT auto-commit on the MAIN `.jv` checkout — committing there strands it on a `chore/checkpoint-*` branch (the 8-session divergence bug). Commit ONLY via Step 5b (worktree-gated when a peer is live), or pass `--no-commit` to defer to the owner. Still NEVER auto-merge with `--admin` or squash.
+- Do NOT auto-commit on the MAIN `.jv` checkout — committing there strands it on a `chore/checkpoint-*` branch (the 8-session divergence bug). Commit ONLY via Step 5b's isolated worktree, or pass `--no-commit` to defer to the owner. Still NEVER auto-merge with `--admin` or squash.
 - Do NOT commit `docs/handoffs/CURRENT-HANDOFF.md`, `.revealui/workboard.md`, or `.claude/workboard.md` in a session checkpoint PR (derived renders; ADR 2026-07-23). Commit fragments only (`.revealui/workboard.d`). Do NOT treat `.claude/workboard.md` or `~/.claude/rules/` as the policy home.
 - Do NOT run `master-handoff-regen.js` from this skill — one-off `/rollup` (workflow `master-handoff-regen`) only, when Step 2c is STALE/EXPIRED or the owner asked.
 - Do NOT pass `--fix`/`--yes` to `cleanup-session` from this skill — report only; one-off `/cleanup --fix` is explicit.
@@ -550,7 +554,7 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 - When the user types `/checkpoint`, `/checkpoint <topic>`, or the Stop hook decides to run a final check.
 - NOT for one-off questions, read-only sessions, or aborted starts.
 
-**Arguments:** `/checkpoint --no-commit` skips Step 5b and leaves **fragment** writes UNSTAGED for the owner to review/commit — use it when the handoff needs an eyeball before it lands. The default (no flag) commits + converges **fragments only** to `.jv` `test` per Step 5b (merge-commit; label `merge:merge-commit`).
+**Arguments:** `/checkpoint --no-commit` writes two untracked fragments in an isolated worktree and leaves that worktree for owner review. The default (no flag) commits those two paths and opens a draft PR against `.jv` `test` per Step 5b (merge-commit disposition; label `merge:merge-commit`).
 
 ## Relationship to /handoff
 
