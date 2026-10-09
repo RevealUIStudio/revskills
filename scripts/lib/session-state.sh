@@ -265,10 +265,10 @@ ss_snapshot_write_path() {
 
 ss_count_live_harnesses() {
   local count=0
-  local comm argv0 argv1 rest
+  local comm argv1 rest
   # Match the kernel command name, not a substring of full command lines:
   # shell wrappers can mention Codex or another harness in their arguments.
-  while read -r comm argv0 argv1 rest; do
+  while read -r comm _ argv1 rest; do
     case "${comm:-}" in
       claude|grok|opencode|codex|codex-cli|cursor-agent) ;;
       cursor) [ "${argv1:-}" = "agent" ] || continue ;;

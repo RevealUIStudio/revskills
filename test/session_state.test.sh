@@ -211,7 +211,8 @@ test_ss_identity_uses_validated_session_not_recent_peer_cache() {
   export GROK_ACTIVE_SESSIONS="$tmp/no-such-active-sessions.json"
   export CODEX_THREAD_ID="codex-thread-42"
   assert_eq "session-codex-thread-42" "$(ss_identity)" "Codex session id supplies unique identity"
-  export CODEX_THREAD_ID="$(printf 'a%.0s' {1..128})"
+  CODEX_THREAD_ID="$(printf 'a%.0s' {1..128})"
+  export CODEX_THREAD_ID
   derived="$(ss_identity)"
   assert_eq "136" "${#derived}" "maximum native session id yields 136-character derived identity"
   unset CODEX_THREAD_ID
