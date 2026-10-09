@@ -30,7 +30,7 @@ Zero-touch recovery for common failure modes:
 
 ### 1. `claude-safe` wrapper (`bin/claude-safe`)
 
-A launcher that `exec`s the real `claude` binary, watches the exit code, and spawns a recovery tab on crash.
+A launcher that runs the real `claude` binary as a child, watches the exit code, and spawns a recovery tab on crash. It does not `exec` Claude: the wrapper has to keep running after Claude exits.
 
 - Exit codes `0`, `130` (SIGINT), `143` (SIGTERM) — pass through, no relaunch.
 - Anything else — crash: write a JSON crash marker and spawn a new Windows Terminal tab running `claude 'recover'`.
@@ -86,7 +86,7 @@ claude-safe --simulate-crash 42   # dry run, no real claude invocation
 | `wt.exe` not in PATH from WSL | Wrapper prints manual recovery instructions to stderr instead of spawning |
 | 3+ crashes in 5 min (loop) | Rate limit: wrapper stops auto-relaunching, user runs recovery manually |
 | Recovery tab stalls on cold Nix flake eval | Wrapper launches recovery from `$HOME`, passes `REVEALUI_CRASHED_REPO` so the skill still targets the right project |
-| Two recovery tabs spawn (race) | Crash markers are per-pid-per-timestamp; auto-heal is idempotent |
+| Two recovery tabs spawn (race) | Crash markers are `mktemp` files named `claude-crash-XXXXXXXXXX.json` (no pid in the name). Auto-heal is idempotent |
 | Auto-proceed takes destructive action | Closed auto-heal allowlist; anything unknown stops for review |
 
 ## Environment hooks

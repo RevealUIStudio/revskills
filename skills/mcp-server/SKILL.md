@@ -133,18 +133,27 @@ For multi-tenant servers, use a credential override pattern:
 ```typescript
 let _credentialOverrides: Record<string, string> = {};
 
-export function setCredentials(creds: Record<string, string>): void {
-  _credentialOverrides = creds;
+export async function withTenantCredentials<T>(
+  creds: Record<string, string>,
+  fn: () => Promise<T>,
+): Promise<T> {
+  _credentialOverrides = { ...creds };
+  try {
+    return await fn();
+  } finally {
+    _credentialOverrides = {};
+  }
 }
 
-// In tool handler:
+// In tool handler, only the credentials for this invocation are visible.
+// A missing withTenantCredentials call must not reuse the previous tenant.
 const apiKey = _credentialOverrides.API_KEY ?? process.env.API_KEY;
 if (!apiKey) {
   return { content: [{ type: 'text', text: 'Error: API_KEY not set' }], isError: true };
 }
 ```
 
-The hypervisor calls `setCredentials()` with tenant-scoped credentials before each invocation.
+The hypervisor wraps each invocation in `withTenantCredentials`. The `finally` clears the override so the next invocation cannot read the previous tenant key.
 
 ## HTTP API Helper Pattern
 

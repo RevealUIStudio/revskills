@@ -1,14 +1,14 @@
 ---
 type: master-spec
 repo: revskills
-last-updated: 2026-09-24
+last-updated: 2026-10-09
 owner: RevealUI Studio
 staleness-status: FRESH
 ---
 
 # RevSkills — Master Spec
 
-**Last Updated:** 2026-09-24
+**Last Updated:** 2026-10-09
 
 **Status:** Pre-1.0 per skill — surface stable; **29** skills under `skills/`  
 **Repo:** [RevealUIStudio/revskills](https://github.com/RevealUIStudio/revskills)
@@ -33,7 +33,7 @@ revskills/
 ├── LICENSE                         # MIT
 ├── bin/                            # optional adapter launchers (e.g. claude-safe)
 ├── scripts/                        # validators + session helpers
-├── skills/                         # one directory per skill (SSOT) — 26 total
+├── skills/                         # one directory per skill (SSOT) — 29 total
 │   ├── next-best-practices/
 │   │   └── SKILL.md
 │   └── …
@@ -67,7 +67,7 @@ metadata:
 
 | Field | Required | Purpose |
 |---|---|---|
-| `name` | yes | Stable skill identifier; matches the directory name |
+| `name` | yes | Stable skill identifier. Matches the directory name, except `revealui-coordinate`, whose slash command is `coordinate`. |
 | `description` | yes | LLM-targeted match-trigger description |
 | `license` | yes | SPDX (`MIT` for everything here) |
 | `allowed-tools` | no | Capability whitelist (see §Tool capability map) |
@@ -150,7 +150,7 @@ Enforcement: only harnesses that honor `allowed-tools` restrict tools; others ig
 | Pack | Skills | Assumptions |
 |---|---|---|
 | **Public / OSS** | next, tailwind, drizzle, electric, yjs, mcp, multi-agent-memory, grok-bot-checkpoint, vitest, security, exhaustive-audit, redundancy-scan, knowledge-graph, revealui-design | No RevealFleet layout required |
-| **Studio workflow** | revealui-checkpoint, snapshot, doctor, recover, ops, skills-test, sync-rules, sync-lts (deprecated), design-status, tracker, revvault-resolve | `$REVEALFLEET_ROOT`, `.jv`, revvault, RevDev — **layout**, not "Claude only" |
+| **Studio workflow** | revealui-checkpoint, revealui-coordinate, snapshot, pickup, cleanup, rollup, doctor, recover, ops, skills-test, sync-rules, sync-lts (deprecated), design-status, tracker, revvault-resolve | `$REVEALFLEET_ROOT`, `.jv`, revvault, RevDev. Layout, not Claude-only |
 
 Studio skills must still be **vendor-agnostic** across Claude / Grok / equal adapters (GAP-469+).
 

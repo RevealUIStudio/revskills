@@ -96,6 +96,26 @@ function extractText(content) {
   return bits.join("\n");
 }
 
+function peekPrefix(chatPath) {
+  let raw = "";
+  let fd;
+  try {
+    fd = fs.openSync(chatPath, "r");
+    const buf = Buffer.alloc(65536);
+    const n = fs.readSync(fd, buf, 0, buf.length, 0);
+    raw = buf.subarray(0, n).toString("utf8");
+    if (n === buf.length) {
+      const cut = raw.lastIndexOf("\n");
+      if (cut >= 0) raw = raw.slice(0, cut);
+    }
+  } catch {
+    return "";
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+  return lastUserAndAsstFromText(raw).lastUser;
+}
+
 function lastUserAndAsst(chatPath) {
   let lastUser = "";
   let lastAsst = "";
@@ -106,6 +126,12 @@ function lastUserAndAsst(chatPath) {
   } catch {
     return { lastUser, lastAsst };
   }
+  return lastUserAndAsstFromText(raw);
+}
+
+function lastUserAndAsstFromText(raw) {
+  let lastUser = "";
+  let lastAsst = "";
   for (const line of raw.split("\n")) {
     if (!line) continue;
     let obj;
@@ -213,8 +239,7 @@ function collectClaude() {
       if (!SUMMARY) {
         lastUser = lastUserAndAsst(file).lastUser;
       } else {
-        // summary: cheap first-line peek for cron collapse only
-        lastUser = lastUserAndAsst(file).lastUser;
+        lastUser = peekPrefix(file);
       }
       const cron = lastUser.startsWith(CRON_USER_PREFIX);
       rows.push({

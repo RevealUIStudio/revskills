@@ -61,7 +61,9 @@ PATTERNS=(
   # --- Other internal ventures the operator does not publicly associate with
   #     this org (paused or undisclosed)
   "venture-biotix|Biotix Wellness|paused internal venture (Biotix Wellness)"
+  "venture-biotix-bare|Biotix|paused internal venture (bare Biotix)"
   "venture-biotix-lower|biotix-wellness|paused internal venture (slug form)"
+  "venture-biotix-lower-bare|biotix|paused internal venture (bare biotix)"
 )
 
 # Directories / file globs to skip
@@ -74,7 +76,6 @@ EXCLUDE_FILES=(
   # third-party-config exception); the bash scanner must NOT count
   # those keywords as violations of itself. Scanner-self-pattern.
   .gitleaks.issues.toml
-  CHANGELOG.md
   '*.png' '*.jpg' '*.jpeg' '*.gif' '*.webp' '*.pdf' '*.zip' '*.tar.gz' '*.tgz'
   '*.ico' '*.woff' '*.woff2' '*.ttf' '*.otf'
   '*.har' '*.snap'

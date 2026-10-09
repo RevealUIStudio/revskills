@@ -24,7 +24,7 @@ Thin one-off onto the registered workflow `cleanup-session` (`$JV_REPO/workflows
 
 Load helpers:
 ```bash
-. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
+. "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Default (report)

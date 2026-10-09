@@ -5,8 +5,9 @@
 # box its config strings here under the documented boundary exception.
 #
 # Consumer: .github/workflows/issue-leak-scan.yml only.
-# Code-side scanning continues to use .gitleaks.toml (default rules + repo
-# allowlists). This file extends those defaults with patterns that catch
+# Code-side scanning is security.yml `gitleaks detect` with gitleaks' own
+# default rules. This repo has no .gitleaks.toml. This file is the issue and
+# PR body config only. It adds patterns that catch
 # the leak classes the 2026-05-11 issue-audit found across the open
 # issue corpus — Stripe object IDs, internal subdomains, private-repo
 # path refs, founder home paths, Sentry DSNs, DB connection strings,

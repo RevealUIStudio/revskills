@@ -101,7 +101,7 @@ jobs:
               errors=$((errors+1))
             fi
 
-            # SKILL.md must have YAML frontmatter with name + description
+            # SKILL.md must open with YAML frontmatter. name and description are skills-lint.
             if [ -f "$dir/SKILL.md" ]; then
               if ! head -1 "$dir/SKILL.md" | grep -q '^---$'; then
                 printf 'FAIL: %s/SKILL.md missing YAML frontmatter\n' "$skill" >&2

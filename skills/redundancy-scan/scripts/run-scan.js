@@ -99,12 +99,24 @@ function main() {
       ]);
       inputs.push(h, m, n);
     }
-    run(path.join(scriptsDir, "merge-report.js"), [
-      "--out-dir",
-      outDir,
-      "--inputs",
-      inputs.join(","),
-    ]);
+    if (inputs.length === 0) {
+      fs.writeFileSync(path.join(outDir, "findings.jsonl"), "");
+      fs.writeFileSync(
+        path.join(outDir, "report.md"),
+        "# Redundancy / deprecation scan report\n\nNo child repos to scan.\n",
+      );
+      fs.writeFileSync(
+        path.join(outDir, "summary.json"),
+        JSON.stringify({ total: 0, byClass: {}, emptyFleet: true }, null, 2) + "\n",
+      );
+    } else {
+      run(path.join(scriptsDir, "merge-report.js"), [
+        "--out-dir",
+        outDir,
+        "--inputs",
+        inputs.join(","),
+      ]);
+    }
   } else {
     const h = path.join(outDir, "raw", "hash.jsonl");
     const m = path.join(outDir, "raw", "markers.jsonl");

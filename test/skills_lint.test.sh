@@ -15,6 +15,17 @@ test_skills_lint_good_fixture_passes() {
     -- bash "$sandbox/scripts/lint-all-skills.sh"
 }
 
+test_skills_lint_awk_fence_fails() {
+  local sandbox
+  sandbox="$(make_isolated_skills_lint_env bad-skill-awk)"
+  assert_exit "skills-lint rejects git -C and tmux inside a code fence" 1 \
+    -- bash "$sandbox/scripts/lint-all-skills.sh"
+  assert_contains "failure output names the git -C rule" \
+    "git-C-violates-bash.md" "$LAST_OUTPUT"
+  assert_contains "failure output names the tmux rule" \
+    "tmux-legacy" "$LAST_OUTPUT"
+}
+
 test_skills_lint_missing_field_fails() {
   local sandbox
   sandbox="$(make_isolated_skills_lint_env bad-skill-missing-field)"

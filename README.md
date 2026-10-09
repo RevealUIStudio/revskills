@@ -90,6 +90,7 @@ Three planes: product runtime, operator laptop, Studio daemon. `bin/rfloop` is o
 |-------|-------------|
 | [revealui-recover](skills/revealui-recover/) | Diagnose and recover from crashed/interrupted Studio sessions (Claude + Grok markers) |
 | [revealui-checkpoint](skills/revealui-checkpoint/) | Checkpoint checklist — tracking surfaces, handoff fragments, workboard log (Studio/RevealFleet sibling of [grok-bot-checkpoint](skills/grok-bot-checkpoint/)) |
+| [revealui-coordinate](skills/revealui-coordinate/) | Live peer coordination packet (`/coordinate`). Snapshot calls `--mode=report`; checkpoint calls `--mode=refresh` |
 | [revealui-pickup](skills/revealui-pickup/) | Consume CURRENT-HANDOFF and continue agent-doable work (`/pickup`; not `/next`) |
 | [revealui-snapshot](skills/revealui-snapshot/) | Mid-session fidelity snapshot for checkpoint composition (auto session id) |
 | [revealui-ops](skills/revealui-ops/) | Thin `/ops` shim onto the operational-workflow-layer runner |
@@ -122,6 +123,7 @@ git config core.hooksPath .githooks
 1. **skills-lint** — SKILL.md + optional multi-home command symlink check (`scripts/lint-all-skills.sh`)
 2. **plugin-lint** — in-repo plugin metadata (`scripts/lint-plugins.sh .`; Claude cache optional)
 3. **private-leak-scan** — private paths / secrets (`scripts/check-no-private-leaks.sh`)
+4. **md-truth-self-test** — `skills/exhaustive-audit/scripts/md-truth-check.js --self-test`
 
 Bypass (rare, document in the PR): `SKIP_PREPUSH=1 git push`.
 

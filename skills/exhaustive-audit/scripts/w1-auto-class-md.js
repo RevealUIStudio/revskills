@@ -22,6 +22,7 @@
 
 const fs = require("fs");
 const crypto = require("crypto");
+const { countLines } = require("./lib/text-lines");
 
 function parseArgs(argv) {
   const out = { dryRun: false };
@@ -200,17 +201,13 @@ function main() {
       continue;
     }
 
-    const lines = text.length === 0 ? 0 : text.split(/\n/).length;
-    // Actual span uses re-count so coverage-status line-gap uses re-read
-    const actualLines = lines;
-    // If file ends with newline, split length counts last empty; manifest may differ by 1
-    const endLine = Math.max(actualLines, typeof m.lines === "number" ? m.lines : actualLines);
-    const startLine = endLine === 0 ? 0 : 1;
-
+    const diskLines = countLines(buf);
     const hash = sha256(buf);
+    const rowFindingIds = [];
     if (m.sha256 && m.sha256 !== hash) {
+      const id = `W1-HASH-${written.length + 1}`;
       findings.push({
-        id: `W1-HASH-${written.length + 1}`,
+        id,
         path: p,
         severity: "info",
         class: "drift",
@@ -219,45 +216,42 @@ function main() {
         agent,
         ts,
       });
+      rowFindingIds.push(id);
+      status = "finding";
     }
-
-    // coverage-status: prefer manifest span when present; if disk is shorter,
-    // record actual lines and emit a drift finding.
-    let linesRead = endLine === 0 ? [0, 0] : [startLine, endLine];
-    if (typeof m.lines === "number" && m.lines > 0) {
-      if (actualLines > 0 && actualLines < m.lines) {
-        linesRead = [1, actualLines];
-        findings.push({
-          id: `W1-LINES-${written.length + 1}`,
-          path: p,
-          severity: "low",
-          class: "drift",
-          title: "disk shorter than manifest line count",
-          body: `manifest.lines=${m.lines} disk_lines=${actualLines}`,
-          agent,
-          ts,
-        });
-      } else {
-        linesRead = [1, m.lines];
-      }
+    if (typeof m.lines === "number" && m.lines !== diskLines) {
+      const id = `W1-LINES-${written.length + 1}`;
+      findings.push({
+        id,
+        path: p,
+        severity: "low",
+        class: "drift",
+        title: "disk line count differs from manifest",
+        body: `manifest.lines=${m.lines} disk_lines=${diskLines}`,
+        agent,
+        ts,
+      });
+      rowFindingIds.push(id);
+      status = "finding";
     }
+    const linesRead = diskLines === 0 ? [0, 0] : [1, diskLines];
 
     const row = {
       path: p,
       status,
       lines_read: linesRead,
-      manifest_lines: typeof m.lines === "number" ? m.lines : endLine,
+      manifest_lines: typeof m.lines === "number" ? m.lines : diskLines,
       sha256: hash,
       agent,
       session: "gap407-w1-auto-class",
       ts,
-      finding_ids: [],
+      finding_ids: rowFindingIds,
       notes: `W1 auto-class; full read; proof=${proof}`,
       c3: {
         bar: "fact-match|fact-doc-drift|fact-code-drift|policy-enforced|generated-ok|historical-ok|non-claim|waived",
         default: status,
         proof,
-        finding_ids: [],
+        finding_ids: rowFindingIds,
       },
     };
 

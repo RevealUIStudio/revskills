@@ -452,7 +452,7 @@ CHECKPOINT-READY: <YES | NO — see outstanding>
 
 **CHECKPOINT-READY rules:**
 - `YES` only when: all 6 validators PASS (or only `master-handoff-staleness` is STALE which is non-blocking) AND uncommitted .jv changes are zero (or explicitly peer-WIP untracked files only) AND every open PR for the active branches is either GREEN-AND-MERGEABLE or owner-gated.
-- `NO` otherwise. Finish agent-doable outstanding items in-session, then re-run the verdict; only owner-gated leftovers keep READY=NO.
+- `NO` when any agent-doable item remains. Finish those in-session, then re-run the verdict. Owner-gated leftovers and pending hotfixes alone do not force NO. List them under OUTSTANDING. They still allow YES.
 - PREPARE-FOR-EXIT WARNs do NOT gate CHECKPOINT-READY — the verifier is report-only by design (it can never fail, per `prepare-for-exit.js`'s own contract). List its WARNs under OUTSTANDING for visibility; do not flip YES to NO on their account alone.
 - CLEANUP-SESSION `STOPPED-GATED` does NOT gate CHECKPOINT-READY. List SAFE-TO-REMOVE items under OUTSTANDING; do not `--fix` from this skill.
 

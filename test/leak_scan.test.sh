@@ -29,6 +29,16 @@ test_leak_scan_flags_private_home_path() {
     "LEAK:abs-home-path" "$LAST_OUTPUT"
 }
 
+test_leak_scan_flags_one_character_home_username() {
+  local sandbox bad_path
+  sandbox="$(make_sandbox)"
+  bad_path="/ho""me/a/notes.txt"
+  printf 'see %s for the draft\n' "$bad_path" > "$sandbox/notes.md"
+  assert_exit "leak-scan rejects a one-character /home username" 1 \
+    -- bash "$REPO_ROOT/scripts/check-no-private-leaks.sh" "$sandbox"
+  assert_contains "one-character home failure tag" "LEAK:abs-home-path" "$LAST_OUTPUT"
+}
+
 test_leak_scan_accepts_clean_content() {
   local sandbox
   sandbox="$(make_sandbox)"

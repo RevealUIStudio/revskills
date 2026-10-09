@@ -463,3 +463,62 @@ test_md_truth_coverage_refuses_home_default() {
     pass "md-truth did not create HOME/revealfleet"
   fi
 }
+
+test_claim_refresh_requires_exact_agent() {
+  local fleet run
+  fleet="$(make_sandbox)"
+  mkdir -p "$fleet/docs"
+  printf 'x\n' >"$fleet/docs/a.md"
+  run="$(make_sandbox)/run"
+  node "$SKILL/open-run.js" --root "$fleet" --slug hi --out "$run" >/dev/null
+  node "$SKILL/claim-shard.js" --run "$run" --shard shard-000 --agent grok-audit-shard-000 >/dev/null
+  node -e '
+    const fs = require("fs");
+    const plan = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    const shard = plan.shards.find((row) => row.id === "shard-000");
+    shard.status = "open";
+    delete shard.claimedBy;
+    fs.writeFileSync(process.argv[1], JSON.stringify(plan, null, 2) + "\n");
+  ' "$run/shards.json"
+  assert_exit "shorter agent id cannot refresh a longer claim" 2 \
+    -- node "$SKILL/claim-shard.js" --run "$run" --shard shard-000 --agent grok
+  if grep -q '^agent: grok-audit-shard-000$' "$run/claims/shard-000.yml"; then
+    pass "original claim file kept"
+  else
+    fail "original claim file was overwritten"
+  fi
+}
+
+test_w1_hash_mismatch_is_finding() {
+  local tree man led row
+  tree="$(make_sandbox)"
+  mkdir -p "$tree/docs/handoffs/rolling"
+  printf 'one\n' >"$tree/docs/handoffs/rolling/note.md"
+  man="$(make_sandbox)/manifest.jsonl"
+  led="$(make_sandbox)/coverage.jsonl"
+  : >"$led"
+  node "$SKILL/manifest-build.js" --root "$tree" --out "$man" >/dev/null
+  printf 'two\n' >"$tree/docs/handoffs/rolling/note.md"
+  node "$SKILL/w1-auto-class-md.js" --manifest "$man" --ledger "$led" >/dev/null
+  row="$(node -e 'const fs=require("fs"); const rows=fs.readFileSync(process.argv[1],"utf8").trim().split("\n").map(JSON.parse); const row=rows.find(r=>r.path.endsWith("note.md")); process.stdout.write(JSON.stringify(row));' "$led")"
+  assert_contains "w1 hash mismatch status is finding" '"status":"finding"' "$row"
+  assert_contains "w1 hash mismatch carries a finding id" 'W1-HASH-' "$row"
+}
+
+test_w5_policy_flag_is_finding() {
+  local tree man led row
+  tree="$(make_sandbox)"
+  mkdir -p "$tree/grok-home/rules"
+  python3 - "$tree/grok-home/rules/fat.md" <<'PY'
+import sys
+open(sys.argv[1], "w").write("~/suite/live\n" + ("x" * 5000) + "\n")
+PY
+  man="$(make_sandbox)/manifest.jsonl"
+  led="$(make_sandbox)/coverage.jsonl"
+  : >"$led"
+  node "$SKILL/manifest-build.js" --root "$tree" --out "$man" >/dev/null
+  node "$SKILL/w5-homes-md.js" --manifest-grok "$man" --ledger "$led" >/dev/null
+  row="$(node -e 'const fs=require("fs"); const rows=fs.readFileSync(process.argv[1],"utf8").trim().split("\n").map(JSON.parse); const row=rows.find(r=>r.path.endsWith("fat.md")); process.stdout.write(JSON.stringify(row));' "$led")"
+  assert_contains "w5 policy flag status is finding" '"status":"finding"' "$row"
+  assert_contains "w5 policy flag carries a finding id" 'W5-' "$row"
+}

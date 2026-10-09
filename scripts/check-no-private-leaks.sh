@@ -38,7 +38,7 @@ unset _path
 # Anchored where possible to keep false-positive noise low.
 PATTERNS=(
   "lit-username|joshua[-]v-dev|literal developer username; use a placeholder"
-  "abs-home-path|/home/[a-z][a-z0-9_-]+|absolute user home path (/home/<username>/...)"
+  "abs-home-path|/home/[a-z][a-z0-9_-]*|absolute user home path (/home/<username>/...)"
   "abs-windows-user|[Cc]:[\\\\/]Users[\\\\/][A-Za-z0-9_-]+|absolute Windows user path (C:\\\\Users\\\\<name>)"
   "abs-wsl-windows-user|/mnt/[a-z]/Users/[A-Za-z0-9_-]+|WSL mount of a Windows user path (/mnt/c/Users/<name>)"
   "private-jv-repo|[~/][A-Za-z][A-Za-z0-9._-]*/\\.jv|private repo path (~/<fleet>/.jv/...)"
