@@ -5,8 +5,9 @@
  * Modes:
  *   --self-test     Verify W1/W4/W5 scripts exist + coverage-status accepts C3
  *                   statuses. Always safe for CI (no archive required).
- *   --coverage      Require REVEALFLEET_ARCHIVE/audits/<run> (or --run) and fail
- *                   unless coverage-status exits 0 on fleet+homes manifests.
+ *   --coverage      Require REVEALFLEET_ARCHIVE or REVEALFLEET_ROOT (or --run)
+ *                   and fail unless coverage-status exits 0 on fleet+homes
+ *                   manifests. Never falls back to $HOME/revealfleet.
  *
  * Usage:
  *   node md-truth-check.js --self-test
@@ -67,13 +68,27 @@ function selfTest() {
   process.stdout.write("md-truth-check --self-test: OK\n");
 }
 
+function archiveRoot() {
+  if (process.env.REVEALFLEET_ARCHIVE) return process.env.REVEALFLEET_ARCHIVE;
+  if (process.env.REVEALFLEET_ROOT) return path.join(process.env.REVEALFLEET_ROOT, "archive", "cold");
+  throw new Error(
+    "md-truth-check --coverage: set REVEALFLEET_ARCHIVE or REVEALFLEET_ROOT. Never default to $HOME/revealfleet.",
+  );
+}
+
 function coverageCheck(runId) {
-  const archive =
-    process.env.REVEALFLEET_ARCHIVE || path.join(process.env.HOME || "", "revealfleet/archive/cold");
-  const runDir = path.join(archive, "audits", runId);
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$/.test(String(runId || ""))) {
+    throw new Error("md-truth-check --coverage: --run must be a single path segment");
+  }
+  const audits = path.resolve(archiveRoot(), "audits");
+  const runDir = path.resolve(audits, runId);
+  const rel = path.relative(audits, runDir);
+  if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
+    throw new Error("md-truth-check --coverage: run directory escapes the archive");
+  }
   if (!fs.existsSync(runDir)) {
     throw new Error(
-      `coverage run not found: ${runDir} (set REVEALFLEET_ARCHIVE or skip --coverage in CI without archive)`,
+      `coverage run not found: ${runDir} (set REVEALFLEET_ARCHIVE or REVEALFLEET_ROOT, or skip --coverage in CI without archive)`,
     );
   }
   const main = path.join(runDir, "manifest.jsonl");

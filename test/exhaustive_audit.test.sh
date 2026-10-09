@@ -370,3 +370,96 @@ test_coverage_read_hash_takes_precedence() {
   assert_exit "md-truth matching hash retains missing-span allowance" 0 \
     -- node "$SKILL/coverage-status.js" --manifest "$man" --ledger "$led" --mode md-truth --check-hash
 }
+
+test_w4_trailing_newline_span_is_terminal() {
+  local tree man led
+  tree="$(make_sandbox)"
+  mkdir -p "$tree/.jv/docs/lanes"
+  printf 'lane\nplan\n' >"$tree/.jv/docs/lanes/one.md"
+  man="$(make_sandbox)/manifest.jsonl"
+  led="$(make_sandbox)/coverage.jsonl"
+  : >"$led"
+  node "$SKILL/manifest-build.js" --root "$tree" --out "$man" >/dev/null
+  node "$SKILL/w4-jv-present-md.js" --manifest "$man" --ledger "$led" >/dev/null
+  assert_exit "w4 trailing newline is a terminal md-truth row" 0 \
+    -- node "$SKILL/coverage-status.js" --manifest "$man" --ledger "$led" --mode md-truth
+}
+
+test_w5_trailing_newline_span_is_terminal() {
+  local tree man led
+  tree="$(make_sandbox)"
+  mkdir -p "$tree/grok-home/notes"
+  printf 'home\nnote\n' >"$tree/grok-home/notes/a.md"
+  man="$(make_sandbox)/manifest.jsonl"
+  led="$(make_sandbox)/coverage.jsonl"
+  : >"$led"
+  node "$SKILL/manifest-build.js" --root "$tree" --out "$man" >/dev/null
+  node "$SKILL/w5-homes-md.js" --manifest-grok "$man" --ledger "$led" >/dev/null
+  assert_exit "w5 trailing newline is a terminal md-truth row" 0 \
+    -- node "$SKILL/coverage-status.js" --manifest "$man" --ledger "$led" --mode md-truth
+}
+
+test_open_run_refuses_home_default() {
+  local home fleet
+  home="$(make_sandbox)"
+  fleet="$(make_sandbox)"
+  mkdir -p "$fleet/docs"
+  printf 'x\n' >"$fleet/docs/a.md"
+  assert_exit "open-run refuses HOME archive fallback" 1 \
+    -- env -u AUDIT_RUN_ROOT -u REVEALFLEET_ARCHIVE -u REVEALFLEET_ROOT HOME="$home" \
+      node "$SKILL/open-run.js" --root "$fleet" --slug hi
+  assert_contains "home fallback names the pin" 'Never default to $HOME/revealfleet' "$LAST_OUTPUT"
+  if [[ -d "$home/revealfleet" ]]; then
+    fail "open-run created a HOME/revealfleet archive"
+  else
+    pass "open-run did not create HOME/revealfleet"
+  fi
+}
+
+test_open_run_uses_revealfleet_root() {
+  local root fleet day run
+  root="$(make_sandbox)"
+  fleet="$(make_sandbox)"
+  mkdir -p "$fleet/docs"
+  printf 'x\n' >"$fleet/docs/a.md"
+  day="$(date -u +%Y-%m-%d)"
+  assert_exit "open-run archives under REVEALFLEET_ROOT" 0 \
+    -- env -u AUDIT_RUN_ROOT -u REVEALFLEET_ARCHIVE HOME="$(make_sandbox)" REVEALFLEET_ROOT="$root" \
+      node "$SKILL/open-run.js" --root "$fleet" --slug hi
+  run="$root/archive/cold/audits/${day}-hi"
+  if [[ -f "$run/AUDIT-RUN.yml" ]]; then
+    pass "run landed under REVEALFLEET_ROOT/archive/cold/audits"
+  else
+    fail "missing $run/AUDIT-RUN.yml" "$LAST_OUTPUT"
+  fi
+}
+
+test_open_run_rejects_slug_escape() {
+  local fleet archive
+  fleet="$(make_sandbox)"
+  archive="$(make_sandbox)"
+  mkdir -p "$fleet/docs"
+  printf 'x\n' >"$fleet/docs/a.md"
+  assert_exit "open-run rejects a slug that leaves the archive" 1 \
+    -- env AUDIT_RUN_ROOT="$archive" \
+      node "$SKILL/open-run.js" --root "$fleet" --slug 'x/../../tmp'
+  if find "$archive" -mindepth 1 -print | grep -q .; then
+    fail "rejected slug still wrote under the archive"
+  else
+    pass "rejected slug wrote nothing"
+  fi
+}
+
+test_md_truth_coverage_refuses_home_default() {
+  local home
+  home="$(make_sandbox)"
+  assert_exit "md-truth coverage refuses HOME archive" 1 \
+    -- env -u REVEALFLEET_ARCHIVE -u REVEALFLEET_ROOT HOME="$home" \
+      node "$SKILL/md-truth-check.js" --coverage --run planted
+  assert_contains "coverage refusal names HOME" 'Never default to $HOME/revealfleet' "$LAST_OUTPUT"
+  if [[ -d "$home/revealfleet" ]]; then
+    fail "md-truth created HOME/revealfleet"
+  else
+    pass "md-truth did not create HOME/revealfleet"
+  fi
+}

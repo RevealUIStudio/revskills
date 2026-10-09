@@ -14,6 +14,7 @@
 
 const fs = require("fs");
 const crypto = require("crypto");
+const { countLines } = require("./lib/text-lines");
 
 function parseArgs(argv) {
   const out = { dryRun: false };
@@ -125,8 +126,7 @@ function main() {
       continue;
     }
 
-    const diskLines = text.length === 0 ? 0 : text.split(/\n/).length;
-    const end = Math.max(typeof m.lines === "number" ? m.lines : 0, diskLines, diskLines ? 1 : 0);
+    const diskLines = countLines(buf);
 
     if (cls.tier === "L4") {
       l4.push(p);
@@ -142,8 +142,8 @@ function main() {
     const row = {
       path: p,
       status: cls.status,
-      lines_read: end === 0 ? [0, 0] : [1, end],
-      manifest_lines: typeof m.lines === "number" ? m.lines : end,
+      lines_read: diskLines === 0 ? [0, 0] : [1, diskLines],
+      manifest_lines: typeof m.lines === "number" ? m.lines : diskLines,
       sha256: sha256(buf),
       agent,
       session: "gap407-w5-homes",
