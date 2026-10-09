@@ -36,6 +36,11 @@ REVEALUI_COORD_LEGACY_CLAUDE="${REVEALUI_COORD_LEGACY_CLAUDE:-$HOME/.claude/coor
 # Identity
 # ---------------------------------------------------------------------------
 
+ss_valid_identity() {
+  local id="${1:-}"
+  [[ ${#id} -le 64 && "$id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+}
+
 ss_identity() {
   if [ -n "${REVEALUI_IDENTITY:-}" ]; then
     printf '%s\n' "$REVEALUI_IDENTITY"
@@ -49,11 +54,16 @@ ss_identity() {
     printf '%s\n' "$CLAUDE_AGENT_ROLE"
     return 0
   fi
-  local cache
-  cache="$(ls -t /tmp/revealui-session-*.id 2>/dev/null | head -1)"
-  if [ -n "$cache" ] && [ -s "$cache" ]; then
-    head -1 "$cache"
-    return 0
+  # This process only. A newer file planted in /tmp must not win, and the
+  # line is a label, not a grep pattern or a command.
+  local cache id
+  cache="/tmp/revealui-session-${PPID}.id"
+  if [ -f "$cache" ] && [ -s "$cache" ]; then
+    id="$(head -1 "$cache")"
+    if ss_valid_identity "$id"; then
+      printf '%s\n' "$id"
+      return 0
+    fi
   fi
   printf 'stagehand\n'
 }

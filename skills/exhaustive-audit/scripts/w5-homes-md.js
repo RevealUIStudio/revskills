@@ -14,6 +14,7 @@
 
 const fs = require("fs");
 const crypto = require("crypto");
+const { countLines } = require("./lib/text-lines");
 
 function parseArgs(argv) {
   const out = { dryRun: false };
@@ -125,37 +126,40 @@ function main() {
       continue;
     }
 
-    const diskLines = text.length === 0 ? 0 : text.split(/\n/).length;
-    const end = Math.max(typeof m.lines === "number" ? m.lines : 0, diskLines, diskLines ? 1 : 0);
+    const diskLines = countLines(buf);
+    const findingIds = [];
 
     if (cls.tier === "L4") {
       l4.push(p);
       // Pointer-only Grok rules should not re-author full hardlines
       if (/grok-home\/rules\//.test(p) && text.length > 4000 && !/pointer|Plane A|do not full-copy/i.test(text)) {
         flags.push({ path: p, note: "grok rule file large — check adapter-only thinness" });
+        findingIds.push(`W5-THIN-${findingIds.length + 1}`);
       }
       if (/~\/suite\//.test(text) && !/retired|banned|stale/.test(text)) {
         flags.push({ path: p, note: "possible live suite path" });
+        findingIds.push(`W5-SUITE-${findingIds.length + 1}`);
       }
     }
+    const status = findingIds.length ? "finding" : cls.status;
 
     const row = {
       path: p,
-      status: cls.status,
-      lines_read: end === 0 ? [0, 0] : [1, end],
-      manifest_lines: typeof m.lines === "number" ? m.lines : end,
+      status,
+      lines_read: diskLines === 0 ? [0, 0] : [1, diskLines],
+      manifest_lines: typeof m.lines === "number" ? m.lines : diskLines,
       sha256: sha256(buf),
       agent,
       session: "gap407-w5-homes",
       ts,
-      finding_ids: [],
+      finding_ids: findingIds,
       notes: `W5 home; tier=${cls.tier}; proof=${cls.proof}`,
       c3: {
         bar: "fact-match|historical-ok|generated-ok|non-claim|waived",
-        default: cls.status === "verified" ? "fact-match" : cls.status,
+        default: status === "verified" ? "fact-match" : status,
         proof: cls.proof,
         tier: cls.tier,
-        finding_ids: [],
+        finding_ids: findingIds,
       },
     };
     written.push(row);

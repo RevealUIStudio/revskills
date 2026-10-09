@@ -50,10 +50,6 @@ function upsertPercent(text, percent) {
   return `${text.replace(/\s*$/, "")}\n\n[session]\nauto_compact_threshold_percent = ${percent}\n`;
 }
 
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function upsertModel(text, modelId, tokens) {
   const header = `[model."${modelId}"]`;
   const lines = text.split("\n");
@@ -123,4 +119,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { applyBudget, loadBudget, escapeRegExp };
+module.exports = { applyBudget, loadBudget };

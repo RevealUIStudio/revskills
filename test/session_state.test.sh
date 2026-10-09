@@ -190,6 +190,22 @@ test_ss_session_id_empty_without_env() {
   unset REVEALUI_COORD_ROOT GROK_ACTIVE_SESSIONS
 }
 
+test_ss_identity_ignores_planted_tmp_file() {
+  _ss_load
+  _ss_clear_session_env
+  local planted ppid_file
+  planted="$(mktemp /tmp/revealui-session-zz.XXXXXX.id)"
+  printf '%s\n' '$(echo PWNED)' >"$planted"
+  touch -d '2026-10-09 00:00:00' "$planted" 2>/dev/null || true
+  ppid_file="/tmp/revealui-session-${PPID}.id"
+  printf '%s\n' 'from-ppid' >"$ppid_file"
+  assert_eq "from-ppid" "$(ss_identity)" "ppid file wins over a newer planted file"
+  rm -f "$ppid_file"
+  assert_eq "stagehand" "$(ss_identity)" "invalid planted identity falls through to stagehand"
+  rm -f "$planted"
+  _ss_clear_session_env
+}
+
 test_ss_identity_prefers_neutral() {
   _ss_load
   _ss_clear_session_env

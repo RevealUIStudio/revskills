@@ -162,7 +162,7 @@ Report anything that would prevent the next session from running.
 ss_workboard_recent "$IDENTITY" 20
 ```
 
-Look for `[CRASHED]` entries. If the most recent entry for this identity is CRASHED and all prior recovery steps come back clean, propose clearing the marker (edit `$WORKBOARD` to prefix with `[RECOVERED]` and a timestamp) — **ask first**.
+Look for `[CRASHED]` entries. If the most recent entry for this identity is CRASHED and all prior recovery steps come back clean: when `$CLAUDE_CRASH_MARKER` or `$REVEALUI_CRASH_MARKER` is set, Step 10 owns the flip to `[RECOVERED]` and it is auto-healable. Otherwise propose the edit and ask first. Do not both ask and auto-heal the same flip.
 
 ## Step 8 — Relevant memory
 

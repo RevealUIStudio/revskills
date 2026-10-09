@@ -24,7 +24,7 @@ Thin one-off onto the registered workflow `master-handoff-regen` (`$JV_REPO/work
 
 Load helpers:
 ```bash
-. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
+. "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
 ```
 
 ## Run

@@ -121,8 +121,14 @@ const { data, isLoading } = useShape({
 All filtering happens server-side in the proxy route. Never trust client-provided WHERE clauses:
 
 ```typescript
-// Good: server derives the filter from the authenticated session
-originUrl.searchParams.set('where', `user_id = '${session.user.id}'`);
+// Good: server derives the filter from the authenticated session.
+// The id is allowlisted before it is interpolated. A quote in the id
+// must not break out of the Electric where clause.
+const userId = session.user.id;
+if (!/^[a-zA-Z0-9_-]+$/.test(userId)) {
+  throw new Error('invalid session user id');
+}
+originUrl.searchParams.set('where', `user_id = '${userId}'`);
 
 // Bad: client controls the filter
 originUrl.searchParams.set('where', request.searchParams.get('filter'));

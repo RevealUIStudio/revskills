@@ -15,6 +15,7 @@
 
 const fs = require("fs");
 const crypto = require("crypto");
+const { countLines } = require("./lib/text-lines");
 
 function parseArgs(argv) {
   const out = { dryRun: false };
@@ -187,9 +188,8 @@ function main() {
       continue;
     }
 
-    const diskLines = text.length === 0 ? 0 : text.split(/\n/).length;
-    const end = Math.max(typeof m.lines === "number" ? m.lines : 0, diskLines, diskLines === 0 ? 0 : 1);
-    const lines_read = end === 0 ? [0, 0] : [1, end];
+    const diskLines = countLines(buf);
+    const lines_read = diskLines === 0 ? [0, 0] : [1, diskLines];
 
     // Light L4 checks on policy files: flag retired suite path tokens as findings later if needed
     let notes = `W4 .jv; tier=${cls.tier}; proof=${cls.proof}`;
@@ -207,7 +207,7 @@ function main() {
       path: p,
       status: cls.status,
       lines_read,
-      manifest_lines: typeof m.lines === "number" ? m.lines : end,
+      manifest_lines: typeof m.lines === "number" ? m.lines : diskLines,
       sha256: sha256(buf),
       agent,
       session: "gap407-w4-jv",

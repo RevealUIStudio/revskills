@@ -285,7 +285,7 @@ Local render in Steps 4–5 remains required so the CHECKPOINT REPORT and next-a
 
 Pass `--no-commit` to skip Step 5b and leave fragment writes UNSTAGED for owner review — then jump to Step 6 and list them under OUTSTANDING.
 
-**CRITICAL — never strand the main checkout.** A naive commit on the MAIN `.jv` checkout was the root cause of the 8-session checkpoint-merge divergence: it left the main checkout on a `chore/checkpoint-*` branch that later merged+deleted, so every subsequent checkpoint merged onto the dead branch and never converged. The fix is the `.jv` Single-Writer Discipline — when a peer is live, do the commit from a throwaway `$JV_REPO-wt/` worktree so the main checkout never moves.
+**CRITICAL: never strand the main checkout.** A commit on the MAIN `.jv` checkout was the root cause of the 8-session checkpoint-merge divergence: the local branch gained the fragment commit, `git push origin HEAD:refs/heads/$BR` published that commit under another name, and `git merge --ff-only origin/test || true` hid the divergence. Every subsequent checkpoint then merged onto a dead branch. Solo (`PEERS` ≤ 1) and peer-live use the same fix: commit from a throwaway `$JV_REPO-wt/` worktree. The main checkout never receives the checkpoint commit. `PEERS` is recorded in the report. It does not choose which checkout is committed.
 
 Determine the writer mode (count live interactive equal-harness sessions — Claude, Grok, Cursor agent, OpenCode — GAP-469):
 ```bash
@@ -304,33 +304,7 @@ Throughout: `core.fileMode=false` on every `.jv` commit; **explicit pathspec (fr
 `merge:merge-commit` required by CI); add that label on the checkpoint PR;
 NO `--admin`/`--no-verify`/`--force-push`.
 
-**SOLO (`PEERS` ≤ 1)** — commit on the current `.jv` branch (fragments pathspec only):
-```bash
-cd "$JV_ROOT"
-BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
-# Step 4 already wrote handoff rolling fragment + local render. Workboard log:
-printf -- '- [%s] %s: [CHECKPOINT] → rolling fragment only | tracking: %s | next: %s\n' "$TS" "$IDENTITY" "$TRACK" "$NEXT" \
-  | node "$JV_ROOT/scripts/workboard-fragment.js" --kind log --id "$IDENTITY" --base "$WORKBOARD_D"
-# Neutral render (derived). Then adapter render. Commit neither.
-node "$JV_ROOT/scripts/workboard-sweep.js" --render-only \
-  --workboard "$WORKBOARD" --base "$WORKBOARD_D"
-node "$JV_ROOT/scripts/workboard-sweep.js" --render-only \
-  --workboard "$WORKBOARD_ADAPTER" --base "$WORKBOARD_D"
-# Fragments only — do not add CURRENT-HANDOFF.md or either workboard.md
-git add docs/handoffs/rolling .revealui/workboard.d
-git -c core.fileMode=false commit -F "$CMSG" -- \
-  docs/handoffs/rolling .revealui/workboard.d
-git push origin "HEAD:refs/heads/$BR"
-gh pr create --base test --head "$BR" --body-file "$CMSG"
-gh pr edit <n> --repo RevealUIStudio/revealui-jv --add-label "merge:merge-commit"
-# Stop here unless the owner named an in-session merge disposition.
-# Owner merge (merge-commit only; never squash):
-#   gh pr merge <n> --repo RevealUIStudio/revealui-jv --merge --delete-branch
-git fetch origin test && git merge --ff-only origin/test 2>/dev/null || true
-node "$JV_ROOT/scripts/handoff-render.js"   # refresh local derived view after land
-```
-
-**PEER LIVE (`PEERS` > 1)** — do NOT commit on the main checkout; use a dedicated worktree:
+**Worktree commit (solo and peer-live).** Do not commit on the current `.jv` branch. Re-write this session's fragments inside the worktree, then commit there:
 ```bash
 cd "$JV_ROOT"
 WT="$JV_REPO-wt/ckpt-${ISO_DATE}-$$"; BR="chore/checkpoint-${ISO_DATE}-${IDENTITY}"
@@ -359,7 +333,7 @@ gh pr edit <n> --repo RevealUIStudio/revealui-jv --add-label "merge:merge-commit
 # Owner disposes merge (do not self-merge without named in-session auth):
 #   gh pr merge <n> --repo RevealUIStudio/revealui-jv --merge --delete-branch
 cd "$JV_ROOT" && git worktree remove "$WT" 2>/dev/null || true
-git fetch origin test && git merge --ff-only origin/test 2>/dev/null || true
+git fetch origin test && git merge --ff-only origin/test
 node "$JV_ROOT/scripts/handoff-render.js"
 ```
 
@@ -478,7 +452,7 @@ CHECKPOINT-READY: <YES | NO — see outstanding>
 
 **CHECKPOINT-READY rules:**
 - `YES` only when: all 6 validators PASS (or only `master-handoff-staleness` is STALE which is non-blocking) AND uncommitted .jv changes are zero (or explicitly peer-WIP untracked files only) AND every open PR for the active branches is either GREEN-AND-MERGEABLE or owner-gated.
-- `NO` otherwise. Finish agent-doable outstanding items in-session, then re-run the verdict; only owner-gated leftovers keep READY=NO.
+- `NO` when any agent-doable item remains. Finish those in-session, then re-run the verdict. Owner-gated leftovers and pending hotfixes alone do not force NO. List them under OUTSTANDING. They still allow YES.
 - PREPARE-FOR-EXIT WARNs do NOT gate CHECKPOINT-READY — the verifier is report-only by design (it can never fail, per `prepare-for-exit.js`'s own contract). List its WARNs under OUTSTANDING for visibility; do not flip YES to NO on their account alone.
 - CLEANUP-SESSION `STOPPED-GATED` does NOT gate CHECKPOINT-READY. List SAFE-TO-REMOVE items under OUTSTANDING; do not `--fix` from this skill.
 
@@ -532,7 +506,7 @@ The same content should be in CURRENT-HANDOFF.md §"Next-agent prompt" (optional
 ## Do not
 
 - Do NOT emit ANY text or tool call after Step 8's fenced prompt block. The block is the last thing in the turn — the owner triple-clicks to select.
-- Do NOT auto-commit on the MAIN `.jv` checkout — committing there strands it on a `chore/checkpoint-*` branch (the 8-session divergence bug). Commit ONLY via Step 5b (worktree-gated when a peer is live), or pass `--no-commit` to defer to the owner. Still NEVER auto-merge with `--admin` or squash.
+- Do NOT auto-commit on the MAIN `.jv` checkout. Committing there strands it (the 8-session divergence bug). Commit ONLY from the Step 5b throwaway worktree, including when this session is solo, or pass `--no-commit` to defer to the owner. Still NEVER auto-merge with `--admin` or squash.
 - Do NOT commit `docs/handoffs/CURRENT-HANDOFF.md`, `.revealui/workboard.md`, or `.claude/workboard.md` in a session checkpoint PR (derived renders; ADR 2026-07-23). Commit fragments only (`.revealui/workboard.d`). Do NOT treat `.claude/workboard.md` or `~/.claude/rules/` as the policy home.
 - Do NOT run `master-handoff-regen.js` from this skill — one-off `/rollup` (workflow `master-handoff-regen`) only, when Step 2c is STALE/EXPIRED or the owner asked.
 - Do NOT pass `--fix`/`--yes` to `cleanup-session` from this skill — report only; one-off `/cleanup --fix` is explicit.

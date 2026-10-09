@@ -29,7 +29,7 @@ pushes into a cloud Grok Bot session.
 Load helpers:
 
 ```bash
-. "$HOME/revealfleet/revskills/scripts/lib/session-state.sh"
+. "$REVEALFLEET_ROOT/revskills/scripts/lib/session-state.sh"
 COORD="$REVEALFLEET_ROOT/revskills/skills/revealui-coordinate/scripts/coordinate.js"
 ```
 

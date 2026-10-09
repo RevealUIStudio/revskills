@@ -114,14 +114,15 @@ occupancy-pct: <the last [context] advisory pct if you saw one, else omit this l
 
 Refresh semantics: re-running `/snapshot` overwrites the same `$SID.md` with the current state — later in a session is more accurate, so refresh freely when the picture has materially changed.
 
-## Step 4 — Memory promotion (owner directive: "in conjunction with memory")
+## Step 4 — Memory promotion
 
-Durable lessons must reach the memory directory **at snapshot time**, not only at session close. Scan what you just wrote into `## Active-Constraints` and `## Do-Not-Repeat`:
+Durable lessons are product memory in the knowledge graph (`revealui.memory.v1`), as `skills/multi-agent-memory` defines it. Claude `~/.claude` memory files, Grok `[memory]`, and any other vendor home are pointers. They are not a second durable store. Do not write `~/.claude/projects/<project>/memory/` from this step.
 
-- Anything **feedback-class** (how the owner wants you to work) or **rule-class** (a durable convention) that is NOT already a memory file → write it to your Claude Code project memory directory (`~/.claude/projects/<project>/memory/<slug>.md`, the path given in your session instructions) with the memory frontmatter, and add its one-line pointer to that dir's `MEMORY.md` index. (Session-only facts stay in the snapshot; do not promote those.)
-- In the snapshot, under `## Active-Constraints`, add a line `memory-promoted: [[slug-1]] [[slug-2]]` naming any memory files this snapshot spawned, so `/checkpoint` can verify the promotion happened.
+Scan `## Active-Constraints` and `## Do-Not-Repeat`:
 
-Follow the memory conventions in the global instructions (one fact per file, check for an existing file to update before creating, do not duplicate what the repo/code already records).
+- Session-only facts stay in the snapshot.
+- A feedback-class or rule-class lesson that should outlive the session stays in those sections and is named under `## Open-Loose-Ends` until the knowledge graph is available. Do not copy it into a vendor memory directory.
+- Do not add a `memory-promoted:` line that points at Claude vendor memory files.
 
 
 ## Step 5 — Best-effort daemon dual-write (GAP-342)

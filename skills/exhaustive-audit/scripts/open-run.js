@@ -40,15 +40,38 @@ function parseArgs(argv) {
   return out;
 }
 
-function defaultRunRoot(slug) {
-  const archive =
-    process.env.AUDIT_RUN_ROOT ||
-    path.join(
-      process.env.REVEALFLEET_ARCHIVE || path.join(process.env.HOME || "", "revealfleet/archive/cold"),
-      "audits",
+function assertSlug(slug) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(String(slug || ""))) {
+    process.stderr.write(
+      "open-run: --slug must match ^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$ (no slashes or ..)\n",
     );
+    process.exit(1);
+  }
+}
+
+function archiveBase() {
+  if (process.env.AUDIT_RUN_ROOT) return process.env.AUDIT_RUN_ROOT;
+  if (process.env.REVEALFLEET_ARCHIVE) return path.join(process.env.REVEALFLEET_ARCHIVE, "audits");
+  if (process.env.REVEALFLEET_ROOT) {
+    return path.join(process.env.REVEALFLEET_ROOT, "archive", "cold", "audits");
+  }
+  process.stderr.write(
+    "open-run: set AUDIT_RUN_ROOT, REVEALFLEET_ARCHIVE, or REVEALFLEET_ROOT. Never default to $HOME/revealfleet.\n",
+  );
+  process.exit(1);
+}
+
+function defaultRunRoot(slug) {
+  assertSlug(slug);
+  const base = path.resolve(archiveBase());
   const day = new Date().toISOString().slice(0, 10);
-  return path.join(archive, `${day}-${slug}`);
+  const runRoot = path.resolve(base, `${day}-${slug}`);
+  const rel = path.relative(base, runRoot);
+  if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
+    process.stderr.write("open-run: run directory escapes the archive\n");
+    process.exit(1);
+  }
+  return runRoot;
 }
 
 function gitPin(repoAbs) {
@@ -152,6 +175,7 @@ function main() {
     process.stderr.write(`open-run: not a directory: ${rootAbs}\n`);
     process.exit(1);
   }
+  assertSlug(args.slug);
 
   const runRoot = path.resolve(args.out || defaultRunRoot(args.slug));
   if (fs.existsSync(path.join(runRoot, "AUDIT-RUN.yml"))) {

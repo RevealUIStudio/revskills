@@ -12,22 +12,13 @@
 
 set -uo pipefail
 
-# --- Resolve the real claude binary ---
-REAL_CLAUDE="$HOME/.local/bin/claude"
-if [[ ! -x "$REAL_CLAUDE" ]]; then
-  REAL_CLAUDE="$(command -v claude)"
-fi
-if [[ -z "${REAL_CLAUDE:-}" ]] || [[ "$REAL_CLAUDE" = "$0" ]]; then
-  echo "claude-safe: cannot locate real claude binary" >&2
-  exit 127
-fi
-
 REPO="$(pwd)"
 IDENTITY="${REVEALUI_IDENTITY:-$(whoami)}"
 DISTRO="${WSL_DISTRO_NAME:-Ubuntu}"
 
 # --- Simulate-crash mode: exercise the recovery path without killing a live session ---
 # Usage: claude-safe --simulate-crash [exit_code]   (default 139, SIGSEGV-ish)
+# Resolved before the real binary so a missing `claude` does not block the drill.
 SIMULATE=0
 if [[ "${1:-}" == "--simulate-crash" ]]; then
   SIMULATE=1
@@ -36,6 +27,15 @@ if [[ "${1:-}" == "--simulate-crash" ]]; then
   [[ "$EXIT" =~ ^[0-9]+$ ]] || EXIT=139
   echo "claude-safe: --simulate-crash — faking exit $EXIT without invoking real claude" >&2
 else
+  # --- Resolve the real claude binary ---
+  REAL_CLAUDE="$HOME/.local/bin/claude"
+  if [[ ! -x "$REAL_CLAUDE" ]]; then
+    REAL_CLAUDE="$(command -v claude)"
+  fi
+  if [[ -z "${REAL_CLAUDE:-}" ]] || [[ "$REAL_CLAUDE" = "$0" ]]; then
+    echo "claude-safe: cannot locate real claude binary" >&2
+    exit 127
+  fi
   # --- Run real claude with all args passed through ---
   "$REAL_CLAUDE" "$@"
   EXIT=$?
@@ -56,13 +56,12 @@ if (( CRASH_COUNT >= 3 )); then
   exit "$EXIT"
 fi
 
-# Find rolling last-known-good snapshot (written by stop hook)
+# Stop hook writes /tmp/claude-last-state-<ppid>.json for this wrapper (the
+# parent of claude). Another session's lexical-first glob hit is the wrong file.
 SNAPSHOT=""
-for f in /tmp/claude-last-state-*.json; do
-  [[ -f "$f" ]] || continue
-  SNAPSHOT="$f"
-  break
-done
+if [[ -f "/tmp/claude-last-state-$$.json" ]]; then
+  SNAPSHOT="/tmp/claude-last-state-$$.json"
+fi
 
 # Write crash marker for /recover to detect + read.
 # Use jq for proper JSON escaping — hand-rolled stripping is injectable via crafted $PWD.

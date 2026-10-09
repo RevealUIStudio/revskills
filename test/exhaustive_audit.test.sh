@@ -370,3 +370,155 @@ test_coverage_read_hash_takes_precedence() {
   assert_exit "md-truth matching hash retains missing-span allowance" 0 \
     -- node "$SKILL/coverage-status.js" --manifest "$man" --ledger "$led" --mode md-truth --check-hash
 }
+
+test_w4_trailing_newline_span_is_terminal() {
+  local tree man led
+  tree="$(make_sandbox)"
+  mkdir -p "$tree/.jv/docs/lanes"
+  printf 'lane\nplan\n' >"$tree/.jv/docs/lanes/one.md"
+  man="$(make_sandbox)/manifest.jsonl"
+  led="$(make_sandbox)/coverage.jsonl"
+  : >"$led"
+  node "$SKILL/manifest-build.js" --root "$tree" --out "$man" >/dev/null
+  node "$SKILL/w4-jv-present-md.js" --manifest "$man" --ledger "$led" >/dev/null
+  assert_exit "w4 trailing newline is a terminal md-truth row" 0 \
+    -- node "$SKILL/coverage-status.js" --manifest "$man" --ledger "$led" --mode md-truth
+}
+
+test_w5_trailing_newline_span_is_terminal() {
+  local tree man led
+  tree="$(make_sandbox)"
+  mkdir -p "$tree/grok-home/notes"
+  printf 'home\nnote\n' >"$tree/grok-home/notes/a.md"
+  man="$(make_sandbox)/manifest.jsonl"
+  led="$(make_sandbox)/coverage.jsonl"
+  : >"$led"
+  node "$SKILL/manifest-build.js" --root "$tree" --out "$man" >/dev/null
+  node "$SKILL/w5-homes-md.js" --manifest-grok "$man" --ledger "$led" >/dev/null
+  assert_exit "w5 trailing newline is a terminal md-truth row" 0 \
+    -- node "$SKILL/coverage-status.js" --manifest "$man" --ledger "$led" --mode md-truth
+}
+
+test_open_run_refuses_home_default() {
+  local home fleet
+  home="$(make_sandbox)"
+  fleet="$(make_sandbox)"
+  mkdir -p "$fleet/docs"
+  printf 'x\n' >"$fleet/docs/a.md"
+  assert_exit "open-run refuses HOME archive fallback" 1 \
+    -- env -u AUDIT_RUN_ROOT -u REVEALFLEET_ARCHIVE -u REVEALFLEET_ROOT HOME="$home" \
+      node "$SKILL/open-run.js" --root "$fleet" --slug hi
+  assert_contains "home fallback names the pin" 'Never default to $HOME/revealfleet' "$LAST_OUTPUT"
+  if [[ -d "$home/revealfleet" ]]; then
+    fail "open-run created a HOME/revealfleet archive"
+  else
+    pass "open-run did not create HOME/revealfleet"
+  fi
+}
+
+test_open_run_uses_revealfleet_root() {
+  local root fleet day run
+  root="$(make_sandbox)"
+  fleet="$(make_sandbox)"
+  mkdir -p "$fleet/docs"
+  printf 'x\n' >"$fleet/docs/a.md"
+  day="$(date -u +%Y-%m-%d)"
+  assert_exit "open-run archives under REVEALFLEET_ROOT" 0 \
+    -- env -u AUDIT_RUN_ROOT -u REVEALFLEET_ARCHIVE HOME="$(make_sandbox)" REVEALFLEET_ROOT="$root" \
+      node "$SKILL/open-run.js" --root "$fleet" --slug hi
+  run="$root/archive/cold/audits/${day}-hi"
+  if [[ -f "$run/AUDIT-RUN.yml" ]]; then
+    pass "run landed under REVEALFLEET_ROOT/archive/cold/audits"
+  else
+    fail "missing $run/AUDIT-RUN.yml" "$LAST_OUTPUT"
+  fi
+}
+
+test_open_run_rejects_slug_escape() {
+  local fleet archive
+  fleet="$(make_sandbox)"
+  archive="$(make_sandbox)"
+  mkdir -p "$fleet/docs"
+  printf 'x\n' >"$fleet/docs/a.md"
+  assert_exit "open-run rejects a slug that leaves the archive" 1 \
+    -- env AUDIT_RUN_ROOT="$archive" \
+      node "$SKILL/open-run.js" --root "$fleet" --slug 'x/../../tmp'
+  if find "$archive" -mindepth 1 -print | grep -q .; then
+    fail "rejected slug still wrote under the archive"
+  else
+    pass "rejected slug wrote nothing"
+  fi
+}
+
+test_md_truth_coverage_refuses_home_default() {
+  local home
+  home="$(make_sandbox)"
+  assert_exit "md-truth coverage refuses HOME archive" 1 \
+    -- env -u REVEALFLEET_ARCHIVE -u REVEALFLEET_ROOT HOME="$home" \
+      node "$SKILL/md-truth-check.js" --coverage --run planted
+  assert_contains "coverage refusal names HOME" 'Never default to $HOME/revealfleet' "$LAST_OUTPUT"
+  if [[ -d "$home/revealfleet" ]]; then
+    fail "md-truth created HOME/revealfleet"
+  else
+    pass "md-truth did not create HOME/revealfleet"
+  fi
+}
+
+test_claim_refresh_requires_exact_agent() {
+  local fleet run
+  fleet="$(make_sandbox)"
+  mkdir -p "$fleet/docs"
+  printf 'x\n' >"$fleet/docs/a.md"
+  run="$(make_sandbox)/run"
+  node "$SKILL/open-run.js" --root "$fleet" --slug hi --out "$run" >/dev/null
+  node "$SKILL/claim-shard.js" --run "$run" --shard shard-000 --agent grok-audit-shard-000 >/dev/null
+  node -e '
+    const fs = require("fs");
+    const plan = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    const shard = plan.shards.find((row) => row.id === "shard-000");
+    shard.status = "open";
+    delete shard.claimedBy;
+    fs.writeFileSync(process.argv[1], JSON.stringify(plan, null, 2) + "\n");
+  ' "$run/shards.json"
+  assert_exit "shorter agent id cannot refresh a longer claim" 2 \
+    -- node "$SKILL/claim-shard.js" --run "$run" --shard shard-000 --agent grok
+  if grep -q '^agent: grok-audit-shard-000$' "$run/claims/shard-000.yml"; then
+    pass "original claim file kept"
+  else
+    fail "original claim file was overwritten"
+  fi
+}
+
+test_w1_hash_mismatch_is_finding() {
+  local tree man led row
+  tree="$(make_sandbox)"
+  mkdir -p "$tree/docs/handoffs/rolling"
+  printf 'one\n' >"$tree/docs/handoffs/rolling/note.md"
+  man="$(make_sandbox)/manifest.jsonl"
+  led="$(make_sandbox)/coverage.jsonl"
+  : >"$led"
+  node "$SKILL/manifest-build.js" --root "$tree" --out "$man" >/dev/null
+  printf 'two\n' >"$tree/docs/handoffs/rolling/note.md"
+  node "$SKILL/w1-auto-class-md.js" --manifest "$man" --ledger "$led" >/dev/null
+  row="$(node -e 'const fs=require("fs"); const rows=fs.readFileSync(process.argv[1],"utf8").trim().split("\n").map(JSON.parse); const row=rows.find(r=>r.path.endsWith("note.md")); process.stdout.write(JSON.stringify(row));' "$led")"
+  assert_contains "w1 hash mismatch status is finding" '"status":"finding"' "$row"
+  assert_contains "w1 hash mismatch carries a finding id" 'W1-HASH-' "$row"
+}
+
+test_w5_policy_flag_is_finding() {
+  local tree man led row
+  tree="$(make_sandbox)"
+  mkdir -p "$tree/grok-home/rules"
+  python3 - "$tree/grok-home/rules/fat.md" <<'PY'
+import sys
+open(sys.argv[1], "w").write("~/suite/live\n" + ("x" * 5000) + "\n")
+PY
+  man="$(make_sandbox)/manifest.jsonl"
+  led="$(make_sandbox)/coverage.jsonl"
+  : >"$led"
+  node "$SKILL/manifest-build.js" --root "$tree" --out "$man" >/dev/null
+  node "$SKILL/w5-homes-md.js" --manifest-grok "$man" --ledger "$led" >/dev/null
+  row="$(node -e 'const fs=require("fs"); const rows=fs.readFileSync(process.argv[1],"utf8").trim().split("\n").map(JSON.parse); const row=rows.find(r=>r.path.endsWith("fat.md")); process.stdout.write(JSON.stringify(row));' "$led")"
+  assert_contains "w5 policy flag status is finding" '"status":"finding"' "$row"
+  assert_contains "w5 policy flag carries a finding id" 'W5-' "$row"
+}

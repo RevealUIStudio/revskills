@@ -71,7 +71,8 @@ function writeClaimExclusive(filePath, body, agent) {
     }
     throw readErr;
   }
-  if (!existing.includes(`agent: ${agent}`)) {
+  const heldByThisAgent = existing.split("\n").some((line) => line === `agent: ${agent}`);
+  if (!heldByThisAgent) {
     const err = new Error(`claim file already held by another agent: ${filePath}`);
     err.code = "EEXIST";
     throw err;

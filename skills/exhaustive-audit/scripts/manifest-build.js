@@ -24,6 +24,7 @@ const {
   resolveFleetAllowlist,
   shouldWalkFleetChild,
 } = require("./lib/fleet-scope");
+const { countLines } = require("./lib/text-lines");
 
 const DEFAULT_EXCLUDES = [
   "node_modules",
@@ -118,17 +119,6 @@ function classify(rel, ext) {
   if (ext === ".css" || ext === ".scss") return "style";
   if (base.startsWith(".env")) return "env";
   return "other";
-}
-
-function countLines(buf) {
-  if (buf.length === 0) return 0;
-  let n = 1;
-  for (let i = 0; i < buf.length; i++) {
-    if (buf[i] === 10) n++;
-  }
-  if (buf[buf.length - 1] === 10) n--;
-  if (n < 1) n = 1;
-  return n;
 }
 
 function isProbablyBinary(buf) {

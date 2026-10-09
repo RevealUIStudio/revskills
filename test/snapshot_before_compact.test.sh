@@ -28,6 +28,13 @@ test_stop_blocks_when_occupancy_above_gate_and_no_snapshot() {
   assert_contains "stop stdout is a block decision" '"decision":"block"' "$out"
   assert_contains "stop reason names occupancy" "occupancy 80%" "$out"
   assert_contains "stop reason names session id" "$sid" "$out"
+  assert_contains "stop reason names the fleet-root skill path" \
+    '$REVEALFLEET_ROOT/revskills/skills/revealui-snapshot/SKILL.md' "$out"
+  if [[ "$out" == *'~/revealfleet'* ]]; then
+    fail "stop reason still points at ~/revealfleet"
+  else
+    pass "stop reason does not point at ~/revealfleet"
+  fi
 }
 
 test_stop_allows_when_occupancy_below_gate() {

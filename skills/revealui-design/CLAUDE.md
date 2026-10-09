@@ -22,21 +22,18 @@ revealui-design/
 ├── README.md                          — full canonical doc (start here)
 ├── SKILL.md                           — short orientation
 └── ui_kits/
-    ├── marketing/                     — cobalt light marketing site (self-contained)
+    ├── marketing/                     — retirement pointer (GAP-479)
     │   ├── README.md
-    │   ├── index.html                   open directly in browser — no external deps
-    │   ├── NavBar.jsx, Hero.jsx, Primitives.jsx
-    │   ├── Pricing.jsx, Faq.jsx, Footer.jsx
-    └── admin/                         — cobalt dark Studio dashboard (self-contained)
+    │   └── index.html                 — pointer page, no tokens, no JSX
+    └── admin/                         — retirement pointer (GAP-479)
         ├── README.md
-        ├── index.html                   open directly in browser — no external deps
-        ├── Sidebar.jsx, Topbar.jsx, Dashboard.jsx
+        └── index.html                 — pointer page, no tokens, no JSX
 
 Canonical tokens (not in this skill — read from the package):
   @revealui/tokens/design-context/
 ```
 
-The ui_kits inline a minimal cobalt token subset for standalone browser use. For production work, read token values from `@revealui/tokens/design-context/` — that pack is authoritative and drift-gated by CI. Any other local token snapshot is stale.
+The Babel JSX kits (NavBar, Hero, Sidebar, and the rest) are retired. Each `index.html` is a pointer page and does not inline cobalt tokens. For production work, read token values from `@revealui/tokens/design-context/`. That pack is authoritative and drift-gated by CI.
 
 ## Open issues — work around these, don't reintroduce them
 

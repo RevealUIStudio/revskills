@@ -4,7 +4,7 @@
 # Activates via:  git config core.hooksPath .githooks
 # (run once after clone; a chicken-and-egg situation prevents auto-install)
 #
-# Runs scanners in order, fails fast:
+# Runs every scanner, then exits 1 if any failed:
 #   1. lint-all-skills.sh        — frontmatter, awk rules, broken symlinks
 #   2. lint-plugins.sh .         — in-repo plugin metadata (Claude plugin = adapter)
 #   3. check-no-private-leaks.sh — private-path leak scan (repo-wide)

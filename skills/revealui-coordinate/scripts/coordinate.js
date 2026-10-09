@@ -15,13 +15,30 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { spawnSync } = require("child_process");
 
 const HOME = process.env.HOME || os.homedir();
 const GROK_HOME = process.env.GROK_HOME || path.join(HOME, ".grok");
-const FLEET =
-  process.env.REVEALFLEET_ROOT ||
-  path.join(HOME, "revealfleet");
-const JV = process.env.JV_REPO || path.join(FLEET, ".jv");
+const SESSION_HELPER = path.resolve(__dirname, "../../../scripts/lib/session-state.sh");
+const SESSION_ENV = [
+  "AGENT_SESSION_ID",
+  "REVEALUI_SESSION_ID",
+  "CODEX_THREAD_ID",
+  "CODEX_SESSION_ID",
+  "CLAUDE_CODE_SESSION_ID",
+  "GROK_SESSION_ID",
+];
+
+function jvRepo() {
+  if (process.env.JV_REPO) return process.env.JV_REPO;
+  if (process.env.REVEALFLEET_ROOT) return path.join(process.env.REVEALFLEET_ROOT, ".jv");
+  return "";
+}
+
+function validSessionId(sid) {
+  return typeof sid === "string" && sid.length > 0 && sid.length <= 128 &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(sid);
+}
 
 function parseArgs(argv) {
   const out = {
@@ -49,7 +66,7 @@ function parseArgs(argv) {
     else if (a.startsWith("--stay-off=")) out.stayOff.push(a.slice("--stay-off=".length));
   }
   if (out.mode !== "report" && out.mode !== "refresh" && out.mode !== "full") {
-    out.mode = "full";
+    out.modeError = out.mode;
   }
   return out;
 }
@@ -91,7 +108,9 @@ function loadRoster() {
 }
 
 function loadClaims() {
-  const dir = path.join(JV, ".revealui", "workboard.d", "active");
+  const jv = jvRepo();
+  if (!jv) return [];
+  const dir = path.join(jv, ".revealui", "workboard.d", "active");
   let names = [];
   try {
     names = fs.readdirSync(dir);
@@ -116,12 +135,31 @@ function loadClaims() {
   return claims;
 }
 
+function sessionIdFromHelper() {
+  if (!process.env.REVEALFLEET_ROOT || !fs.existsSync(SESSION_HELPER)) return "";
+  const r = spawnSync("bash", ["-c", 'source "$1"; ss_session_id', "bash", SESSION_HELPER], {
+    encoding: "utf8",
+    env: process.env,
+  });
+  if (r.status !== 0) return "";
+  const sid = (r.stdout || "").trim();
+  return validSessionId(sid) ? sid : "";
+}
+
 function thisSid(args) {
-  if (args.id) return args.id;
-  if (process.env.AGENT_SESSION_ID) return process.env.AGENT_SESSION_ID;
-  if (process.env.REVEALUI_SESSION_ID) return process.env.REVEALUI_SESSION_ID;
-  if (process.env.GROK_SESSION_ID) return process.env.GROK_SESSION_ID;
-  return "";
+  if (args.id) {
+    if (!validSessionId(args.id)) {
+      throw new Error("coordinate: invalid --id");
+    }
+    return args.id;
+  }
+  for (const name of SESSION_ENV) {
+    const sid = process.env[name];
+    if (!sid) continue;
+    if (!validSessionId(sid)) throw new Error(`coordinate: invalid ${name}`);
+    return sid;
+  }
+  return sessionIdFromHelper();
 }
 
 function overlap(a, b) {
@@ -153,7 +191,7 @@ function findConflicts(roster, claims, sid, claim) {
 }
 
 function activeRow(args, sid) {
-  const id = sid || args.id || "grok";
+  const id = sid;
   const iso = new Date().toISOString().slice(0, 10);
   const claim = args.claim || args.task || "(unclaimed)";
   const stay = args.stayOff.length > 0 ? `stay off: ${args.stayOff.join("; ")}` : "";
@@ -162,11 +200,21 @@ function activeRow(args, sid) {
 }
 
 function writeActive(args, sid) {
-  const id = sid || args.id || "grok";
-  const dir = path.join(JV, ".revealui", "workboard.d", "active");
+  if (!validSessionId(sid)) {
+    throw new Error("coordinate: refusing to write without a valid session id");
+  }
+  const jv = jvRepo();
+  if (!jv) {
+    throw new Error("coordinate: set JV_REPO or REVEALFLEET_ROOT before writing an active row");
+  }
+  const dir = path.resolve(jv, ".revealui", "workboard.d", "active");
   fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, `${id}.md`);
-  fs.writeFileSync(file, `${activeRow(args, id)}\n`, "utf8");
+  const file = path.resolve(dir, `${sid}.md`);
+  const rel = path.relative(dir, file);
+  if (!rel || rel.startsWith("..") || path.isAbsolute(rel) || rel !== `${sid}.md`) {
+    throw new Error("coordinate: session id escapes the active directory");
+  }
+  fs.writeFileSync(file, `${activeRow(args, sid)}\n`, "utf8");
   return file;
 }
 
@@ -218,7 +266,17 @@ function printHuman(packet) {
 
 function main() {
   const args = parseArgs(process.argv);
-  const sid = thisSid(args);
+  if (args.modeError) {
+    process.stderr.write(`coordinate: unknown --mode ${args.modeError}\n`);
+    process.exit(1);
+  }
+  let sid = "";
+  try {
+    sid = thisSid(args);
+  } catch (err) {
+    process.stderr.write(`${err.message}\n`);
+    process.exit(1);
+  }
   const roster = loadRoster();
   const claims = loadClaims();
   const claim = args.claim || args.task;
@@ -236,7 +294,18 @@ function main() {
   };
 
   if (args.mode === "refresh" || args.mode === "full") {
-    packet.wrote = writeActive(args, sid || "grok");
+    if (!validSessionId(sid)) {
+      process.stderr.write(
+        "coordinate: refresh/full require a valid session id (--id or ss_session_id). Refusing grok.md fallback.\n",
+      );
+      process.exit(1);
+    }
+    try {
+      packet.wrote = writeActive(args, sid);
+    } catch (err) {
+      process.stderr.write(`${err.message}\n`);
+      process.exit(1);
+    }
   }
   if (args.bots && args.mode === "full") {
     packet.botsText = botsBlock(packet);

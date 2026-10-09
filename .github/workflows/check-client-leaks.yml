@@ -1,6 +1,6 @@
 name: Client Name Leak Scan
 
-# Thin caller — shared composite action. Job name preserved for rulesets.
+# Runs the in-repo scanner. The property is unconditional: no CHANGELOG skip.
 
 on:
   push:
@@ -17,4 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: RevealUIStudio/.github/.github/actions/check-client-leaks@8ea1ca5697dfc1f2041aac1368a9dd6d241121ab
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Scan for client and prospect names
+        run: bash scripts/check-client-leaks.sh

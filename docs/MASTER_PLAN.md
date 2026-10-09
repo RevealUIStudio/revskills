@@ -1,15 +1,15 @@
 ---
 type: master-plan
 repo: revskills
-last-updated: 2026-08-13
+last-updated: 2026-10-09
 owner: RevealUI Studio
 staleness-status: FRESH
 ---
 
 # RevSkills — Master Plan
 
-**Last Updated:** 2026-08-13  
-**Status:** Active — **26** skills shipped under `skills/` (pre-1.0 per skill)  
+**Last Updated:** 2026-10-09  
+**Status:** Active. **29** skills shipped under `skills/` (pre-1.0 per skill)  
 **Owner:** RevealUI Studio  
 **Repo:** [RevealUIStudio/revskills](https://github.com/RevealUIStudio/revskills)
 
@@ -18,11 +18,11 @@ staleness-status: FRESH
 
 ---
 
-## Current reality (2026-08-07)
+## Current reality (2026-10-09)
 
 ### What exists
 
-26 Agent Skills (vendor-agnostic SSOT under `skills/`). Equal adapters: Claude Code, Grok, Cursor, OpenCode, VS Code. Public install: `npx skills add RevealUIStudio/revskills`. Claude `.claude-plugin/` is one marketplace adapter.
+29 Agent Skills (vendor-agnostic SSOT under `skills/`). Equal adapters: Claude Code, Grok, Cursor, OpenCode, VS Code. Public install: `npx skills add RevealUIStudio/revskills`. Claude `.claude-plugin/` is one marketplace adapter.
 
 Categories (see root `README.md` for the live table):
 
@@ -39,7 +39,7 @@ Categories (see root `README.md` for the live table):
 | Item | Notes |
 |---|---|
 | Public vs Studio layout pack | Documented in README + MASTER_SPEC; Studio ≠ Claude-only |
-| Continuous skill lint | Pre-push: skills-lint multi-home, plugin-lint in-repo `.`, leak-scan |
+| Continuous skill lint | Pre-push: skills-lint multi-home, plugin-lint in-repo `.`, leak-scan, md-truth self-test |
 | Vendor program follow-ups | GAP-470/471/472 train (packaging, workflow matrix, tool map) |
 
 ---
