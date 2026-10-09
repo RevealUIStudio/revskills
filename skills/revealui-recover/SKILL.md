@@ -1,11 +1,11 @@
 ---
 name: revealui-recover
-description: Recover crashed or interrupted Studio sessions (Claude + Grok). Mandatory 72h historical inventory first. Surfaces unfinished threads, orphan artifacts, git corruption, hook residue, and workboard CRASHED markers. Diagnostic-first — never executes destructive repairs without explicit approval.
+description: Recover crashed or interrupted revealfleet Studio sessions across equal harnesses. Mandatory 72h historical inventory first. Surfaces unfinished threads, orphan artifacts, git corruption, hook residue, and workboard CRASHED markers. Diagnostic-first — never executes destructive repairs without explicit approval.
 license: MIT
 allowed-tools: Bash, Read, Grep, Glob
 metadata:
   author: RevealUI Studio
-  version: "0.4.1"
+  version: "0.4.2"
   website: https://revealui.com
 ---
 
@@ -56,12 +56,12 @@ Cron / watcher rows are one class, not N recoveries.
 ## Step 0 — Identity
 
 ```bash
-IDENTITY="$(ss_identity)"
+IDENTITY="$(ss_identity 2>/dev/null || true)"
 SID="$(ss_session_id 2>/dev/null || true)"
 echo "identity=$IDENTITY session_id=${SID:-unresolved}"
 ```
 
-Known identities: `conductor`, `agent-extension[-N]`, `agent-edit[-N]`, `agent-system[-N]`, `revealui-studio`, `revealui-console`, `stagehand` (fallback). If `stagehand`, perform full (unscoped) recovery and flag that multi-agent state cannot be identity-filtered.
+Known role identities include `conductor`, `agent-extension[-N]`, `agent-edit[-N]`, `agent-system[-N]`, `revealui-studio`, and `revealui-console`. A validated session id supplies `session-<id>` when no role is set. If both are absent, the identity stays empty: inspect unscoped history read-only, flag the missing harness bootstrap, and do not attribute a peer's work or clear a `[CRASHED]` marker.
 
 ## Step 1 — Historical inventory (mandatory)
 
@@ -162,7 +162,7 @@ Report anything that would prevent the next session from running.
 ss_workboard_recent "$IDENTITY" 20
 ```
 
-Look for `[CRASHED]` entries. If the most recent entry for this identity is CRASHED and all prior recovery steps come back clean, propose clearing the marker (edit `$WORKBOARD` to prefix with `[RECOVERED]` and a timestamp) — **ask first**.
+Look for `[CRASHED]` entries. When `$IDENTITY` is nonempty and the most recent entry for it is CRASHED, and all prior recovery steps come back clean, propose clearing the marker (edit `$WORKBOARD` to prefix with `[RECOVERED]` and a timestamp) — **ask first**. With no identity, keep this step read-only and unscoped.
 
 ## Step 8 — Relevant memory
 

@@ -21,6 +21,7 @@ npx skills add RevealUIStudio/revskills --skill next-best-practices
 | Harness | Where skills typically land |
 |---------|------------------------------|
 | Claude Code | `~/.claude/skills/` or Studio slash links under `~/.claude/commands/` |
+| Codex | `<project>/.agents/skills/` through the RevealUI harness manager |
 | Grok | `[skills].paths` → this repo, or `~/.grok/skills/` |
 | Cursor | `<project>/.cursor/skills/` |
 | OpenCode / VS Code | per tool Agent Skills / agent-plugin docs |
@@ -82,7 +83,27 @@ Portable session close-out. Does not require RevealFleet. Studio/RevealFleet ses
 
 ### RevealUI Workflow (Studio layout)
 
-These skills assume RevealFleet layout (`$REVEALFLEET_ROOT/`, private planning hub, RevVault, RevDev RPC daemon). They are **equal-adapter** Studio skills (Claude, Grok, …), not Claude-only products. Canonical copies live here; Studio machines may symlink into vendor command homes.
+These skills assume revealfleet layout (`$REVEALFLEET_ROOT/`, private planning hub, RevVault, RevDev RPC daemon). They are **equal-adapter** Studio skills (Claude, Codex, Grok, …). Canonical copies live here; Studio machines may symlink into vendor command homes.
+
+The checkpoint publisher uses `scripts/checkpoint-prepare.sh` to create an
+isolated `.jv` worktree for every harness and stage only its two writer-returned
+fragments before the normal signed commit and draft PR. `scripts/lib/session-state.sh`
+accepts validated `CODEX_THREAD_ID` or `CODEX_SESSION_ID` and refuses to borrow
+another session's `/tmp` identity. **Open RevealUI harness integration ([#3111](https://github.com/RevealUIStudio/revealui/issues/3111)):** the
+Codex launch path must deliver a stable session ID to the RevSkills process.
+Owner: `revealui/packages/harnesses/src/manager/codex.ts` and the Codex
+adapter/bootstrap path. Validate with a launched Codex session, two concurrent
+sessions, and a resumed session: each must resolve its own ID and snapshot,
+while a session without an ID must stop before checkpoint writes. This is a
+separate implementation target; no manual environment export is a
+substitute for the harness contract.
+
+Affected legacy exceptions are accounted for in this change:
+
+| Location | Prior behavior | Owner and durable destination | Removal evidence |
+|----------|----------------|-------------------------------|------------------|
+| `scripts/lib/session-state.sh:ss_identity` | Picked the newest `/tmp/revealui-session-*.id` from any session, then used `stagehand` if none existed. | RevSkills session-state; accept a validated role or this process's resolved session ID. | Regression test proves missing identity fails closed and Codex ID resolves uniquely. |
+| `scripts/lib/session-state.sh:ss_workboard_recent` | Treats historical `stagehand` rows as an unscoped read. | RevSkills recovery; preserve read-only history until those rows age out, then remove the special case. | No active writer emits `stagehand`; archival inventory finds no remaining active row. |
 
 Three planes: product runtime, operator laptop, Studio daemon. `bin/rfloop` is operator-only: a PR/CI operator disk state machine only (P0 stub; no LLM; auto-merge locked). It is not the fleet brain or the product AgentRuntime. Prefer `rfloop`; `bin/revloop` is a rename shim.
 
